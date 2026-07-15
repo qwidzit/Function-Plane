@@ -29,6 +29,18 @@ Script load order is fixed in `function-plane/index.html` (config files → vend
 `accounts.js` → screens → `app.js`). Globals are attached to `window`
 (`FP_AUTH`, `LegalScreen`, `PREMIUM_LINKS`, etc.) rather than imported.
 
+> **Babel-version churn.** The committed `.js` files were built with an older
+> Babel that escapes non-ASCII in string literals (`•`, `—`). A newer
+> Babel emits those characters literally (`•`, `—`), so a full `build-jsx.js` run
+> reformats ~all files with functionally-identical churn. Two implications:
+> (1) for a **one-line** change, it's cleaner to edit the matching `.js` line
+> directly instead of rebuilding everything; (2) a real full rebuild will produce
+> a large one-time reformat diff — do it deliberately, not mixed into a feature
+> commit. Also note `npm install` fails in sandboxes: `@capacitor/assets` pulls in
+> `sharp`, whose binary download is proxy-blocked. To rebuild, install only
+> `@babel/core` + `@babel/preset-react` (e.g. in a temp dir) and point `NODE_PATH`
+> at them.
+
 ## Layout
 
 ```
