@@ -327,27 +327,96 @@
     );
   }
 
-  // ── Leaderboards (async) ──────────────────────────────────────────────────
+  // ── Leaderboards (async, cached) ──────────────────────────────────────────
   //
   // metric = 'stars'  → global ranking by total stars (for Achievements screen)
   // metric = 'level'  → ranking for one level by best_score ascending (for Level Complete)
+  //
+  // Server rows are cached (localStorage, short TTL) so reopening a screen
+  // doesn't refetch, and when offline the last-known board is shown instead
+  // of an empty list. Only raw server rows are cached — the `self` flag and
+  // the local fallback row are recomputed on every call, so account switches
+  // and fresh local records always show correctly.
+
+  const LB_TTL     = 3 * 60 * 1000;  // serve cached boards for up to 3 min
+  const LB_KEY     = 'fp-lb-cache';
+  const LB_MAX_KEYS = 40;            // keep the most recently used boards
+
+  async function _lbCached(key, fetchLive) {
+    const map = readJSON(LB_KEY, {});
+    const hit = map[key];
+    if (hit && Date.now() - hit.ts < LB_TTL) return hit.rows;
+    try {
+      const rows = await fetchLive();
+      const next = readJSON(LB_KEY, {});
+      next[key] = { ts: Date.now(), rows };
+      const keys = Object.keys(next);
+      if (keys.length > LB_MAX_KEYS) {
+        keys.sort((a, b) => next[a].ts - next[b].ts)
+            .slice(0, keys.length - LB_MAX_KEYS)
+            .forEach(k => delete next[k]);
+      }
+      writeJSON(LB_KEY, next);
+      return rows;
+    } catch (e) {
+      console.warn('FP_AUTH: leaderboard fetch failed' + (hit ? ', showing cached copy' : ''), e?.message || e);
+      return hit ? hit.rows : [];    // stale beats empty when offline
+    }
+  }
+
+  async function _lbFetchStarsRaw() {
+    const { data, error } = await _sb
+      .from('profiles')
+      .select('id, name, avatar, total_stars')
+      .order('total_stars', { ascending: false })
+      .limit(25);
+    if (error) throw new Error(error.message || 'stars leaderboard failed');
+    return (data || []).map((r, i) => ({
+      id: r.id, name: r.name, avatar: r.avatar,
+      stars: r.total_stars, rank: i + 1,
+    }));
+  }
+
+  async function _lbFetchLevelRaw(packId, levelIndex, isTime) {
+    const orderBy = isTime ? 'best_time' : 'best_score';
+    let q = _sb.from('level_scores')
+      .select(`user_id, ${orderBy}`)
+      .eq('pack_id', packId)
+      .eq('level_index', levelIndex)
+      .order(orderBy, { ascending: true })
+      .limit(25);
+    if (isTime) q = q.not('best_time', 'is', null);
+
+    const { data: scores, error: sErr } = await q;
+    if (sErr) throw new Error(sErr.message || 'level leaderboard failed');
+    if (!scores || scores.length === 0) return [];
+
+    // Two-query join: fetch profiles separately so we don't depend on FK embed
+    const ids = [...new Set(scores.map(s => s.user_id))];
+    const { data: profs, error: pErr } = await _sb
+      .from('profiles').select('id, name, avatar').in('id', ids);
+    if (pErr) throw new Error(pErr.message || 'leaderboard profiles failed');
+    const pmap = new Map((profs || []).map(p => [p.id, p]));
+
+    return scores.map((s, i) => {
+      const p = pmap.get(s.user_id) || {};
+      return {
+        id: s.user_id,
+        name:   p.name   || 'Player',
+        avatar: p.avatar || '🟢',
+        score: isTime ? null : s.best_score,
+        time:  isTime ? s.best_time  : null,
+        rank: i + 1,
+      };
+    });
+  }
 
   async function buildLeaderboard({ metric = 'stars', packId = null, levelIndex = null } = {}) {
     if (!_sb) return [];
 
     if (metric === 'stars') {
-      const { data, error } = await _sb
-        .from('profiles')
-        .select('id, name, avatar, total_stars')
-        .order('total_stars', { ascending: false })
-        .limit(25);
-      if (error) { console.warn('FP_AUTH: stars leaderboard error', error); return []; }
-
-      const rows = (data || []).map((r, i) => ({
-        id: r.id, name: r.name, avatar: r.avatar,
-        stars: r.total_stars, rank: i + 1,
-        self: r.id === _currentUser?.id,
-      }));
+      const raw = await _lbCached('stars', _lbFetchStarsRaw);
+      const rows = raw.map(r => ({ ...r, self: r.id === _currentUser?.id }));
       if (_currentUser && !rows.find(r => r.self)) {
         rows.push({
           id: _currentUser.id, name: _currentUser.name, avatar: _currentUser.avatar,
@@ -358,41 +427,12 @@
     }
 
     if ((metric === 'level' || metric === 'time') && packId != null && levelIndex != null) {
-      const isTime  = metric === 'time';
-      const orderBy = isTime ? 'best_time' : 'best_score';
-      const sel     = `user_id, ${orderBy}`;
-
-      let q = _sb.from('level_scores')
-        .select(sel)
-        .eq('pack_id', packId)
-        .eq('level_index', levelIndex)
-        .order(orderBy, { ascending: true })
-        .limit(25);
-      if (isTime) q = q.not('best_time', 'is', null);
-
-      const { data: scores, error: sErr } = await q;
-      if (sErr) { console.warn('FP_AUTH: level leaderboard error', sErr); return []; }
-      if (!scores || scores.length === 0) return _selfOnlyLevelRow(packId, levelIndex, isTime);
-
-      // Two-query join: fetch profiles separately so we don't depend on FK embed
-      const ids = [...new Set(scores.map(s => s.user_id))];
-      const { data: profs } = await _sb
-        .from('profiles').select('id, name, avatar').in('id', ids);
-      const pmap = new Map((profs || []).map(p => [p.id, p]));
-
-      const rows = scores.map((s, i) => {
-        const p = pmap.get(s.user_id) || {};
-        return {
-          id: s.user_id,
-          name:   p.name   || 'Player',
-          avatar: p.avatar || '🟢',
-          score: isTime ? null : s.best_score,
-          time:  isTime ? s.best_time  : null,
-          rank: i + 1,
-          self: s.user_id === _currentUser?.id,
-        };
-      });
-
+      const isTime = metric === 'time';
+      const raw = await _lbCached(
+        `${metric}:${packId}:${levelIndex}`,
+        () => _lbFetchLevelRaw(packId, levelIndex, isTime),
+      );
+      const rows = raw.map(r => ({ ...r, self: r.id === _currentUser?.id }));
       if (_currentUser && !rows.find(r => r.self)) {
         rows.push(..._selfOnlyLevelRow(packId, levelIndex, isTime));
       }
@@ -431,6 +471,11 @@
   }
 
   // ── Admin overrides (pack_overrides + level_overrides tables) ─────────────
+  //
+  // fetchOverrides THROWS on pack/level errors instead of returning empty
+  // arrays: callers (FP_DATA) must never overwrite good local data with
+  // empty results just because the network hiccuped. The achievements table
+  // may not exist on older Supabase projects — that one degrades to [].
   async function fetchOverrides() {
     if (!_sb) return { packs: [], levels: [], achievements: [] };
     const [
@@ -442,18 +487,42 @@
       _sb.from('level_overrides').select('*'),
       _sb.from('achievement_overrides').select('*'),
     ]);
-    if (pErr) console.warn('FP_AUTH: pack_overrides fetch error', pErr);
-    if (lErr) console.warn('FP_AUTH: level_overrides fetch error', lErr);
-    // Achievements table may not exist yet — surface missing-table softly so
-    // older Supabase projects keep working without the migration applied.
+    if (pErr) throw new Error('pack_overrides: ' + (pErr.message || 'fetch failed'));
+    if (lErr) throw new Error('level_overrides: ' + (lErr.message || 'fetch failed'));
     if (aErr && !/not exist|relation/i.test(aErr.message || '')) {
-      console.warn('FP_AUTH: achievement_overrides fetch error', aErr);
+      throw new Error('achievement_overrides: ' + (aErr.message || 'fetch failed'));
     }
     return {
       packs: packs || [],
       levels: levels || [],
       achievements: achievements || [],
     };
+  }
+
+  // Tiny per-table version signature: "<count of rows with updated_at>:<max
+  // updated_at>" — a few hundred bytes instead of the full tables. Must stay
+  // consistent with FP_DATA's local tableSig(): count catches inserts and
+  // deletes, max(updated_at) catches edits (every save writes updated_at).
+  // Returns null in guest mode; throws when the server can't be reached so
+  // callers don't mistake "offline" for "no changes".
+  async function fetchOverridesVersion() {
+    if (!_sb) return null;
+    const q = table => _sb.from(table)
+      .select('updated_at', { count: 'exact' })
+      .not('updated_at', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    const [p, l, a] = await Promise.all([
+      q('pack_overrides'), q('level_overrides'), q('achievement_overrides'),
+    ]);
+    const sig = (res, tolerateMissing) => {
+      if (res.error) {
+        if (tolerateMissing && /not exist|relation/i.test(res.error.message || '')) return '0:';
+        throw new Error(res.error.message || 'version check failed');
+      }
+      return (res.count || 0) + ':' + (res.data?.[0]?.updated_at || '');
+    };
+    return { packs: sig(p), levels: sig(l), achievements: sig(a, true) };
   }
 
   async function savePackOverride(packId, patch) {
@@ -592,7 +661,7 @@
     checkNameAvailable,
     getActiveProgress, updateActiveProgress,
     buildLeaderboard, totalStarsFromProgress,
-    fetchOverrides, savePackOverride, saveLevelOverride,
+    fetchOverrides, fetchOverridesVersion, savePackOverride, saveLevelOverride,
     saveAchievementOverride, deleteAchievementOverride,
     subscribe,
     AVATARS,

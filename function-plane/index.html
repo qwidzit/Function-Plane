@@ -149,6 +149,10 @@
   <script src="src/ui-kit.js"></script>
   <script src="src/app-logo.js"></script>
   <script src="src/data.js"></script>
+  <!-- Baked override snapshot + store: applies correct level data synchronously
+       before the app renders (must load after data.js, before app.js) -->
+  <script src="src/overrides-snapshot.js"></script>
+  <script src="src/overrides-store.js"></script>
   <script src="src/main-screen.js"></script>
   <script src="src/pack-selector.js"></script>
   <script src="src/level-selector.js"></script>

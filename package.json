@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build:jsx": "node scripts/build-jsx.js",
+    "snapshot:data": "node scripts/snapshot-overrides.js",
     "cap:init": "cap init 'Function Plane' app.functionplane --web-dir=function-plane",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",

@@ -1,4 +1,4 @@
-const CACHE = 'fp-v22';
+const CACHE = 'fp-v23';
 const SHELL = [
   './',
   './index.html',
@@ -15,6 +15,8 @@ const SHELL = [
   './src/ui-kit.js',
   './src/app-logo.js',
   './src/data.js',
+  './src/overrides-snapshot.js',
+  './src/overrides-store.js',
   './src/main-screen.js',
   './src/pack-selector.js',
   './src/level-selector.js',

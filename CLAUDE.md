@@ -66,6 +66,25 @@ MOBILE-BUILD.md            # how to build the Android/iOS apps
 
 `android/` and `ios/` are gitignored — recreated locally with `npx cap add`.
 
+## Level data: baked snapshot + versioned sync
+
+Levels/packs/achievements are defined by Supabase `*_overrides` tables, but the
+app does **not** trust the network for them:
+
+- `function-plane/src/overrides-snapshot.js` is a **generated** dump of those
+  tables, committed with the app. **Run `npm run snapshot:data` before each
+  release** (needs network access to Supabase) and commit the result — it keeps
+  offline boots playing the *real* levels instead of the easy built-in
+  fallbacks (which was an exploitable way to farm stars/records).
+- At boot, `overrides-store.js` (`window.FP_DATA`) synchronously applies the
+  newer of (snapshot, localStorage cache of the last fetch), then does a cheap
+  background version check (per-table row count + max `updated_at`, a few
+  hundred bytes) and only downloads the full tables when something changed.
+- Never make override fetches "fail to empty" — `FP_AUTH.fetchOverrides`
+  deliberately throws on errors so bad networks can't wipe good local data.
+- Leaderboards (`FP_AUTH.buildLeaderboard`) cache raw server rows for 3 min
+  and fall back to the last-known board when offline.
+
 ## Supabase & entitlement model
 
 - Table `profiles` holds `name`, `avatar`, `total_stars`, and **`is_premium`**.

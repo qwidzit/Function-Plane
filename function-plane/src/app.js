@@ -34,17 +34,15 @@ function App() {
   const [account, setAccount] = useState(() => FP_AUTH.getActive());
   useEffect(() => FP_AUTH.subscribe(() => setAccount(FP_AUTH.getActive())), []);
 
-  // Bump on every config-override change so screens re-render with new pack/level data
+  // Bump on every config-override change so screens re-render with new pack/level data.
+  // Level/pack data itself is already applied synchronously at boot from the
+  // baked snapshot / localStorage cache (overrides-store.js) — this only runs
+  // the cheap background version check and re-renders if fresh data came in.
   const [overridesRev, setOverridesRev] = useState(0);
-  const reloadOverrides = async () => {
-    if (!FP_AUTH.fetchOverrides) return;
-    try {
-      const ov = await FP_AUTH.fetchOverrides();
-      applyOverrides(ov);
-      setOverridesRev(r => r + 1);
-    } catch (e) {
-      console.warn('overrides:', e);
-    }
+  const reloadOverrides = async opts => {
+    if (!window.FP_DATA) return;
+    const res = await FP_DATA.sync(opts);
+    if (res.updated) setOverridesRev(r => r + 1);
   };
   useEffect(() => {
     reloadOverrides();
@@ -77,7 +75,12 @@ function App() {
   // Online / offline indicator (so the player knows their progress is queued)
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   useEffect(() => {
-    const up = () => setOnline(true);
+    // Back online: refresh the data version check too, so an offline boot
+    // picks up pending level updates as soon as the network returns.
+    const up = () => {
+      setOnline(true);
+      reloadOverrides();
+    };
     const down = () => setOnline(false);
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
@@ -374,7 +377,9 @@ function App() {
       return /*#__PURE__*/React.createElement(AdminScreen, {
         onBack: () => navigate('account'),
         density: settings.density,
-        onChanged: reloadOverrides
+        onChanged: () => reloadOverrides({
+          force: true
+        })
       });
     }
     return /*#__PURE__*/React.createElement(PlaceholderScreen, {
