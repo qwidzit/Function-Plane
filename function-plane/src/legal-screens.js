@@ -14,7 +14,7 @@
 const LEGAL_PUBLISHER = 'Nikolay Yaremko';
 const LEGAL_JURIS = 'the Netherlands';
 const LEGAL_EMAIL = 'functionplane.support@gmail.com';
-const LEGAL_WEBSITE = ''; // TODO: fill before launch
+const LEGAL_WEBSITE = 'https://functionplane.pages.dev'; // public site (privacy/terms hosted here)
 const LEGAL_EFFECTIVE = '4 May 2026';
 const APP_NAME = 'Function Plane';
 
