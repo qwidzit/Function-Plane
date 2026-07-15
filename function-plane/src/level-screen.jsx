@@ -10,9 +10,6 @@ const STAR_R     = 0.55;
 const BALL_R     = 0.22;
 const FALL_LIMIT = -13;
 const TIME_LIMIT = 28;
-// Max slope used in collision response. Without a cap, vertical curves yield
-// mag = √(1+m²) → ∞ and would fling the ball miles off the surface.
-const SLOPE_MAX  = 10;     // ~84° — corresponds to mag ≈ 10.05
 
 // ─── Complexity scoring ───────────────────────────────────────
 function classifyEquation(expr) {
@@ -303,127 +300,23 @@ function inDomain(x, domain) {
 }
 
 // ─── Physics step ─────────────────────────────────────────────
-function physicsStep(ph, explFns, implFns, dt) {
-  const xPrev = ph.x;
-  const yPrev = ph.y;
-
-  ph.vy -= GRAVITY * dt;
-  ph.x  += ph.vx * dt;
-  ph.y  += ph.vy * dt;
-
-  // ── Explicit y = f(x): perpendicular-distance collision ──────────────
-  //
-  // The earlier sample-based "ball_bottom vs cy(x)" detector measured at the
-  // ball's *column*, not the ball's actual point of contact with the curve.
-  // For any non-zero slope the contact point is offset horizontally from the
-  // column, so a ball gliding down a slope spent each substep oscillating
-  // between "above" (no resolution) and "snapped to column-top" (snap kills
-  // tangential momentum). That's the jagged glide.
-  //
-  // We now treat the curve as locally linear at the ball's x: its tangent
-  // line. The signed perpendicular distance from (ph.x, ph.y) to that
-  // tangent is (y − f(x)) / √(1+f'(x)²). If |d| < BALL_R the ball is in
-  // contact; nudge ball along the curve normal so |d| = BALL_R, then reflect
-  // the inward velocity component. Tangential motion is preserved exactly
-  // → smooth glide on every slope.
-  //
-  // Tunneling at a single substep is also caught: if d at the prev position
-  // had a different sign and was outside BALL_R, the ball passed through —
-  // resolve back to the approach side.
-  const SLOPE_H = 0.003;
-  for (const { fn, domain } of explFns) {
-    if (!inDomain(ph.x, domain)) continue;
-    const cy = fn(ph.x);
-    if (!isFinite(cy)) continue;
-
-    const fp = fn(ph.x + SLOPE_H), fm = fn(ph.x - SLOPE_H);
-    let slope = (isFinite(fp) && isFinite(fm)) ? (fp - fm) / (2*SLOPE_H) : 0;
-    if (!isFinite(slope)) slope = (slope < 0 ? -SLOPE_MAX : SLOPE_MAX);
-    if (slope >  SLOPE_MAX) slope =  SLOPE_MAX;
-    if (slope < -SLOPE_MAX) slope = -SLOPE_MAX;
-    const mag = Math.sqrt(1 + slope*slope);
-
-    const d = (ph.y - cy) / mag;
-
-    let dPrev = NaN;
-    if (inDomain(xPrev, domain)) {
-      const cyPrev = fn(xPrev);
-      if (isFinite(cyPrev)) dPrev = (yPrev - cyPrev) / mag;
-    }
-
-    const overlapping = Math.abs(d) < BALL_R;
-    const tunneled = !overlapping && isFinite(dPrev)
-      && dPrev * d < 0 && Math.abs(dPrev) >= BALL_R;
-    if (!overlapping && !tunneled) continue;
-
-    // Side the ball is approaching from (sign of dPrev if known, else d).
-    const sign = isFinite(dPrev) && dPrev !== 0
-      ? (dPrev > 0 ? 1 : -1)
-      : (d >= 0 ? 1 : -1);
-
-    // Curve normal pointing toward positive d (above the curve). Push along
-    // it (or against it, when sign = -1) to land at signed distance ±BALL_R.
-    const nUx = -slope / mag;
-    const nUy = 1 / mag;
-    const move = (sign * BALL_R) - d;
-    ph.x += nUx * move;
-    ph.y += nUy * move;
-
-    // Reflect velocity component pointing *into* the curve from ball's side.
-    // Energy retention is only applied on **real** bounces (significant
-    // inward velocity); a ball gliding tangent down a slope barely poke into
-    // the curve each substep, and applying the retention multiplier 1200×
-    // per second of contact would bleed off all its momentum even though
-    // physically there's no normal impact, just rolling.
-    const nx = sign * nUx, ny = sign * nUy;
-    const vn = ph.vx * nx + ph.vy * ny;
-    if (vn < 0) {
-      ph.vx -= (1 + PHYSICS_CONFIG.bounciness) * vn * nx;
-      ph.vy -= (1 + PHYSICS_CONFIG.bounciness) * vn * ny;
-      if (-vn > 1.5) {
-        ph.vx *= PHYSICS_CONFIG.energyRetention;
-        ph.vy *= PHYSICS_CONFIG.energyRetention;
-        ph.bounced = true;
-      }
-    }
-  }
-
-  // ── Implicit F(x,y) = 0: distance-based collision ──────────────────────
-  for (const { fn, domain } of implFns) {
-    if (!inDomain(ph.x, domain)) continue;
-    const F = fn(ph.x, ph.y);
-    if (!isFinite(F) || isNaN(F)) continue;
-    const h = 0.003;
-    const Fx = (fn(ph.x + h, ph.y) - fn(ph.x - h, ph.y)) / (2*h);
-    const Fy = (fn(ph.x, ph.y + h) - fn(ph.x, ph.y - h)) / (2*h);
-    const gmag = Math.sqrt(Fx*Fx + Fy*Fy);
-    if (!isFinite(gmag) || gmag < 1e-6) continue;
-    const dist = F / gmag;
-    if (Math.abs(dist) > BALL_R) continue;
-
-    let Fprev = fn(xPrev, yPrev);
-    if (!isFinite(Fprev)) Fprev = F;
-    const crossed = (Fprev > 0) !== (F > 0);
-    const distPrev = isFinite(Fprev) ? Fprev / gmag : dist;
-    const wasOutsideHitbox = Math.abs(distPrev) > BALL_R;
-    if (!crossed && !wasOutsideHitbox) continue;
-
-    const nx = Fx / gmag, ny = Fy / gmag;
-    const sign = F > 0 ? 1 : -1;
-    ph.x += nx * (sign * BALL_R - dist);
-    ph.y += ny * (sign * BALL_R - dist);
-
-    const vn = ph.vx*nx + ph.vy*ny;
-    if (vn * sign < 0) {
-      ph.vx -= (1+PHYSICS_CONFIG.bounciness)*vn*nx;
-      ph.vy -= (1+PHYSICS_CONFIG.bounciness)*vn*ny;
-      if (Math.abs(vn) > 1.5) {
-        ph.vx *= PHYSICS_CONFIG.energyRetention;
-        ph.vy *= PHYSICS_CONFIG.energyRetention;
-        ph.bounced = true;
-      }
-    }
-  }
+// Ball integration + collision live in src/physics-engine.js
+// (window.FP_PHYSICS). The engine collides the ball against *sampled*
+// curve geometry — an adaptive polyline for y=f(x), local marching squares
+// for implicit curves — using the true closest-point distance, so
+// high-frequency curves (sin(40x)), floor() staircases, sharp corners and
+// near-vertical slopes all resolve correctly, with no tangent-line or
+// gradient approximations to blow up. The response tuning (GRAVITY,
+// bounciness, energyRetention, real-bounce threshold) is unchanged, so
+// the ball feels exactly as before on curves that already worked.
+function physicsStep(ph, colliders, dt) {
+  FP_PHYSICS.stepBall(ph, colliders, dt, {
+    gravity:         GRAVITY,
+    ballR:           BALL_R,
+    bounciness:      PHYSICS_CONFIG.bounciness,
+    energyRetention: PHYSICS_CONFIG.energyRetention,
+    bounceThreshold: 1.5,
+  });
 
   // ── Star collection ────────────────────────────────────────────────────
   for (let i = 0; i < ph.stars.length; i++) {
@@ -1254,22 +1147,26 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     const ph = physRef.current;
     const dt = 1/(60*SUB_STEPS);
 
+    // Equations are locked while the sim runs, so colliders are built once
+    // per run. Each collider lazily samples + caches curve geometry around
+    // the ball and re-samples as the ball travels. Explicit curves first,
+    // then implicit — same resolution order as always.
+    const activeEqs = equationsRef.current.filter(e => e.fn && e.visible);
+    const colliders = FP_PHYSICS.makeColliders(
+      [...activeEqs.filter(e => !e.isImplicit), ...activeEqs.filter(e => e.isImplicit)]
+        .map(e => ({ fn: e.fn, domain: e.domain, isImplicit: e.isImplicit })),
+      BALL_R
+    );
+
     const frame = ts => {
       if (!ph.startTs) ph.startTs = ts;
       const elapsedS = (ts-ph.startTs)/1000;
       setElapsed(elapsedS);
 
-      const explFns = equationsRef.current
-        .filter(e => e.fn && e.visible && !e.isImplicit)
-        .map(e => ({ fn:e.fn, domain:e.domain }));
-      const implFns = equationsRef.current
-        .filter(e => e.fn && e.visible && e.isImplicit)
-        .map(e => ({ fn:e.fn, domain:e.domain }));
-
       ph.bounced = false;
       ph.justCollected = false;
 
-      for (let s=0; s<SUB_STEPS; s++) physicsStep(ph, explFns, implFns, dt);
+      for (let s=0; s<SUB_STEPS; s++) physicsStep(ph, colliders, dt);
 
       if (ph.bounced) { sfx('bounce'); }
       if (ph.justCollected) { sfx('collectStar'); }
