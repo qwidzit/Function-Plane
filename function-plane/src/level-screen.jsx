@@ -12,87 +12,11 @@ const FALL_LIMIT = -13;
 const TIME_LIMIT = 28;
 
 // ─── Complexity scoring ───────────────────────────────────────
-function classifyEquation(expr) {
-  if (!expr || !expr.trim()) return 0;
-  const e = expr.toLowerCase().replace(/\s+/g, '');
-
-  // Count *occurrences* of each transcendental — composing several is more
-  // expensive than using one. sin(x) ≠ sin(x)*cos(x)*tan(x).
-  //
-  // Uses negative-lookbehind `(?<![a-z])` instead of `\b` so coefficients are
-  // counted: `4cos(x)` matches (digit-before-letter has no \b but isn't a
-  // letter), while `acos(x)` correctly *doesn't* match the trig regex.
-  const trigCount    = (e.match(/(?<![a-z])(sin|cos|tan)\(/g)            || []).length
-                     - (e.match(/(?<![a-z])(arcsin|arccos|arctan)\(/g)   || []).length;
-  const invTrigCount = (e.match(/(?<![a-z])(asin|acos|atan)\(/g)         || []).length
-                     + (e.match(/(?<![a-z])(arcsin|arccos|arctan)\(/g)   || []).length;
-  const logCount     = (e.match(/(?<![a-z])(log|ln)\(/g)                 || []).length;
-  const expCount     = (e.match(/(?<![a-z])exp\(/g)                      || []).length
-                     + (e.match(/(^|[^a-z])e\^/g)                        || []).length;
-  const sumCount     = (e.match(/(?<![a-z])sum\(/g)                      || []).length;
-  const derivCount   = (e.match(/(?<![a-z])deriv\(/g)                    || []).length;
-  const integCount   = (e.match(/(?<![a-z])integ\(/g)                    || []).length;
-
-  // Variable-base or variable-exponent powers: x^x, 2^x, x^y — these are
-  // genuinely exponential and used to score 0 (linear) due to the regex
-  // only matching numeric exponents.
-  const hasVarExp = /[a-z_)\]]\^[a-z]/.test(e) || /[a-z_)\]]\*\*[a-z]/.test(e);
-
-  // Polynomial degree — match x^N, x**N *and* (expr)^N / (expr)**N so that
-  // shifted/scaled forms like (x-0.5)^2 and 0.7(x+3)^3 score correctly.
-  let maxDeg = 0;
-  for (const m of e.matchAll(/x\*\*(\d+)|x\^(\d+)|\)\*\*(\d+)|\)\^(\d+)/g))
-    maxDeg = Math.max(maxDeg, parseInt(m[1] || m[2] || m[3] || m[4]));
-  if (/x\*x/.test(e)) maxDeg = Math.max(maxDeg, 2);
-
-  // Base score from the dominant feature
-  let score;
-  if (integCount > 0)        score = 55;  // numeric integral — most expensive
-  else if (sumCount > 0)     score = 50;  // bounded series
-  else if (hasVarExp)        score = 40;  // truly exponential
-  else if (invTrigCount > 0) score = 40;
-  else if (derivCount > 0)   score = 35;
-  else if (expCount > 0)     score = 35;
-  else if (logCount > 0)     score = 30;
-  else if (trigCount > 0)    score = 25;
-  else                       score = Math.max(1, maxDeg) * 10;
-
-  // Composition cost — each additional advanced operator beyond the first
-  // adds ~60% of the dominant score. sin(x)*cos(x)*tan(x) ≈ 25 + 15 + 15 = 55.
-  const totalTrans = trigCount + invTrigCount + logCount + expCount
-                   + sumCount + derivCount + integCount;
-  if (totalTrans > 1) score += Math.round(score * 0.6 * (totalTrans - 1));
-
-  // Mixing transcendental with polynomial of degree ≥ 2 (e.g. sin(x)*x^2)
-  if (totalTrans >= 1 && maxDeg >= 2) score = Math.round(score * 1.3);
-
-  // High-degree polynomials cost slightly more per extra power
-  if (maxDeg >= 4) score += (maxDeg - 3) * 5;
-
-  return score;
-}
-
-// Returns 'linear' | 'quadratic' | 'cubic' | 'trig' | 'exp' | 'inverseTrig' | 'log' | 'advanced' | 'unknown'
-function detectClass(expr) {
-  if (!expr || !expr.trim()) return null;
-  const e = expr.toLowerCase().replace(/\s+/g, '');
-  if (/(?<![a-z])(sum|deriv|integ)\(/.test(e)) return 'advanced';
-  if (/(?<![a-z])(asin|acos|atan|arcsin|arccos|arctan)\(/.test(e)) return 'inverseTrig';
-  if (/(?<![a-z])exp\(/.test(e) || /(^|[^a-z])e\^/.test(e)) return 'exp';
-  // Variable-exponent or variable-base powers — x^x, 2^x, x^y — count as exponential.
-  if (/[a-z_)\]]\^[a-z]/.test(e) || /[a-z_)\]]\*\*[a-z]/.test(e)) return 'exp';
-  if (/(?<![a-z])(log|ln)\(/.test(e)) return 'log';
-  if (/(?<![a-z])(sin|cos|tan)\(/.test(e)) return 'trig';
-  let maxDeg = 0;
-  for (const m of e.matchAll(/x\*\*(\d+)|x\^(\d+)|\)\*\*(\d+)|\)\^(\d+)/g))
-    maxDeg = Math.max(maxDeg, parseInt(m[1] || m[2] || m[3] || m[4]));
-  if (/x\*x/.test(e)) maxDeg = Math.max(maxDeg, 2);
-  if (maxDeg >= 3) return 'cubic';
-  if (maxDeg === 2) return 'quadratic';
-  if (/\bx\b/.test(e)) return 'linear';
-  return 'unknown';
-}
-window.detectClass = detectClass;
+// classifyEquation and detectClass live in src/equation-classifier.js
+// (loaded before this file) — an AST-based analyzer that understands
+// implicit equations (x+y^2=1), variable exponents (2^x), pow()/sqrt(),
+// products, rationals and piecewise ops. The regex version that used to
+// live here mislabeled all of those as "linear".
 
 // Some allowed-class values group multiple detected classes together — e.g.
 // the 'exp' themed pack lets you use both exp() and log/ln.
@@ -1456,5 +1380,4 @@ function HistoryPopup({ packId, levelIndex, onClose, onLoad }) {
 
 window.LevelScreen = LevelScreen;
 window.parseEquation = parseEquation;
-window.classifyEquation = classifyEquation;
 window.computeScore = computeScore;

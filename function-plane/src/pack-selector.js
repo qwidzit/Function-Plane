@@ -10,8 +10,14 @@ function PackSelector({
   density = 'comfortable'
 }) {
   const padX = density === 'compact' ? 18 : 22;
-  const totalStars = totalStarsAll(progress);
-  const totalPossible = (ROMAN_PACKS.length + SPECIAL_PACKS.length) * 30;
+  // Count stars and the achievable maximum over *visible* packs only —
+  // hidden (unreleased) packs must not inflate the "/ 420" style total.
+  const visRoman = visiblePacks(ROMAN_PACKS);
+  const visSpecial = visiblePacks(SPECIAL_PACKS);
+  const totalStars = [...visRoman, ...visSpecial].reduce((a, p) => a + packTotalStars(progress, p.id), 0);
+  const totalPossible = (visRoman.length + visSpecial.length) * 30;
+  // Unlock progress must match computePackLocked, which counts ALL packs.
+  const unlockStars = totalStarsAll(progress);
   const [lockedPack, setLockedPack] = usePSState(null);
   const handlePackClick = (pack, lockInfo) => {
     if (lockInfo.locked) {
@@ -101,7 +107,7 @@ function PackSelector({
       fontSize: 12.5,
       color: 'var(--fp-ink-3)'
     }
-  }, ROMAN_PACKS.length, " chapters \xB7 ", SPECIAL_PACKS.length, " themed")), /*#__PURE__*/React.createElement("div", {
+  }, visRoman.length, " chapters \xB7 ", visSpecial.length, " themed")), /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
       flex: 1,
@@ -150,7 +156,7 @@ function PackSelector({
       locked: lockInfo.locked,
       complete: complete,
       lockInfo: lockInfo,
-      totalStars: totalStars,
+      totalStars: unlockStars,
       onClick: () => handlePackClick(p, lockInfo)
     });
   }))), /*#__PURE__*/React.createElement("div", {
@@ -160,7 +166,7 @@ function PackSelector({
   })), lockedPack && /*#__PURE__*/React.createElement(LockedPackPopup, {
     pack: lockedPack.pack,
     lockInfo: lockedPack.lockInfo,
-    totalStars: totalStars,
+    totalStars: unlockStars,
     onClose: () => setLockedPack(null)
   }));
 }
