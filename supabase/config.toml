@@ -380,6 +380,17 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Payment webhooks are called by Stripe / RevenueCat, not by a signed-in user,
+# so JWT verification is disabled — each proves authenticity its own way (a
+# Stripe signature; a static Authorization header from RevenueCat).
+[functions.stripe-webhook]
+enabled = true
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

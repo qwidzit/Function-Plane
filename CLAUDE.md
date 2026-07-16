@@ -45,8 +45,8 @@ across browser, Android WebView, and iOS WebView.
 Not every `.js` file has a `.jsx` sibling — some are hand-written plain JS
 with no source to compile from: `physics-engine.js`, `equation-classifier.js`,
 `overrides-store.js`, `accounts.js`, `audio.js`, `physics-config.js`,
-`supabase-config.js`, `premium-config.js`. **Never hand-edit a `.js` file that
-has a `.jsx` sibling** — the next `build:jsx` run silently overwrites it.
+`supabase-config.js`, `premium-config.js`, `environment.js`, `billing.js`.
+**Never hand-edit a `.js` file that has a `.jsx` sibling** — the next `build:jsx` run silently overwrites it.
 
 Script load order is fixed in `function-plane/index.html` (config files →
 vendor → `accounts.js` → data/store → screens → `app.js`, which must load
@@ -90,7 +90,9 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     physics-engine.js      # FP_PHYSICS — ball collision against sampled curve geometry
     equation-classifier.js # classifyEquation/detectClass — AST-based equation analysis
     supabase-config.js     # Supabase URL + anon key + VAPID key
-    premium-config.js      # Stripe Payment Link URLs (web payment path) — not filled in yet
+    premium-config.js      # payment config: Stripe link, RevenueCat keys, Rate button
+    environment.js         # FP_ENV — platform + distribution channel detection
+    billing.js             # FP_BILLING — unified buy()/restore() (Stripe | RevenueCat)
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels)
@@ -101,6 +103,9 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
 scripts/
   build-jsx.js              # JSX -> JS compiler; run after every .jsx edit
   snapshot-overrides.js     # pulls Supabase override tables -> overrides-snapshot.js
+supabase/functions/        # Edge Functions (Deno) — payment webhooks
+  stripe-webhook/           # web payment: verifies signature -> flips is_premium
+  revenuecat-webhook/       # native payment: RevenueCat events -> flips is_premium
 legal/                     # hostable Privacy/Terms HTML for the website (see below)
 supabase/config.toml       # Supabase project config
 capacitor.config.json      # native shell config (appId app.functionplane)
@@ -397,31 +402,44 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
 
 ## Roadmap / left to do
 
-### Payments — dual path + environment detection *(planned, not built)*
+### Payments — dual path + environment detection *(code built; needs account setup)*
 
-The game will be distributed on **both** Google Play and the open web, and
-the two channels require different, mutually exclusive payment systems:
+Distributed on **both** Google Play and the open web, which require different,
+mutually exclusive payment systems. Premium is a **single lifetime unlock**
+(no subscriptions). All the client code + webhooks are in place — what's left
+is creating the Stripe/RevenueCat/Play accounts and pasting keys. **Full
+walkthrough: `PAYMENTS-SETUP.md`.**
 
-- [ ] **Google Play Billing** — required for the Play Store build. Google
-      forbids Stripe/external payment for digital goods, and Play Billing
-      does **not** work on sideloaded / web-downloaded installs. Verify
-      purchases and flip `is_premium`. RevenueCat
-      (`@revenuecat/purchases-capacitor`) is the recommended integration; a
-      RevenueCat→Supabase webhook (Edge Function) sets the flag. Must
-      include a **Restore purchases** button.
-- [ ] **Stripe (web / sideloaded)** — already scaffolded in
-      `premium-config.js` (`PREMIUM_LINKS`, currently all empty strings) and
-      `account-screen.jsx`'s `PremiumView`. Allowed everywhere **except**
-      inside the Play Store build. A Stripe webhook (Supabase Edge Function)
-      sets `is_premium`.
-- [ ] **Environment detection** — the app must show the correct buy button
-      per channel: **Play Billing inside the Play build**, **Stripe on
-      web/sideload**. Never show Stripe links inside the Play Store build
-      (Google anti-steering). Detect via Capacitor platform + Play Billing
-      availability. Both paths converge on the same `is_premium` write, so
-      screen logic downstream is unchanged.
-- [ ] iOS equivalent uses StoreKit (RevenueCat covers it in the same
-      integration).
+- Channel + platform detection: `function-plane/src/environment.js`
+  (`window.FP_ENV`). `channel` is `web` | `play` | `appstore`; auto-detected
+  from Capacitor, overridable via `window.FP_BUILD_CHANNEL` (set to `'web'`
+  for a **sideloaded APK** build, which is native Android but must use Stripe).
+- Unified billing: `function-plane/src/billing.js` (`window.FP_BILLING`) —
+  one `buy()` / `restore()` / `priceLabel()` interface. Web → Stripe Payment
+  Link (opens checkout, appends `?client_reference_id=<userId>`); native →
+  RevenueCat via the `Purchases` Capacitor-bridge plugin. Purchases require
+  sign-in (entitlement is account-based; the webhook maps payment → user id).
+- Config (all public, in git): `premium-config.js` — `PREMIUM_LINKS.lifetime`
+  (+ `priceLabel`), `REVENUECAT_CONFIG` (public `goog_`/`appl_` keys +
+  `entitlementId`), `RATE_CONFIG`.
+- Both paths converge on the **same server write**: flip `profiles.is_premium`.
+  Two Supabase Edge Functions do it — `supabase/functions/stripe-webhook`
+  (verifies Stripe signature, on `checkout.session.completed`) and
+  `supabase/functions/revenuecat-webhook` (static Authorization header, on
+  purchase/refund/transfer events). Secret keys live in function secrets,
+  never in git. The client re-reads the flag via `FP_AUTH.refreshProfile()`
+  (also auto-fires on tab re-focus after Stripe checkout).
+- Anti-steering is enforced by `FP_ENV`: the Play/App Store build only ever
+  shows native billing, never a Stripe link. Don't add a code path that lets
+  a store build reach `PREMIUM_LINKS`.
+- Premium screen: `account-screen.jsx`'s `PremiumView` — single lifetime
+  plan, channel-aware billing note, **Restore purchases** button.
+- iOS uses StoreKit through the same RevenueCat integration (set
+  `REVENUECAT_CONFIG.iosApiKey`); no code changes needed.
+- **Remaining (account setup only, see `PAYMENTS-SETUP.md`):** create the
+  Stripe product/link + webhook; RevenueCat project + Play IAP product +
+  webhook; add `@revenuecat/purchases-capacitor` to the native build
+  (`npm i` + `cap sync`); deploy the two functions + set secrets.
 
 ### Other pre-launch / v2 items
 
@@ -501,8 +519,13 @@ the two channels require different, mutually exclusive payment systems:
   `overrides-store.js` — hand-written plain JS, **no `.jsx` source**. Edit
   them directly; there's no compile step to remember, but also no
   auto-regeneration to catch a hand-edit mistake.
-- `function-plane/src/premium-config.js` — feature-flag stub for premium
-  (`PREMIUM_LINKS`); billing isn't wired up yet (see Roadmap).
+- `function-plane/src/premium-config.js` — the single place you paste payment
+  config: `PREMIUM_LINKS` (Stripe), `REVENUECAT_CONFIG` (native), `RATE_CONFIG`
+  (the Rate button), and the optional `FP_BUILD_CHANNEL` override. All public.
+  Billing logic lives in `billing.js`/`environment.js`; see `PAYMENTS-SETUP.md`.
+- `function-plane/src/environment.js` (`window.FP_ENV`) and
+  `function-plane/src/billing.js` (`window.FP_BILLING`) — hand-written plain
+  JS (no `.jsx`), channel detection + unified purchase/restore. Edit directly.
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.
 - `function-plane/vendor/` — vendored React/ReactDOM/Supabase. If you
   upgrade React, update the license text in `legal-screens.jsx` too.

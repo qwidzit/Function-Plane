@@ -17,6 +17,16 @@ function MainScreen({
     useState: useMS
   } = React;
   const [ratePopup, setRatePopup] = useMS(false);
+
+  // Rate: once RATE_CONFIG is switched on with store URLs, this opens the
+  // native review sheet / store listing. Until then it shows a coming-soon note.
+  const onRate = () => {
+    if (window.FP_ENV?.canRate?.()) {
+      window.FP_ENV.openRating();
+      return;
+    }
+    setRatePopup(true);
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",
     style: {
@@ -168,7 +178,7 @@ function MainScreen({
       c: "var(--fp-ink)"
     }),
     label: "Rate",
-    onClick: () => setRatePopup(true)
+    onClick: onRate
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',

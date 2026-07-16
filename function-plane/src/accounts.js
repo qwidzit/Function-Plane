@@ -218,6 +218,18 @@
 
   function getActive() { return _currentUser; }
 
+  // Re-fetch the signed-in user's profile (picks up an is_premium flip made by
+  // a payment webhook on another device / server-side) and refresh the cache.
+  // Returns the updated user, or null in guest mode.
+  async function refreshProfile() {
+    if (!_sb || !_currentUser) return _currentUser;
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) return _currentUser;
+    _currentUser = await _fetchProfile(session.user);
+    notify();
+    return _currentUser;
+  }
+
   // ── Progress (sync interface, async Supabase background sync) ─────────────
 
   function getActiveProgress() {
@@ -655,7 +667,7 @@
   // ── Export ────────────────────────────────────────────────────────────────
 
   window.FP_AUTH = {
-    getActive, signOut, isAdmin, isPremium, setPremium, deleteAccount,
+    getActive, refreshProfile, signOut, isAdmin, isPremium, setPremium, deleteAccount,
     enablePushNotifications,
     register, signIn, resetPassword,
     checkNameAvailable,

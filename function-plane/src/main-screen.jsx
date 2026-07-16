@@ -8,6 +8,13 @@ function MainScreen({ onPlay, onInfo, onAchievements, onAccount, onSettings, tot
   const { useState: useMS } = React;
   const [ratePopup, setRatePopup] = useMS(false);
 
+  // Rate: once RATE_CONFIG is switched on with store URLs, this opens the
+  // native review sheet / store listing. Until then it shows a coming-soon note.
+  const onRate = () => {
+    if (window.FP_ENV?.canRate?.()) { window.FP_ENV.openRating(); return; }
+    setRatePopup(true);
+  };
+
   return (
     <div className="fp-screen" style={{
       width: '100%', height: '100%',
@@ -88,7 +95,8 @@ function MainScreen({ onPlay, onInfo, onAchievements, onAccount, onSettings, tot
         <div style={{ display: 'flex', gap: 6 }}>
           <IconTile icon={<Icon.Info size={20} c="var(--fp-ink)"/>} label="How to play" onClick={onInfo} />
           <IconTile icon={<Icon.Trophy size={20} c="var(--fp-ink)"/>} label="Achievements" onClick={onAchievements} />
-          <IconTile icon={<Icon.Heart size={18} c="var(--fp-ink)"/>} label="Rate" onClick={() => setRatePopup(true)} />
+          <IconTile icon={<Icon.Heart size={18} c="var(--fp-ink)"/>} label="Rate" onClick={onRate} />
+
         </div>
       </div>
 

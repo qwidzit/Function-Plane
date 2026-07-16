@@ -26,6 +26,18 @@ function App() {
   const [account, setAccount] = useState(() => FP_AUTH.getActive());
   useEffect(() => FP_AUTH.subscribe(() => setAccount(FP_AUTH.getActive())), []);
 
+  // Coming back from an external checkout tab (Stripe web payment) — re-check
+  // the premium flag so a finished purchase unlocks without a manual reload.
+  // Stops firing once the account is already premium.
+  useEffect(() => {
+    if (!account || account.isPremium) return;
+    const onVis = () => {
+      if (document.visibilityState === 'visible') FP_AUTH.refreshProfile?.().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [account?.id, account?.isPremium]);
+
   // Bump on every config-override change so screens re-render with new pack/level data.
   // Level/pack data itself is already applied synchronously at boot from the
   // baked snapshot / localStorage cache (overrides-store.js) — this only runs
