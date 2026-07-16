@@ -14,11 +14,16 @@ function LevelSelector({
   };
   const earned = data.stars.reduce((a, v) => a + (v > 0 ? v : 0), 0);
   const completed = data.stars.filter(v => v !== null && v >= 1).length;
+
+  // Pack-level gating already happened in PackSelector (computePackLocked) —
+  // inside an open pack the first level is always playable and each next
+  // level unlocks by clearing the previous one. Never gate on stars[i]
+  // itself: a freshly-unlocked pack still has null (untouched) entries,
+  // which used to lock every level including the first.
   const isLevelUnlocked = i => {
-    if (data.stars[i] === null) return false;
     if (i === 0) return true;
     const prev = data.stars[i - 1];
-    return prev !== null && prev >= 1;
+    return prev != null && prev >= 1;
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",

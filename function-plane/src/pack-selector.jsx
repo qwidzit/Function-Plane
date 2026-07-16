@@ -4,8 +4,15 @@ const { useState: usePSState } = React;
 
 function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' }) {
   const padX = density === 'compact' ? 18 : 22;
-  const totalStars = totalStarsAll(progress);
-  const totalPossible = (ROMAN_PACKS.length + SPECIAL_PACKS.length) * 30;
+  // Count stars and the achievable maximum over *visible* packs only —
+  // hidden (unreleased) packs must not inflate the "/ 420" style total.
+  const visRoman   = visiblePacks(ROMAN_PACKS);
+  const visSpecial = visiblePacks(SPECIAL_PACKS);
+  const totalStars = [...visRoman, ...visSpecial]
+    .reduce((a, p) => a + packTotalStars(progress, p.id), 0);
+  const totalPossible = (visRoman.length + visSpecial.length) * 30;
+  // Unlock progress must match computePackLocked, which counts ALL packs.
+  const unlockStars = totalStarsAll(progress);
   const [lockedPack, setLockedPack] = usePSState(null);
 
   const handlePackClick = (pack, lockInfo) => {
@@ -59,7 +66,7 @@ function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' })
           Packs
         </h1>
         <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--fp-ink-3)' }}>
-          {ROMAN_PACKS.length} chapters · {SPECIAL_PACKS.length} themed
+          {visRoman.length} chapters · {visSpecial.length} themed
         </div>
       </div>
 
@@ -91,7 +98,7 @@ function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' })
               const complete = packIsComplete(progress, p.id);
               return (
                 <SpecialPackCard key={p.id} pack={p} stars={stars} locked={lockInfo.locked} complete={complete}
-                  lockInfo={lockInfo} totalStars={totalStars}
+                  lockInfo={lockInfo} totalStars={unlockStars}
                   onClick={() => handlePackClick(p, lockInfo)} />
               );
             })}
@@ -105,7 +112,7 @@ function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' })
         <LockedPackPopup
           pack={lockedPack.pack}
           lockInfo={lockedPack.lockInfo}
-          totalStars={totalStars}
+          totalStars={unlockStars}
           onClose={() => setLockedPack(null)}
         />
       )}
