@@ -40,7 +40,7 @@ screen.
 
 ## Build steps — Android
 
-Run from the repo root (`/path/to/Function-Space`).
+Run from the repo root (`/path/to/Function-Plane`).
 
 ```bash
 # 1. Install the Capacitor CLI + platform packages
@@ -114,14 +114,15 @@ client code via Supabase — for that you need to rebuild the app. But every
 - `navigator.online` detection + offline indicator
 - Supabase JS client over HTTPS
 - The custom math keyboard (`inputMode="none"` works fine)
+- Android hardware back button (`@capacitor/app`, wired in `app.jsx`) —
+  navigates within the app instead of closing it
 
 ## Things to plan for v2 (not blocking ship)
 
 - **Haptic vibration on iOS** — `navigator.vibrate` is a no-op on iOS
-  WebKit. Install `@capacitor/haptics` and route `FP_HAPTIC` through it
-  when running on iOS.
-- **Hardware back button on Android** — currently closes the app. Add the
-  `@capacitor/app` plugin to override and navigate within the app.
+  WebKit. Haptics were removed project-wide (unreliable in past testing);
+  don't re-add without an explicit request. If revisited, it'd be
+  `@capacitor/haptics` routed per-platform.
 - **Web Push notifications** — already scaffolded in the SW. For native
   push you'd switch to `@capacitor/push-notifications` + FCM/APNs.
 - **Reset-password deep link** — for the email link to open the app you'll
