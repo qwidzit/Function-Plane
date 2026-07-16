@@ -2,14 +2,595 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-//
-// PLACEHOLDER — this snapshot is empty because it has not been generated
-// against the live database yet. Run `npm run snapshot:data` (needs network
-// access to Supabase) and commit the result.
+// Generated: 2026-07-16T09:59:18.719Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
-  "packs": [],
-  "levels": [],
+  "packs": [
+   {
+    "pack_id": "r-I",
+    "name": "Foundations",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T07:58:52.194+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "r-IV",
+    "name": "Geometry",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T07:24:43.472+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "r-IX",
+    "name": "Transforms",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T04:04:13.324+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "r-V",
+    "name": "Mastery",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T07:42:55.582+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "r-VI",
+    "name": "Asymptotes",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T04:04:27.357+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "r-VII",
+    "name": "Compositions",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T04:04:22.394+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "r-VIII",
+    "name": "Discontinuities",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T04:04:17.685+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "r-X",
+    "name": "Mastery",
+    "allowed_class": null,
+    "updated_at": "2026-05-05T04:04:06.242+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "s-exp",
+    "name": "Exponential",
+    "allowed_class": "exp",
+    "updated_at": "2026-05-08T16:29:59.47+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "s-qua",
+    "name": "Quadratic",
+    "allowed_class": "quadratic",
+    "updated_at": "2026-05-08T16:30:07.069+00:00",
+    "is_hidden": true
+   }
+  ],
+  "levels": [
+   {
+    "pack_id": "r-I",
+    "level_index": 0,
+    "name": "Warm-up",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2,
+      "y": 2
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 2,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T04:05:29.355+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 1,
+    "name": "First slope",
+    "ball_x": 2,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -2,
+      "y": -2
+     },
+     {
+      "x": 0,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T04:06:51.673+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 2,
+    "name": "Slope II",
+    "ball_x": -3,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -3,
+      "y": -1
+     },
+     {
+      "x": -1,
+      "y": -2
+     },
+     {
+      "x": 1,
+      "y": -3
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:47:04.867+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 3,
+    "name": "Down and Up",
+    "ball_x": -3,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2,
+      "y": 3
+     },
+     {
+      "x": 0,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": 3
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:54:04.361+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 4,
+    "name": "Fly Away",
+    "ball_x": -3,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": -2,
+      "y": 3
+     },
+     {
+      "x": -1,
+      "y": -1
+     },
+     {
+      "x": 3,
+      "y": 1
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:55:21.931+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 5,
+    "name": "The Valley",
+    "ball_x": -5,
+    "ball_y": 3,
+    "stars": [
+     {
+      "x": -4,
+      "y": 0
+     },
+     {
+      "x": 0,
+      "y": -1
+     },
+     {
+      "x": 4,
+      "y": 0
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:58:07.801+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 6,
+    "name": "Curveball",
+    "ball_x": -2,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -1,
+      "y": 2
+     },
+     {
+      "x": 2,
+      "y": 1
+     },
+     {
+      "x": 4,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:48:56.803+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 7,
+    "name": "Hole in the wall",
+    "ball_x": -2,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -1,
+      "y": 3
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 4,
+      "y": 0
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:50:08.91+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 8,
+    "name": "Escalator",
+    "ball_x": -3,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2,
+      "y": 2
+     },
+     {
+      "x": 1,
+      "y": 1
+     },
+     {
+      "x": 2,
+      "y": -1
+     },
+     {
+      "x": -3,
+      "y": -3
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:56:37.432+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 9,
+    "name": "The summit",
+    "ball_x": -5,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -4,
+      "y": -1
+     },
+     {
+      "x": -1,
+      "y": -1
+     },
+     {
+      "x": 0,
+      "y": 2
+     },
+     {
+      "x": 1,
+      "y": -1
+     },
+     {
+      "x": 4,
+      "y": -1
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 1,
+    "updated_at": "2026-05-05T07:57:24.397+00:00",
+    "preplaced": null
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 0,
+    "name": "Reverse",
+    "ball_x": -3,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -2,
+      "y": -2
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 2,
+      "y": 2
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T05:49:57.452+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 1,
+    "name": "Falling Down",
+    "ball_x": -1,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -1,
+      "y": 2
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 1,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T05:51:03.724+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 2,
+    "name": "Falling Up",
+    "ball_x": 0,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 2,
+      "y": 2
+     },
+     {
+      "x": 2,
+      "y": 0
+     },
+     {
+      "x": 2,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T05:51:42.225+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 3,
+    "name": "On the edge",
+    "ball_x": -3,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -3,
+      "y": 1
+     },
+     {
+      "x": -1,
+      "y": 0
+     },
+     {
+      "x": 1,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": -3
+     }
+    ],
+    "score_goal": 320,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T05:52:51.923+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 4,
+    "name": "Scattered",
+    "ball_x": -2,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -3,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": 2
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-05-06T05:54:32.095+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 5,
+    "name": "Downhill",
+    "ball_x": -1,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -3,
+      "y": 3
+     },
+     {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": -1
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-05-06T05:58:40.44+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 6,
+    "name": "The Line",
+    "ball_x": 0,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -4,
+      "y": 1
+     },
+     {
+      "x": 0,
+      "y": 1
+     },
+     {
+      "x": -4,
+      "y": 1
+     }
+    ],
+    "score_goal": 320,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T05:59:20.765+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 7,
+    "name": "Emptiness",
+    "ball_x": -1,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 2,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-05-06T06:00:12.668+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 8,
+    "name": "Crossroads",
+    "ball_x": 0,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 0,
+      "y": 2
+     },
+     {
+      "x": 0,
+      "y": -2
+     },
+     {
+      "x": 2,
+      "y": 0
+     },
+     {
+      "x": -2,
+      "y": 0
+     }
+    ],
+    "score_goal": 90,
+    "eq_goal": 3,
+    "updated_at": "2026-05-06T06:01:16.504+00:00",
+    "preplaced": []
+   },
+   {
+    "pack_id": "r-II",
+    "level_index": 9,
+    "name": "Loneliness",
+    "ball_x": -4,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": -3,
+      "y": 3
+     },
+     {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": -1
+     },
+     {
+      "x": 5,
+      "y": 2
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-05-06T06:02:41.998+00:00",
+    "preplaced": []
+   }
+  ],
   "achievements": []
  }
 };
