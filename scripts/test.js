@@ -1,6 +1,6 @@
 // Function Plane — test suite. No dependencies: node scripts/test.js
 //
-// Covers the three things CLAUDE.md says must be re-checked by hand after a
+// Covers the three things ABOUT.md says must be re-checked by hand after a
 // change, plus the release-integrity checks that are easy to forget:
 //
 //   1. Classifier parity + loopholes — a themed pack must not let a disguised

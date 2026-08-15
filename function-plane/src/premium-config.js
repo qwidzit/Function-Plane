@@ -5,7 +5,7 @@
 // Until these are filled in, the app falls back to a placeholder dialog
 // explaining that purchases are not configured. Note that these links are for
 // the web/sideload channel only — the Play Store build must use Play Billing
-// (see the payments section of CLAUDE.md).
+// (see the payments section of ABOUT.md).
 window.PREMIUM_LINKS = {
   monthly:  '',  // e.g. 'https://buy.stripe.com/xxxYourMonthlyLinkxxx'
   yearly:   '',

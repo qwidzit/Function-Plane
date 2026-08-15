@@ -209,9 +209,13 @@
 
   async function resetPassword(email) {
     if (!_sb) throw new Error('Supabase is not configured yet');
+    // Must be an https page on the website, not window.location.origin: in the
+    // native shell the app's origin is https://localhost, which Supabase can't
+    // redirect an email link to. The page there handles the recovery token and
+    // calls updateUser({ password }) — the app has no such screen.
     const { error } = await _sb.auth.resetPasswordForEmail(
       (email || '').trim().toLowerCase(),
-      { redirectTo: window.location.origin },
+      { redirectTo: 'https://functionplane.pages.dev/auth/reset' },
     );
     if (error) throw new Error(error.message);
   }
