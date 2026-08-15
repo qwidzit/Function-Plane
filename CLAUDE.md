@@ -114,6 +114,7 @@ android` / `npx cap add ios` (iOS needs a Mac).
 
 | Script | What it does |
 |---|---|
+| `npm test` | Run `scripts/test.js` — no dependencies, ~1 s. Run before every commit. |
 | `npm run build:jsx` | Compile all `.jsx` → `.js`. Run after every `.jsx` edit. |
 | `npm run snapshot:data` | Pull Supabase override tables → `overrides-snapshot.js`. Run before every release. |
 | `npm run cap:sync` | build:jsx + copy web files into `android/` and `ios/` |
@@ -123,6 +124,54 @@ android` / `npx cap add ios` (iOS needs a Mac).
 
 Full build walkthrough (Android Studio / Xcode steps, troubleshooting) is in
 `MOBILE-BUILD.md`.
+
+## Tests (`npm test`)
+
+`scripts/test.js` is a zero-dependency Node suite covering the things this
+file says to re-check by hand. It runs in about a second — there is no excuse
+for not running it before a commit.
+
+- **Classifier** — parity table (same class *and* score as before the AST
+  rewrite, since level goals were tuned against those numbers) plus the
+  loophole set (implicit conics, disguised exponentials, roots, products,
+  piecewise, rationals must not read as `linear`). Also extracts
+  `classMatches` straight out of the shipped `level-screen.js` so pack gating
+  is tested as shipped, not as a copy.
+- **Physics** — free fall, resting height, no sink-through, energy loss on a
+  real bounce, determinism, and the slope roll that dies instantly if the
+  "`energyRetention` only when `-vn > 1.5`" gate is broken.
+- **Sim clock** — that recorded times come from tick count and not the wall
+  clock (see below), that 60Hz still steps exactly once per frame, and that a
+  stall can't trigger unbounded catch-up.
+- **Shell integrity** — every script/stylesheet in `index.html` is in `sw.js`'s
+  `SHELL` and still exists, `app.js` loads last, every `.jsx` has a `.js`, and
+  the screens agree on the build number.
+- **Level data** — the snapshot parses, every authored level has a ball, stars
+  and positive goals, and `_default`'s goal stays on the authored scale.
+- **Build parity** — recompiles every `.jsx` and compares to the committed
+  `.js` (escape-normalized). Skipped with a notice if `@babel/core` isn't
+  installed, so it's silent in sandboxes and real in CI.
+
+Content coverage prints as an informational report and never fails the suite —
+levels are authored in Supabase while the app ships, so a gap is news, not
+breakage.
+
+Every check has been mutation-tested: breaking the energy gate, reverting the
+sim clock, forgetting a `SHELL` entry, or regressing the classifier each turn
+the suite red.
+
+## Sim timing — fixed tick, never the wall clock
+
+`level-screen.jsx`'s frame loop accumulates real elapsed time and drains it in
+whole `TICK_DT` (1/60 s) ticks, and `wonAtS` / the HUD read `ph.simS`, which
+counts ticks. **Never derive elapsed time from the `requestAnimationFrame`
+timestamp.** It used to: the sim advanced a fixed 1/60 s per *frame* while the
+recorded time came from the wall clock, so a 120Hz phone ran the game at
+double speed and posted times roughly half a 60Hz phone's for identical play —
+the time leaderboard ranked display hardware. At 60Hz the accumulator is
+exactly one tick per frame, so stepping is unchanged from before the fix.
+`MAX_TICKS` caps catch-up so a tab switch makes the sim fall behind rather than
+freeze replaying lost seconds.
 
 ## Service worker — the most-forgotten step
 

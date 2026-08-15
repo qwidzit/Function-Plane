@@ -6,6 +6,17 @@ const EQ_COLORS = ['#c74440','#2d70b3','#388c46','#6042a6','#fa7e19','#000000'];
 
 const GRAVITY    = 12;
 const SUB_STEPS  = 20;
+// Simulated seconds advanced per tick. Real elapsed time is accumulated and
+// drained in whole ticks, so the sim runs at the same speed and records the
+// same finish time on a 30Hz, 60Hz or 120Hz display. Recorded times come from
+// tick count, never the wall clock — otherwise a 120Hz phone posts times
+// roughly half of a 60Hz phone's for identical play, and the leaderboard
+// ranks hardware. At 60Hz this is exactly one tick per frame, i.e. identical
+// stepping to before.
+const TICK_DT    = 1/60;
+// Cap catch-up work after a stall (tab switch, GC pause) so the sim falls
+// behind rather than freezing the UI trying to replay lost seconds.
+const MAX_TICKS  = 5;
 const STAR_R     = 0.55;
 const BALL_R     = 0.22;
 const FALL_LIMIT = -13;
@@ -1050,7 +1061,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     physRef.current = {
       x:levelData.ball.x, y:levelData.ball.y, vx:0, vy:0,
       stars:levelData.stars.map(s=>({...s,collected:false})),
-      startTs:null, bounced:false, justCollected:false,
+      lastTs:null, acc:0, simS:0, bounced:false, justCollected:false,
       wonAtS:null,
     };
     setSimStars(levelData.stars.map(s=>({...s,collected:false})));
@@ -1069,7 +1080,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
   useEL(() => {
     if (!running) return;
     const ph = physRef.current;
-    const dt = 1/(60*SUB_STEPS);
+    const dt = TICK_DT/SUB_STEPS;
 
     // Equations are locked while the sim runs, so colliders are built once
     // per run. Each collider lazily samples + caches curve geometry around
@@ -1083,14 +1094,23 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     );
 
     const frame = ts => {
-      if (!ph.startTs) ph.startTs = ts;
-      const elapsedS = (ts-ph.startTs)/1000;
-      setElapsed(elapsedS);
+      if (ph.lastTs == null) ph.lastTs = ts;
+      ph.acc += Math.min((ts-ph.lastTs)/1000, MAX_TICKS*TICK_DT);
+      ph.lastTs = ts;
 
       ph.bounced = false;
       ph.justCollected = false;
 
-      for (let s=0; s<SUB_STEPS; s++) physicsStep(ph, colliders, dt);
+      while (ph.acc >= TICK_DT) {
+        ph.acc -= TICK_DT;
+        for (let s=0; s<SUB_STEPS; s++) physicsStep(ph, colliders, dt);
+        ph.simS += TICK_DT;
+        // Checked per tick, not per frame, so the recorded finish time has
+        // the same resolution however many ticks a frame happens to drain.
+        if (ph.wonAtS == null && ph.stars.every(s=>s.collected)) ph.wonAtS = ph.simS;
+      }
+      const elapsedS = ph.simS;
+      setElapsed(elapsedS);
 
       if (ph.bounced) { sfx('bounce'); }
       if (ph.justCollected) { sfx('collectStar'); }
@@ -1100,13 +1120,10 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       setCollectedCount(collected);
       setSimStars([...ph.stars]);
 
-      // Lock in the "won" moment the instant the last star is collected, so
+      // wonAtS is locked in above, the instant the last star is collected, so
       // the recorded finish time reflects the player's actual play (not the
       // 0.5s wind-down). The level then ends 0.5s later regardless of where
       // the ball wanders to.
-      if (collected >= totalStars && ph.wonAtS == null) {
-        ph.wonAtS = elapsedS;
-      }
       const wonElapsed = ph.wonAtS != null ? (elapsedS - ph.wonAtS) : -1;
       const failed = ph.wonAtS == null && (ph.y < FALL_LIMIT || elapsedS > TIME_LIMIT);
       const succeeded = ph.wonAtS != null && wonElapsed >= 0.5;

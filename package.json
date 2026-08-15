@@ -4,6 +4,7 @@
   "description": "Function Plane — mobile PWA puzzle game",
   "private": true,
   "scripts": {
+    "test": "node scripts/test.js",
     "build:jsx": "node scripts/build-jsx.js",
     "snapshot:data": "node scripts/snapshot-overrides.js",
     "cap:init": "cap init 'Function Plane' app.functionplane --web-dir=function-plane",
