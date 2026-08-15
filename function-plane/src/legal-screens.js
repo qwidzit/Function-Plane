@@ -64,11 +64,10 @@ terms:
 
 * **Supabase, Inc.** — authentication, database, and storage. Data is hosted
   on Supabase infrastructure. See https://supabase.com/privacy
-* **Google Fonts (Google LLC)** — fonts are loaded from fonts.googleapis.com.
-  Google may receive your IP address as a result.
-* **jsDelivr / unpkg (CDN providers)** — JavaScript libraries (React, Babel,
-  Supabase JS) are served from their networks; the operator may receive your
-  IP address.
+
+Supabase is the only one. The app bundles all of its code, fonts and images,
+so it contacts no content delivery network, font service, analytics provider
+or advertising network — there are none in the app.
 
 ## 4. Leaderboards and public information
 

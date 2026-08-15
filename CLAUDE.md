@@ -82,7 +82,8 @@ finished parsing).
 function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
   index.html               # entry; fixed <script> load order
   sw.js  manifest.json     # service worker + PWA manifest
-  vendor/                  # React, ReactDOM, Supabase JS (no npm/CDN at runtime)
+  vendor/                  # React, ReactDOM, Supabase JS, webfonts (no npm/CDN at runtime)
+    fonts.css  fonts/       # self-hosted woff2 subsets
   src/                     # *.jsx = source, *.js = generated (build-jsx.js)
     accounts.js            # FP_AUTH — auth, profiles, is_premium, leaderboards
     overrides-store.js     # FP_DATA — boots from baked snapshot, syncs by version check
@@ -326,6 +327,16 @@ Non-obvious timing:
 - Hard fallback: `setTimeout(hide, 7000)` prevents a stuck splash on slow
   networks.
 
+Fonts are **self-hosted** in `vendor/fonts/` (latin subsets, latin-ext for
+Geist since it renders player display names). They used to come from
+fonts.googleapis.com, which meant the native app rendered its cold first
+launch in a fallback face — the WebView has no network then — and leaked every
+player's IP to Google. Apart from Supabase the app now contacts nobody, which
+is what the privacy policy claims, so **don't reintroduce a CDN font link**.
+Adding a weight means adding the woff2 to `vendor/fonts/`, a rule to
+`vendor/fonts.css`, and the file to `sw.js`'s `SHELL` (`npm test` checks the
+last one).
+
 If you change fonts, update the `document.fonts.load(...)` calls in
 `fontsReady()`.
 
@@ -553,7 +564,8 @@ the two channels require different, mutually exclusive payment systems:
 - `function-plane/src/premium-config.js` — feature-flag stub for premium
   (`PREMIUM_LINKS`); billing isn't wired up yet (see Roadmap).
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.
-- `function-plane/vendor/` — vendored React/ReactDOM/Supabase. If you
+- `function-plane/vendor/` — vendored React/ReactDOM/Supabase, plus the
+  self-hosted webfonts (`fonts.css` + `fonts/*.woff2`). If you
   upgrade React, update the license text in `legal-screens.jsx` too.
 
 ## Deployment quick reference

@@ -9,12 +9,14 @@
   <meta name="apple-mobile-web-app-title" content="Function Plane" />
   <meta name="theme-color" content="#0e0f10" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <title>Function Plane</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <!-- Fonts are vendored, not fetched from Google, for the same reason the
+       JS is: the native WebView has no network on a cold first launch and
+       would render the whole app in a fallback face. It also means the app
+       talks to nobody but Supabase. -->
+  <link rel="stylesheet" href="vendor/fonts.css" />
 
   <link rel="stylesheet" href="src/styles.css" />
 

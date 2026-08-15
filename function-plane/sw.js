@@ -1,8 +1,19 @@
-const CACHE = 'fp-v25';
+const CACHE = 'fp-v26';
 const SHELL = [
   './',
   './index.html',
   './src/styles.css',
+  './vendor/fonts.css',
+  './vendor/fonts/geist-400-latin.woff2',
+  './vendor/fonts/geist-400-latin-ext.woff2',
+  './vendor/fonts/geist-500-latin.woff2',
+  './vendor/fonts/geist-500-latin-ext.woff2',
+  './vendor/fonts/geist-600-latin.woff2',
+  './vendor/fonts/geist-600-latin-ext.woff2',
+  './vendor/fonts/geist-mono-400-latin.woff2',
+  './vendor/fonts/geist-mono-500-latin.woff2',
+  './vendor/fonts/instrument-serif-400-latin.woff2',
+  './vendor/fonts/instrument-serif-400-italic-latin.woff2',
   './vendor/react.production.min.js',
   './vendor/react-dom.production.min.js',
   './vendor/supabase.js',
@@ -32,6 +43,10 @@ const SHELL = [
   './src/legal-screens.js',
   './src/app.js',
   './icons/icon.svg',
+  './icons/icon-180.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', e => {

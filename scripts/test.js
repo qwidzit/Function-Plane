@@ -333,6 +333,47 @@ it('precaches every script and stylesheet index.html loads', () => {
   eq(missing.length, 0, `files loaded by index.html but absent from sw.js SHELL: ${missing.join(', ')}`);
 });
 
+it('precaches every self-hosted font', () => {
+  // Fonts are referenced from vendor/fonts.css, not index.html, so they are
+  // easy to add without touching SHELL — and the miss only shows up as
+  // fallback type on a cold offline launch.
+  const fontsCss = read(path.join(ROOT, 'function-plane', 'vendor', 'fonts.css'));
+  const faces = [...fontsCss.matchAll(/url\('([^']+)'\)/g)].map(m => m[1]);
+  ok(faces.length > 0, 'vendor/fonts.css declares no @font-face sources');
+  const missing = faces.filter(f => !shell.includes('./vendor/' + f));
+  eq(missing.length, 0, `fonts absent from sw.js SHELL: ${missing.join(', ')}`);
+  const absent = faces.filter(f => !fs.existsSync(path.join(ROOT, 'function-plane', 'vendor', f)));
+  eq(absent.length, 0, `fonts.css references missing files: ${absent.join(', ')}`);
+});
+
+it('loads no third-party resources', () => {
+  // The app must talk to nobody but Supabase: the native WebView has no
+  // network on a cold first launch, and the privacy policy says so.
+  const external = [...indexHtml.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map(m => m[1]);
+  eq(external.length, 0, `index.html loads external resources: ${external.join(', ')}`);
+});
+
+it('points apple-touch-icon at a PNG', () => {
+  // iOS ignores an SVG apple-touch-icon and falls back to a screenshot.
+  const m = indexHtml.match(/rel="apple-touch-icon" href="([^"]+)"/);
+  ok(m, 'no apple-touch-icon');
+  ok(m[1].endsWith('.png'), `apple-touch-icon must be a PNG, got ${m[1]}`);
+});
+
+it('ships maskable and 192/512 PNG icons in the manifest', () => {
+  const manifest = JSON.parse(read(path.join(ROOT, 'function-plane', 'manifest.json')));
+  const pngs = manifest.icons.filter(i => i.type === 'image/png');
+  for (const size of ['192x192', '512x512']) {
+    ok(pngs.some(i => i.sizes === size && i.purpose.includes('any')),
+      `manifest needs a ${size} PNG icon`);
+  }
+  ok(pngs.some(i => i.purpose === 'maskable'), 'manifest needs a maskable icon');
+  for (const i of manifest.icons) {
+    ok(fs.existsSync(path.join(ROOT, 'function-plane', i.src)), `manifest icon missing: ${i.src}`);
+    ok(shell.includes('./' + i.src), `manifest icon not precached: ${i.src}`);
+  }
+});
+
 it('does not precache files that no longer exist', () => {
   const gone = shell
     .filter(s => s !== './' && s !== './index.html')
