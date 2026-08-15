@@ -13,8 +13,7 @@ const SETTINGS_DEFAULTS = {
   volume: 70,
   gridLabels: true,
   autoZoom: true,
-  notation: 'pretty',
-  notifNewPacks: true
+  notation: 'pretty'
 };
 function App() {
   const [settings, setSettings] = useState(() => {

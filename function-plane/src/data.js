@@ -52,6 +52,10 @@ const SPECIAL_UNLOCK_STARS = {
 };
 
 // ─── Level data ──────────────────────────────────────────────
+// Every shipped level is authored in Supabase and baked into
+// overrides-snapshot.js, which always wins over this table. `_default` is the
+// fallback for a level with no authored row — its goals track the authored
+// scale (score goals run 30–90) so an unauthored level isn't trivially easy.
 const LEVELS = {
   _default: {
     ball: {
@@ -68,65 +72,7 @@ const LEVELS = {
       x: 3,
       y: -2
     }],
-    scoreGoal: 320,
-    eqGoal: 1
-  },
-  // ── Pack I: Foundations ──────────────────────────────────────
-  'r-I-0': {
-    // Warm-up — hint: y = -x
-    ball: {
-      x: -4,
-      y: 5
-    },
-    stars: [{
-      x: -2,
-      y: 2
-    }, {
-      x: 0,
-      y: 0
-    }, {
-      x: 2,
-      y: -2
-    }],
-    scoreGoal: 220,
-    eqGoal: 1
-  },
-  'r-I-1': {
-    // First slope — hint: y = 0.5x - 1
-    ball: {
-      x: -4,
-      y: 4
-    },
-    stars: [{
-      x: -2,
-      y: -2
-    }, {
-      x: 0,
-      y: -1
-    }, {
-      x: 4,
-      y: 1
-    }],
-    scoreGoal: 220,
-    eqGoal: 1
-  },
-  'r-I-2': {
-    // Through the gate — hint: y = x^2 - 3
-    ball: {
-      x: 0,
-      y: 5
-    },
-    stars: [{
-      x: -2,
-      y: 1
-    }, {
-      x: 0,
-      y: -3
-    }, {
-      x: 2,
-      y: 1
-    }],
-    scoreGoal: 220,
+    scoreGoal: 40,
     eqGoal: 1
   }
 };

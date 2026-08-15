@@ -10,8 +10,7 @@ const SETTING_HELP = {
   volume: 'Master volume for sound effects.',
   gridLabels: 'Show numeric labels along the X and Y axes of the level plane.',
   autoZoom: 'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.',
-  notation: 'Display style for equations on the level plane. Standard uses x^2 / sqrt(); Pretty uses x² / √.',
-  notifNewPacks: 'Get a notification when new chapter or themed packs are released.'
+  notation: 'Display style for equations on the level plane. Standard uses x^2 / sqrt(); Pretty uses x² / √.'
 };
 function SettingsScreen({
   onBack,
@@ -157,7 +156,7 @@ function SettingsScreen({
       letterSpacing: '0.06em',
       textTransform: 'uppercase'
     }
-  }, "v 1.0 \xB7 build 2"), /*#__PURE__*/React.createElement("div", {
+  }, "v 1.0 \xB7 build 1"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: 'var(--fp-ink-4)',

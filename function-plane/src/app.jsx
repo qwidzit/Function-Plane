@@ -10,7 +10,6 @@ const SETTINGS_DEFAULTS = {
   gridLabels: true,
   autoZoom: true,
   notation: 'pretty',
-  notifNewPacks: true,
 };
 
 function App() {

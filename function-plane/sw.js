@@ -1,4 +1,4 @@
-const CACHE = 'fp-v24';
+const CACHE = 'fp-v25';
 const SHELL = [
   './',
   './index.html',
@@ -78,8 +78,9 @@ self.addEventListener('fetch', e => {
 });
 
 // ── Web Push ─────────────────────────────────────────────────────────────
-// Receives push messages from a backend signed with VAPID keys (see
-// PUSH-SETUP.md). Body shape: { title, body, url? }.
+// Scaffolding only — nothing in the app subscribes yet; notifications ship
+// with daily levels in v2. Receives push messages from a backend signed with
+// the VAPID keys in supabase-config.js. Body shape: { title, body, url? }.
 
 self.addEventListener('push', e => {
   let data = {};

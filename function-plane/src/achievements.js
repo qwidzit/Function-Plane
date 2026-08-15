@@ -150,8 +150,13 @@ const BUILTIN_ACH_LIST = [{
 }, {
   id: 'all_roman',
   name: 'Completionist',
-  desc: 'Complete all 10 Roman numeral packs',
-  check: p => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'].every(r => (p[`r-${r}`]?.stars ?? []).filter(s => s >= 1).length >= 10)
+  desc: 'Complete every released Roman numeral pack',
+  // Scoped to released packs, not all ten — unreleased packs are hidden and
+  // unplayable, so a fixed I–X list makes this permanently unobtainable.
+  check: p => {
+    const released = (window.ROMAN_PACKS ?? []).filter(pk => !window.FP_PACK_OVERRIDES?.[pk.id]?.is_hidden);
+    return released.length > 0 && released.every(pk => (p[pk.id]?.stars ?? []).filter(s => s >= 1).length >= 10);
+  }
 },
 // ── Time-based achievements ───────────────────────────────────────────────
 {

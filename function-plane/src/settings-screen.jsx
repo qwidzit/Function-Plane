@@ -9,7 +9,6 @@ const SETTING_HELP = {
   gridLabels:   'Show numeric labels along the X and Y axes of the level plane.',
   autoZoom:     'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.',
   notation:     'Display style for equations on the level plane. Standard uses x^2 / sqrt(); Pretty uses x² / √.',
-  notifNewPacks:'Get a notification when new chapter or themed packs are released.',
 };
 
 function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortable', onLegal }) {
@@ -90,7 +89,7 @@ function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortabl
           <div style={{
             fontSize: 10.5, color: 'var(--fp-ink-4)',
             letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>v 1.0 · build 2</div>
+          }}>v 1.0 · build 1</div>
           <div style={{
             fontSize: 10.5, color: 'var(--fp-ink-4)',
             letterSpacing: '0.06em', textTransform: 'uppercase',

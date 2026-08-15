@@ -2,8 +2,10 @@
 // (Products → "Payment links"). They open in a new tab; on success, Stripe
 // fires a webhook that should mark the user's profile as premium.
 //
-// Setup (see PREMIUM-SETUP.md or the README) — until you complete it, the
-// app falls back to the placeholder dialog explaining IAP is not configured.
+// Until these are filled in, the app falls back to a placeholder dialog
+// explaining that purchases are not configured. Note that these links are for
+// the web/sideload channel only — the Play Store build must use Play Billing
+// (see the payments section of CLAUDE.md).
 window.PREMIUM_LINKS = {
   monthly:  '',  // e.g. 'https://buy.stripe.com/xxxYourMonthlyLinkxxx'
   yearly:   '',
