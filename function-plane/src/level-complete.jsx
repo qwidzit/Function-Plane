@@ -5,10 +5,13 @@ const { useState: useLCState, useEffect: useLCEffect } = React;
 function LevelCompletePopup({
   pack, levelIndex,
   starsRating, score,
-  prevBest, isNewBest, totalStars,
+  prevBest, isNewBest,
   time, prevBestTime, isNewBestTime,
   onReplay, onNext, onClose,
 }) {
+  // Level 10 has no next level — onNext returns to the level list there, so
+  // the label has to say so.
+  const isLastLevel = levelIndex >= 9;
   const [revealed, setRevealed] = useLCState(false);
   const [tab, setTab] = useLCState('score'); // 'score' | 'scoreboard' | 'timeboard'
   const [scoreboard, setScoreboard] = useLCState(null);
@@ -181,10 +184,10 @@ function LevelCompletePopup({
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fp-ink-3)', marginBottom: 3 }}>
-                      Stars
+                      Rating
                     </div>
                     <div className="fp-mono" style={{ fontSize: 22, color: 'var(--fp-ink)' }}>
-                      {totalStars}/{totalStars}
+                      {starsRating}/3
                     </div>
                   </div>
                 </div>
@@ -327,7 +330,7 @@ function LevelCompletePopup({
               fontSize: 14, fontWeight: 500,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             }}>
-              Next level
+              {isLastLevel ? 'Back to levels' : 'Next level'}
               <Icon.Chevron dir="right" size={14} c="currentColor"/>
             </button>
           </div>

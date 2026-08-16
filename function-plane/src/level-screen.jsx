@@ -271,7 +271,7 @@ function physicsStep(ph, colliders, dt) {
 }
 
 // ─── Coordinate plane ─────────────────────────────────────────
-function CoordPlane({ width, height, equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove }) {
+function CoordPlane({ width, height, equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true }) {
   const [view, setView] = useSL({ cx:0, cy:0, scale:40 });
 
   // Auto-zoom: when Play is pressed (autoZoomTrigger increments), fit the
@@ -440,21 +440,23 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
   const ax = m2p(0,0);
   const tickLabels = [];
   const ts = major;
-  for (let x = Math.ceil(range.xMin/ts)*ts; x<=range.xMax; x+=ts) {
-    if (Math.abs(x)<ts*0.01) continue;
-    const p = m2p(x,0);
-    const ty = Math.max(12, Math.min(height-4, ax.y+12));
-    tickLabels.push(<text key={`tx${x.toFixed(3)}`} x={p.x} y={ty} fontSize={10}
-      fontFamily="ui-monospace,monospace" fill="var(--lv-tick)" textAnchor="middle">
-      {gridStep>=1?Math.round(x):x.toFixed(1)}</text>);
-  }
-  for (let y = Math.ceil(range.yMin/ts)*ts; y<=range.yMax; y+=ts) {
-    if (Math.abs(y)<ts*0.01) continue;
-    const p = m2p(0,y);
-    const tx = Math.max(4, Math.min(width-20, ax.x+6));
-    tickLabels.push(<text key={`ty${y.toFixed(3)}`} x={tx} y={p.y+3} fontSize={10}
-      fontFamily="ui-monospace,monospace" fill="var(--lv-tick)" textAnchor="start">
-      {gridStep>=1?Math.round(y):y.toFixed(1)}</text>);
+  if (gridLabels) {
+    for (let x = Math.ceil(range.xMin/ts)*ts; x<=range.xMax; x+=ts) {
+      if (Math.abs(x)<ts*0.01) continue;
+      const p = m2p(x,0);
+      const ty = Math.max(12, Math.min(height-4, ax.y+12));
+      tickLabels.push(<text key={`tx${x.toFixed(3)}`} x={p.x} y={ty} fontSize={10}
+        fontFamily="ui-monospace,monospace" fill="var(--lv-tick)" textAnchor="middle">
+        {gridStep>=1?Math.round(x):x.toFixed(1)}</text>);
+    }
+    for (let y = Math.ceil(range.yMin/ts)*ts; y<=range.yMax; y+=ts) {
+      if (Math.abs(y)<ts*0.01) continue;
+      const p = m2p(0,y);
+      const tx = Math.max(4, Math.min(width-20, ax.x+6));
+      tickLabels.push(<text key={`ty${y.toFixed(3)}`} x={tx} y={p.y+3} fontSize={10}
+        fontFamily="ui-monospace,monospace" fill="var(--lv-tick)" textAnchor="start">
+        {gridStep>=1?Math.round(y):y.toFixed(1)}</text>);
+    }
   }
 
   const eqPaths = equations.filter(eq => eq.fn && eq.visible).map(eq => {
@@ -534,9 +536,11 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
           stroke="var(--lv-axis)" strokeWidth={1.4}/>
         <line x1={ax.x} y1={0} x2={ax.x} y2={height}
           stroke="var(--lv-axis)" strokeWidth={1.4}/>
-        <text x={Math.min(ax.x-4,width-4)} y={Math.max(12,ax.y+12)}
-          fontSize={10} fontFamily="ui-monospace,monospace"
-          fill="var(--lv-tick)" textAnchor="end">0</text>
+        {gridLabels && (
+          <text x={Math.min(ax.x-4,width-4)} y={Math.max(12,ax.y+12)}
+            fontSize={10} fontFamily="ui-monospace,monospace"
+            fill="var(--lv-tick)" textAnchor="end">0</text>
+        )}
         {tickLabels}
         {eqPaths}
         {trailPath && (
@@ -596,7 +600,7 @@ function ZBtn({ children, onClick, sm }) {
   );
 }
 
-function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove }) {
+function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true }) {
   const ref = useRL(null);
   const [size, setSize] = useSL({ w:360, h:300 });
   useEL(() => {
@@ -614,7 +618,7 @@ function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, 
         equations={equations} ballPos={ballPos}
         simStars={simStars} startPos={startPos}
         autoZoomTrigger={autoZoomTrigger} autoZoomEnabled={autoZoomEnabled}
-        levelStars={levelStars} trail={trail}
+        levelStars={levelStars} trail={trail} gridLabels={gridLabels}
         editable={editable} selected={selected} onSelect={onSelect} onMove={onMove}/>
     </div>
   );
@@ -1369,6 +1373,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           equations={equations} ballPos={ballPos}
           simStars={simStars} startPos={levelData.ball}
           autoZoomTrigger={autoZoomTrigger} autoZoomEnabled={settings?.autoZoom !== false}
+          gridLabels={settings?.gridLabels !== false}
           levelStars={levelData.stars} trail={trail}/>
         {missMsg && (
           <div style={{
@@ -1402,7 +1407,6 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           time={completed.time}
           prevBestTime={completed.prevBestTime}
           isNewBestTime={completed.isNewBestTime}
-          totalStars={totalStars}
           onReplay={handleReplay}
           onNext={onNext}
           onClose={()=>{ setCompleted(null); resetSim(); }}/>

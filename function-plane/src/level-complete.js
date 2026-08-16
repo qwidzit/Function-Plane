@@ -11,7 +11,6 @@ function LevelCompletePopup({
   score,
   prevBest,
   isNewBest,
-  totalStars,
   time,
   prevBestTime,
   isNewBestTime,
@@ -19,6 +18,9 @@ function LevelCompletePopup({
   onNext,
   onClose
 }) {
+  // Level 10 has no next level — onNext returns to the level list there, so
+  // the label has to say so.
+  const isLastLevel = levelIndex >= 9;
   const [revealed, setRevealed] = useLCState(false);
   const [tab, setTab] = useLCState('score'); // 'score' | 'scoreboard' | 'timeboard'
   const [scoreboard, setScoreboard] = useLCState(null);
@@ -257,13 +259,13 @@ function LevelCompletePopup({
       color: 'var(--fp-ink-3)',
       marginBottom: 3
     }
-  }, "Stars"), /*#__PURE__*/React.createElement("div", {
+  }, "Rating"), /*#__PURE__*/React.createElement("div", {
     className: "fp-mono",
     style: {
       fontSize: 22,
       color: 'var(--fp-ink)'
     }
-  }, totalStars, "/", totalStars))), prevBest != null && !isNewBest && /*#__PURE__*/React.createElement("div", {
+  }, starsRating, "/3"))), prevBest != null && !isNewBest && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       paddingTop: 10,
@@ -490,7 +492,7 @@ function LevelCompletePopup({
       justifyContent: 'center',
       gap: 7
     }
-  }, "Next level", /*#__PURE__*/React.createElement(Icon.Chevron, {
+  }, isLastLevel ? 'Back to levels' : 'Next level', /*#__PURE__*/React.createElement(Icon.Chevron, {
     dir: "right",
     size: 14,
     c: "currentColor"

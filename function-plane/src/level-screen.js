@@ -321,7 +321,8 @@ function CoordPlane({
   editable,
   selected,
   onSelect,
-  onMove
+  onMove,
+  gridLabels = true
 }) {
   const [view, setView] = useSL({
     cx: 0,
@@ -555,33 +556,35 @@ function CoordPlane({
   const ax = m2p(0, 0);
   const tickLabels = [];
   const ts = major;
-  for (let x = Math.ceil(range.xMin / ts) * ts; x <= range.xMax; x += ts) {
-    if (Math.abs(x) < ts * 0.01) continue;
-    const p = m2p(x, 0);
-    const ty = Math.max(12, Math.min(height - 4, ax.y + 12));
-    tickLabels.push(/*#__PURE__*/React.createElement("text", {
-      key: `tx${x.toFixed(3)}`,
-      x: p.x,
-      y: ty,
-      fontSize: 10,
-      fontFamily: "ui-monospace,monospace",
-      fill: "var(--lv-tick)",
-      textAnchor: "middle"
-    }, gridStep >= 1 ? Math.round(x) : x.toFixed(1)));
-  }
-  for (let y = Math.ceil(range.yMin / ts) * ts; y <= range.yMax; y += ts) {
-    if (Math.abs(y) < ts * 0.01) continue;
-    const p = m2p(0, y);
-    const tx = Math.max(4, Math.min(width - 20, ax.x + 6));
-    tickLabels.push(/*#__PURE__*/React.createElement("text", {
-      key: `ty${y.toFixed(3)}`,
-      x: tx,
-      y: p.y + 3,
-      fontSize: 10,
-      fontFamily: "ui-monospace,monospace",
-      fill: "var(--lv-tick)",
-      textAnchor: "start"
-    }, gridStep >= 1 ? Math.round(y) : y.toFixed(1)));
+  if (gridLabels) {
+    for (let x = Math.ceil(range.xMin / ts) * ts; x <= range.xMax; x += ts) {
+      if (Math.abs(x) < ts * 0.01) continue;
+      const p = m2p(x, 0);
+      const ty = Math.max(12, Math.min(height - 4, ax.y + 12));
+      tickLabels.push(/*#__PURE__*/React.createElement("text", {
+        key: `tx${x.toFixed(3)}`,
+        x: p.x,
+        y: ty,
+        fontSize: 10,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--lv-tick)",
+        textAnchor: "middle"
+      }, gridStep >= 1 ? Math.round(x) : x.toFixed(1)));
+    }
+    for (let y = Math.ceil(range.yMin / ts) * ts; y <= range.yMax; y += ts) {
+      if (Math.abs(y) < ts * 0.01) continue;
+      const p = m2p(0, y);
+      const tx = Math.max(4, Math.min(width - 20, ax.x + 6));
+      tickLabels.push(/*#__PURE__*/React.createElement("text", {
+        key: `ty${y.toFixed(3)}`,
+        x: tx,
+        y: p.y + 3,
+        fontSize: 10,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--lv-tick)",
+        textAnchor: "start"
+      }, gridStep >= 1 ? Math.round(y) : y.toFixed(1)));
+    }
   }
   const eqPaths = equations.filter(eq => eq.fn && eq.visible).map(eq => {
     if (eq.isImplicit) {
@@ -723,7 +726,7 @@ function CoordPlane({
     y2: height,
     stroke: "var(--lv-axis)",
     strokeWidth: 1.4
-  }), /*#__PURE__*/React.createElement("text", {
+  }), gridLabels && /*#__PURE__*/React.createElement("text", {
     x: Math.min(ax.x - 4, width - 4),
     y: Math.max(12, ax.y + 12),
     fontSize: 10,
@@ -869,7 +872,8 @@ function PlaneFiller({
   editable,
   selected,
   onSelect,
-  onMove
+  onMove,
+  gridLabels = true
 }) {
   const ref = useRL(null);
   const [size, setSize] = useSL({
@@ -905,6 +909,7 @@ function PlaneFiller({
     autoZoomEnabled: autoZoomEnabled,
     levelStars: levelStars,
     trail: trail,
+    gridLabels: gridLabels,
     editable: editable,
     selected: selected,
     onSelect: onSelect,
@@ -2182,6 +2187,7 @@ function LevelScreen({
     startPos: levelData.ball,
     autoZoomTrigger: autoZoomTrigger,
     autoZoomEnabled: settings?.autoZoom !== false,
+    gridLabels: settings?.gridLabels !== false,
     levelStars: levelData.stars,
     trail: trail
   }), missMsg && /*#__PURE__*/React.createElement("div", {
@@ -2217,7 +2223,6 @@ function LevelScreen({
     time: completed.time,
     prevBestTime: completed.prevBestTime,
     isNewBestTime: completed.isNewBestTime,
-    totalStars: totalStars,
     onReplay: handleReplay,
     onNext: onNext,
     onClose: () => {

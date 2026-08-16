@@ -217,6 +217,7 @@ function SandboxScreen({ onBack, density = 'comfortable', settings }) {
           equations={equations} ballPos={ballPos}
           simStars={simStars} startPos={ball}
           autoZoomTrigger={fitTrigger} autoZoomEnabled={true}
+          gridLabels={settings?.gridLabels !== false}
           levelStars={stars} trail={trail}
           editable={!running} selected={selected}
           onSelect={setSelected} onMove={moveObject}/>

@@ -124,13 +124,13 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Each level awards 1\u20133 stars:"), /*#__PURE__*/React.createElement(RatingRow, {
-    n: 1
-  }, "Collect all stars in the level"), /*#__PURE__*/React.createElement(RatingRow, {
-    n: 2
-  }, "Achieve a score at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, {
+  }, "Collecting every star always clears the level. Which rating you get is decided by the first of these that holds:"), /*#__PURE__*/React.createElement(RatingRow, {
     n: 3
-  }, "Use at or fewer equations than the equation goal")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "You used no more equations than the equation goal"), /*#__PURE__*/React.createElement(RatingRow, {
+    n: 2
+  }, "Otherwise \u2014 your score is at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, {
+    n: 1
+  }, "Otherwise \u2014 you cleared it")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#fa7e19",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -149,7 +149,7 @@ function HowToPlayScreen({
     style: {
       marginBottom: 10
     }
-  }, "Score = base 20 + sum of equation complexity points. ", /*#__PURE__*/React.createElement("strong", null, "Lower is better."), "Simpler equations score fewer points."), /*#__PURE__*/React.createElement("div", {
+  }, "Score = 20 pts per equation + that equation's complexity.", /*#__PURE__*/React.createElement("strong", null, " Lower is better."), " Fewer, simpler equations score less."), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',
@@ -157,7 +157,7 @@ function HowToPlayScreen({
       overflow: 'hidden',
       marginBottom: 8
     }
-  }, [['Linear   (mx + b)', '10 pts'], ['Quadratic (x²)', '20 pts'], ['Cubic (x³)', '30 pts'], ['Trig (sin, cos, tan)', '25 pts'], ['Log / ln', '30 pts'], ['Exponential (eˣ)', '35 pts'], ['Derivative (d/dx)', '35 pts'], ['Inv. trig (arcsin…)', '40 pts'], ['Sum (Σ)', '50 pts'], ['Integral (∫)', '55 pts']].map(([fn, pts], i, arr) => /*#__PURE__*/React.createElement("div", {
+  }, [['Linear   (mx + b)', '10 pts'], ['Quadratic (x²)', '20 pts'], ['Piecewise (|x|, ⌊x⌋)', '20 pts'], ['Trig (sin, cos, tan)', '25 pts'], ['Cubic (x³)', '30 pts'], ['Rational (1/x)', '30 pts'], ['Log / ln', '30 pts'], ['Exponential (eˣ)', '35 pts'], ['Derivative (d/dx)', '35 pts'], ['Inv. trig (arcsin…)', '40 pts'], ['Sum (Σ)', '50 pts'], ['Integral (∫)', '55 pts'], ["Doesn't parse", '60 pts']].map(([fn, pts], i, arr) => /*#__PURE__*/React.createElement("div", {
     key: fn,
     style: {
       display: 'flex',
@@ -185,7 +185,7 @@ function HowToPlayScreen({
       color: 'var(--fp-ink-4)',
       lineHeight: 1.5
     }
-  }, "Mixing a polynomial and a transcendental function in one equation applies a \xD71.5 composition bonus. Each equation also adds 20 pts overhead. Fewer, simpler equations = better score.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "Every transcendental function beyond the first in one equation adds 60% of the base \u2014 sin(cos(x)) costs far more than sin(x). Mixing a transcendental with a degree-2-or-higher polynomial (sin(x)\xB7x\xB2) then multiplies the total by 1.3, and polynomials above degree 3 add 5 pts per extra power.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#6042a6",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,

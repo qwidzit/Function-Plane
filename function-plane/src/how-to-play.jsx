@@ -80,10 +80,13 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           </svg>}
           title="Star rating"
         >
-          <div style={{ marginBottom: 8 }}>Each level awards 1–3 stars:</div>
-          <RatingRow n={1}>Collect all stars in the level</RatingRow>
-          <RatingRow n={2}>Achieve a score at or below the score goal</RatingRow>
-          <RatingRow n={3}>Use at or fewer equations than the equation goal</RatingRow>
+          <div style={{ marginBottom: 8 }}>
+            Collecting every star always clears the level. Which rating you get is
+            decided by the first of these that holds:
+          </div>
+          <RatingRow n={3}>You used no more equations than the equation goal</RatingRow>
+          <RatingRow n={2}>Otherwise — your score is at or below the score goal</RatingRow>
+          <RatingRow n={1}>Otherwise — you cleared it</RatingRow>
         </HTPCard>
 
         {/* Scoring section — card with table */}
@@ -95,8 +98,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Score & complexity"
         >
           <div style={{ marginBottom: 10 }}>
-            Score = base 20 + sum of equation complexity points. <strong>Lower is better.</strong>
-            Simpler equations score fewer points.
+            Score = 20 pts per equation + that equation's complexity.
+            <strong> Lower is better.</strong> Fewer, simpler equations score less.
           </div>
           <div style={{
             background: 'var(--fp-surface)',
@@ -105,16 +108,19 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
             marginBottom: 8,
           }}>
             {[
-              ['Linear   (mx + b)',     '10 pts'],
+              ['Linear   (mx + b)',      '10 pts'],
               ['Quadratic (x²)',         '20 pts'],
-              ['Cubic (x³)',             '30 pts'],
+              ['Piecewise (|x|, ⌊x⌋)',   '20 pts'],
               ['Trig (sin, cos, tan)',   '25 pts'],
-              ['Log / ln',              '30 pts'],
-              ['Exponential (eˣ)',      '35 pts'],
-              ['Derivative (d/dx)',     '35 pts'],
-              ['Inv. trig (arcsin…)',   '40 pts'],
-              ['Sum (Σ)',               '50 pts'],
-              ['Integral (∫)',          '55 pts'],
+              ['Cubic (x³)',             '30 pts'],
+              ['Rational (1/x)',         '30 pts'],
+              ['Log / ln',               '30 pts'],
+              ['Exponential (eˣ)',       '35 pts'],
+              ['Derivative (d/dx)',      '35 pts'],
+              ['Inv. trig (arcsin…)',    '40 pts'],
+              ['Sum (Σ)',                '50 pts'],
+              ['Integral (∫)',           '55 pts'],
+              ["Doesn't parse",          '60 pts'],
             ].map(([fn, pts], i, arr) => (
               <div key={fn} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -127,8 +133,10 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5 }}>
-            Mixing a polynomial and a transcendental function in one equation applies a ×1.5 composition bonus.
-            Each equation also adds 20 pts overhead. Fewer, simpler equations = better score.
+            Every transcendental function beyond the first in one equation adds 60% of the base —
+            sin(cos(x)) costs far more than sin(x). Mixing a transcendental with a degree-2-or-higher
+            polynomial (sin(x)·x²) then multiplies the total by 1.3, and polynomials above degree 3
+            add 5 pts per extra power.
           </div>
         </HTPCard>
 

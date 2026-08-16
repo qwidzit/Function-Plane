@@ -338,7 +338,7 @@ function PackRow({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: Math.min(3, Math.round(stars / 10)),
+    count: Math.min(3, Math.floor(stars / 10)),
     total: 3,
     size: 11
   }), /*#__PURE__*/React.createElement("span", {
@@ -480,7 +480,7 @@ function SpecialPackCard({
       gap: 6
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: Math.min(3, Math.round(stars / 10)),
+    count: Math.min(3, Math.floor(stars / 10)),
     total: 3,
     size: 10
   }), /*#__PURE__*/React.createElement("span", {

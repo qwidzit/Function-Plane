@@ -153,10 +153,15 @@ function App() {
       return { route, pack: null, levelIndex: 0, legalKind: null, ...extra };
     });
   };
-  const navigateBack = () => {
+  // Every backward affordance goes through here, never through navigate() —
+  // navigate() pushes the screen it leaves, so a back button routed through it
+  // pushes a *forward* entry and the Android back button then walks the player
+  // into the screen they just left instead of out of the app.
+  // The fallback is only used when the stack is empty (deep link, cold start).
+  const navigateBack = (fallback = 'main', extra = {}) => {
     setNav(curr => {
       const prev = navStackRef.current.pop();
-      return prev || { route: 'main', pack: null, levelIndex: 0, legalKind: null };
+      return prev || { route: fallback, pack: null, levelIndex: 0, legalKind: null, ...extra };
     });
   };
 
@@ -207,7 +212,7 @@ function App() {
         <PackSelector
           progress={progress}
           density={settings.density}
-          onBack={() => navigate('main')}
+          onBack={() => navigateBack('main')}
           onPickPack={pack => navigate('levels', { pack })}
         />
       );
@@ -219,7 +224,7 @@ function App() {
           pack={nav.pack}
           progress={progress}
           density={settings.density}
-          onBack={() => navigate('packs')}
+          onBack={() => navigateBack('packs')}
           onPickLevel={(pack, levelIndex) => navigate('level', { pack, levelIndex })}
         />
       );
@@ -231,14 +236,14 @@ function App() {
           settings={settings}
           updateSetting={updateSetting}
           density={settings.density}
-          onBack={() => navigate('main')}
+          onBack={() => navigateBack('main')}
           onLegal={(kind) => navigate('legal', { legalKind: kind })}
         />
       );
     }
 
     if (route === 'legal') {
-      return <LegalScreen kind={nav.legalKind} density={settings.density} onBack={() => navigate('settings')}/>;
+      return <LegalScreen kind={nav.legalKind} density={settings.density} onBack={() => navigateBack('settings')}/>;
     }
 
     if (route === 'level') {
@@ -293,7 +298,7 @@ function App() {
           progress={progress}
           density={settings.density}
           settings={settings}
-          onBack={() => navigate('levels', { pack })}
+          onBack={() => navigateBack('levels', { pack })}
           onComplete={handleComplete}
           onNext={handleNext}
         />
@@ -301,30 +306,30 @@ function App() {
     }
 
     if (route === 'sandbox') {
-      return <SandboxScreen onBack={() => navigate('main')} density={settings.density} settings={settings}/>;
+      return <SandboxScreen onBack={() => navigateBack('main')} density={settings.density} settings={settings}/>;
     }
 
     if (route === 'how-to-play') {
-      return <HowToPlayScreen onBack={() => navigate('main')} density={settings.density}/>;
+      return <HowToPlayScreen onBack={() => navigateBack('main')} density={settings.density}/>;
     }
 
     if (route === 'achievements') {
-      return <AchievementsScreen onBack={() => navigate('main')} progress={progress} density={settings.density}/>;
+      return <AchievementsScreen onBack={() => navigateBack('main')} progress={progress} density={settings.density}/>;
     }
 
     if (route === 'account') {
-      return <AccountScreen onBack={() => navigate('main')} density={settings.density} account={account} progress={progress} onAdmin={() => navigate('admin')}/>;
+      return <AccountScreen onBack={() => navigateBack('main')} density={settings.density} account={account} progress={progress} onAdmin={() => navigate('admin')}/>;
     }
 
     if (route === 'admin') {
-      return <AdminScreen onBack={() => navigate('account')} density={settings.density} onChanged={() => reloadOverrides({ force: true })}/>;
+      return <AdminScreen onBack={() => navigateBack('account')} density={settings.density} onChanged={() => reloadOverrides({ force: true })}/>;
     }
 
     return (
       <PlaceholderScreen
         title={route}
         subtitle="Coming soon"
-        onBack={() => navigate('main')}
+        onBack={() => navigateBack('main')}
       />
     );
   };

@@ -192,14 +192,20 @@ function App() {
       };
     });
   };
-  const navigateBack = () => {
+  // Every backward affordance goes through here, never through navigate() —
+  // navigate() pushes the screen it leaves, so a back button routed through it
+  // pushes a *forward* entry and the Android back button then walks the player
+  // into the screen they just left instead of out of the app.
+  // The fallback is only used when the stack is empty (deep link, cold start).
+  const navigateBack = (fallback = 'main', extra = {}) => {
     setNav(curr => {
       const prev = navStackRef.current.pop();
       return prev || {
-        route: 'main',
+        route: fallback,
         pack: null,
         levelIndex: 0,
-        legalKind: null
+        legalKind: null,
+        ...extra
       };
     });
   };
@@ -253,7 +259,7 @@ function App() {
       return /*#__PURE__*/React.createElement(PackSelector, {
         progress: progress,
         density: settings.density,
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         onPickPack: pack => navigate('levels', {
           pack
         })
@@ -264,7 +270,7 @@ function App() {
         pack: nav.pack,
         progress: progress,
         density: settings.density,
-        onBack: () => navigate('packs'),
+        onBack: () => navigateBack('packs'),
         onPickLevel: (pack, levelIndex) => navigate('level', {
           pack,
           levelIndex
@@ -276,7 +282,7 @@ function App() {
         settings: settings,
         updateSetting: updateSetting,
         density: settings.density,
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         onLegal: kind => navigate('legal', {
           legalKind: kind
         })
@@ -286,7 +292,7 @@ function App() {
       return /*#__PURE__*/React.createElement(LegalScreen, {
         kind: nav.legalKind,
         density: settings.density,
-        onBack: () => navigate('settings')
+        onBack: () => navigateBack('settings')
       });
     }
     if (route === 'level') {
@@ -352,7 +358,7 @@ function App() {
         progress: progress,
         density: settings.density,
         settings: settings,
-        onBack: () => navigate('levels', {
+        onBack: () => navigateBack('levels', {
           pack
         }),
         onComplete: handleComplete,
@@ -361,27 +367,27 @@ function App() {
     }
     if (route === 'sandbox') {
       return /*#__PURE__*/React.createElement(SandboxScreen, {
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         density: settings.density,
         settings: settings
       });
     }
     if (route === 'how-to-play') {
       return /*#__PURE__*/React.createElement(HowToPlayScreen, {
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         density: settings.density
       });
     }
     if (route === 'achievements') {
       return /*#__PURE__*/React.createElement(AchievementsScreen, {
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         progress: progress,
         density: settings.density
       });
     }
     if (route === 'account') {
       return /*#__PURE__*/React.createElement(AccountScreen, {
-        onBack: () => navigate('main'),
+        onBack: () => navigateBack('main'),
         density: settings.density,
         account: account,
         progress: progress,
@@ -390,7 +396,7 @@ function App() {
     }
     if (route === 'admin') {
       return /*#__PURE__*/React.createElement(AdminScreen, {
-        onBack: () => navigate('account'),
+        onBack: () => navigateBack('account'),
         density: settings.density,
         onChanged: () => reloadOverrides({
           force: true
@@ -400,7 +406,7 @@ function App() {
     return /*#__PURE__*/React.createElement(PlaceholderScreen, {
       title: route,
       subtitle: "Coming soon",
-      onBack: () => navigate('main')
+      onBack: () => navigateBack('main')
     });
   };
   return /*#__PURE__*/React.createElement("div", {

@@ -208,7 +208,7 @@ function PackRow({ pack, stars, locked, complete, onClick, lockInfo }) {
             </span>
           ) : (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Stars count={Math.min(3, Math.round(stars / 10))} total={3} size={11} />
+              <Stars count={Math.min(3, Math.floor(stars / 10))} total={3} size={11} />
               <span className="fp-mono" style={{ fontSize: 11.5, color: 'var(--fp-ink-2)' }}>
                 {stars}<span style={{ color: 'var(--fp-ink-4)' }}>/30</span>
               </span>
@@ -284,7 +284,7 @@ function SpecialPackCard({ pack, stars, locked, complete, onClick, lockInfo, tot
             </span>
           ) : (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Stars count={Math.min(3, Math.round(stars / 10))} total={3} size={10} />
+              <Stars count={Math.min(3, Math.floor(stars / 10))} total={3} size={10} />
               <span className="fp-mono" style={{ fontSize: 10.5, color: 'var(--fp-ink-2)' }}>
                 {stars}<span style={{ color: 'var(--fp-ink-4)' }}>/30</span>
               </span>
