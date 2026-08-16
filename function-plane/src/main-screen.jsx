@@ -232,11 +232,11 @@ function PlayCard({ onClick, continuePoint, progress, hasAnyProgress }) {
         <rect x="0" y="0" width="100%" height="100%" fill="url(#dots-pc)"/>
         <path d="M0 62 C60 62 90 14 160 14 C220 14 250 62 320 62"
           stroke="var(--fp-play-ink)" strokeOpacity="0.55" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        {/* Ball only. The illustration sits behind the text, and the card's
+            bottom 80px are entirely title and stats — so a decorative star
+            here lands on the title (it read as punctuation after "Level 9")
+            or behind the Play pill. The card already shows real stars. */}
         <circle cx="40" cy="56" r="4.5" fill="var(--fp-play-ink)"/>
-        <path d="M160 5 L162 11 L168 11.5 L163 15 L165 21 L160 18 L155 21 L157 15 L152 11.5 L158 11 Z"
-          fill="var(--fp-play-ink)" fillOpacity="0.85"/>
-        <path d="M260 50 L262 56 L268 56.5 L263 60 L265 66 L260 63 L255 66 L257 60 L252 56.5 L258 56 Z"
-          fill="var(--fp-play-ink)" fillOpacity="0.45"/>
       </svg>
 
       <div style={{ position: 'relative', zIndex: 1 }}>

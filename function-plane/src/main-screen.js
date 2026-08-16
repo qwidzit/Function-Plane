@@ -446,14 +446,6 @@ function PlayCard({
     cy: "56",
     r: "4.5",
     fill: "var(--fp-play-ink)"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M160 5 L162 11 L168 11.5 L163 15 L165 21 L160 18 L155 21 L157 15 L152 11.5 L158 11 Z",
-    fill: "var(--fp-play-ink)",
-    fillOpacity: "0.85"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M260 50 L262 56 L268 56.5 L263 60 L265 66 L260 63 L255 66 L257 60 L252 56.5 L258 56 Z",
-    fill: "var(--fp-play-ink)",
-    fillOpacity: "0.45"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
