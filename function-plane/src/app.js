@@ -293,7 +293,7 @@ function App() {
         pack,
         levelIndex
       } = nav;
-      const handleComplete = (rating, score, time) => {
+      const handleComplete = (rating, score, time, exprs) => {
         setProgress(prev => {
           const next = {
             ...prev
@@ -307,8 +307,15 @@ function App() {
           // maxScore: highest score ever achieved on a winning run (for achievements
           // like "solve a level with a complex equation worth 100+ pts").
           const maxScore = pd.maxScore ? [...pd.maxScore] : Array(10).fill(null);
+          // bestEqs: the equations behind the best score, uploaded with the
+          // leaderboard row so a submission can be audited against the
+          // classifier. Only meaningful next to the score it produced.
+          const bestEqs = pd.bestEqs ? [...pd.bestEqs] : Array(10).fill(null);
           stars[levelIndex] = Math.max(stars[levelIndex] ?? -1, rating);
-          best[levelIndex] = best[levelIndex] == null ? score : Math.min(best[levelIndex], score);
+          if (best[levelIndex] == null || score < best[levelIndex]) {
+            best[levelIndex] = score;
+            bestEqs[levelIndex] = exprs ?? null;
+          }
           if (time != null) {
             bestTime[levelIndex] = bestTime[levelIndex] == null ? time : Math.min(bestTime[levelIndex], time);
           }
@@ -320,6 +327,7 @@ function App() {
           pd.best = best;
           pd.bestTime = bestTime;
           pd.maxScore = maxScore;
+          pd.bestEqs = bestEqs;
           return next;
         });
       };
@@ -431,7 +439,7 @@ function App() {
       borderRadius: '50%',
       background: '#e34'
     }
-  }), "Offline \u2014 progress will sync when you reconnect")), toast && /*#__PURE__*/React.createElement("div", {
+  }), "Offline — progress will sync when you reconnect")), toast && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       top: 'calc(env(safe-area-inset-top, 0px) + 12px)',

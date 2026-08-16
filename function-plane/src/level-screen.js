@@ -689,7 +689,7 @@ function CoordPlane({
       ...v,
       scale: Math.max(6, v.scale / 1.4)
     }))
-  }, "\u2212"), /*#__PURE__*/React.createElement("div", {
+  }, "−"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
       background: 'var(--lv-line)'
@@ -910,7 +910,7 @@ function DomainEditor({
       color: 'var(--fp-ink-4)',
       marginBottom: 6
     }
-  }, "No restriction \u2014 curve draws everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
+  }, "No restriction — curve draws everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: 'flex',
@@ -924,7 +924,7 @@ function DomainEditor({
       fontSize: 11,
       color: 'var(--fp-ink-3)'
     }
-  }, "x \u2208"), /*#__PURE__*/React.createElement(DomValBtn, {
+  }, "x ∈"), /*#__PURE__*/React.createElement(DomValBtn, {
     segId: `${i}-min`,
     val: seg.xMin,
     domKb: domKb,
@@ -947,7 +947,7 @@ function DomainEditor({
       lineHeight: 1,
       padding: '0 4px'
     }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+  }, "×"))), /*#__PURE__*/React.createElement("button", {
     onClick: add,
     style: {
       fontSize: 11.5,
@@ -1789,7 +1789,8 @@ function LevelScreen({
           return;
         }
         const userEqs = equationsRef.current.filter(e => !e.preplaced);
-        const eqsN = userEqs.filter(e => e.fn).length;
+        const exprs = userEqs.filter(e => e.fn).map(e => e.expr);
+        const eqsN = exprs.length;
         const sc = computeScore(userEqs);
         const finishT = +ph.wonAtS.toFixed(2);
         const rating = starRating(eqsN, sc, eqGoal, scoreGoal);
@@ -1803,7 +1804,6 @@ function LevelScreen({
         try {
           const key = `fp-history-${pack.id}-${levelIndex}`;
           const prev = JSON.parse(localStorage.getItem(key) || '[]');
-          const exprs = userEqs.filter(e => e.fn).map(e => e.expr);
           const sig = exprs.join('||');
           const entry = {
             exprs,
@@ -1825,7 +1825,7 @@ function LevelScreen({
           prevBestTime: bestTime,
           isNewBestTime: isNewT
         });
-        onComplete(rating, sc, finishT);
+        onComplete(rating, sc, finishT, exprs);
         return;
       }
       animRef.current = requestAnimationFrame(frame);
@@ -1894,7 +1894,7 @@ function LevelScreen({
       textOverflow: 'ellipsis',
       maxWidth: '100%'
     }
-  }, pack.type === 'roman' ? `Pack ${pack.numeral}` : getPack(pack.id)?.name || pack.name, " \xB7 Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
+  }, pack.type === 'roman' ? `Pack ${pack.numeral}` : getPack(pack.id)?.name || pack.name, " · Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Instrument Serif',Georgia,serif",
       fontStyle: 'italic',
@@ -2234,3 +2234,4 @@ function HistoryPopup({
 window.LevelScreen = LevelScreen;
 window.parseEquation = parseEquation;
 window.computeScore = computeScore;
+window.starRating = starRating;

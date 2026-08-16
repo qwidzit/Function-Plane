@@ -168,6 +168,52 @@ it('gates themed packs on the grouped classes', () => {
   ok(!classMatches('linear', detectClass('!!bad((')), 'linear pack rejects unparseable input');
 });
 
+// ── 1b. Scoring & the leaderboard audit ────────────────────────────────────
+
+describe('Scoring & leaderboard audit');
+
+// level-screen.js needs React to parse; a stub is enough to reach the scoring
+// functions it exports. Browser globals are real globals in a classic script,
+// which require() doesn't reproduce — hence the Object.assign.
+const scoring = (() => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w;
+  global.React = w.React;
+  global.document = { createElement: () => ({}) };
+  for (const f of ['equation-classifier.js', 'level-screen.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  return w;
+})();
+
+const parse = exprs => exprs.map(expr => ({ expr, ...scoring.parseEquation(expr) }));
+
+it('scores a run as sum(complexity) + 20 per equation', () => {
+  // The leaderboard guard's floor of 30 per equation depends on this shape.
+  eq(scoring.computeScore(parse(['y=-x'])), 30, 'one linear');
+  eq(scoring.computeScore(parse(['x', 'x+1', 'x+2'])), 90, 'three linears');
+  ok(scoring.computeScore(parse(['sin(x)'])) >= 30, 'no run can score under 30');
+});
+
+it('rates stars by equation count first, then score', () => {
+  eq(scoring.starRating(1, 30, 1, 40), 3, 'within the equation goal');
+  eq(scoring.starRating(3, 40, 1, 40), 2, 'over on equations, within score');
+  eq(scoring.starRating(3, 90, 1, 40), 1, 'over on both');
+});
+
+it('recomputes a forged submission to a different score', () => {
+  // What the admin audit does: a row claiming a score its equations cannot
+  // produce is the signal the database cannot check for itself.
+  const exprs  = ['x', 'x+1', 'x+2'];
+  const honest = scoring.computeScore(parse(exprs));
+  eq(honest, 90, 'baseline');
+  ok(honest !== 30, 'a 3-equation run cannot score what a 1-equation run scores');
+  ok(scoring.starRating(exprs.length, 30, 1, 40) < 3,
+    'claiming 3 stars with 3 equations against an eq_goal of 1 must not verify');
+});
+
 // ── 2. Physics engine ──────────────────────────────────────────────────────
 
 describe('Physics engine');

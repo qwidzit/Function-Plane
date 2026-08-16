@@ -37,6 +37,9 @@ function AdminScreen({ onBack, density = 'comfortable', onChanged }) {
   if (view === 'users')
     return <UsersAdmin padX={padX} onBack={() => setView('list')}/>;
 
+  if (view === 'audit')
+    return <LeaderboardAudit padX={padX} onBack={() => setView('list')}/>;
+
   if (view === 'achievements')
     return <AchievementsAdmin padX={padX}
       onBack={() => setView('list')}
@@ -71,6 +74,16 @@ function AdminScreen({ onBack, density = 'comfortable', onChanged }) {
           <Icon.Chevron dir="right" size={14} c="currentColor"/>
         </button>
 
+        <button onClick={() => setView('audit')} style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px 14px', marginBottom: 14,
+          borderRadius: 12, background: 'var(--fp-ink)', color: 'var(--fp-bg)',
+          textAlign: 'left', fontSize: 14, fontWeight: 500,
+        }}>
+          <span style={{ flex: 1 }}>Audit leaderboard</span>
+          <Icon.Chevron dir="right" size={14} c="currentColor"/>
+        </button>
+
         <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fp-ink-3)', marginBottom: 8 }}>
           Roman packs
         </div>
@@ -84,6 +97,139 @@ function AdminScreen({ onBack, density = 'comfortable', onChanged }) {
         {SPECIAL_PACKS.map(p => (
           <AdminPackRow key={p.id} pack={p} onClick={() => { setPack(p); setView('pack'); }}/>
         ))}
+      </div>
+    </ScreenFrameAS>
+  );
+}
+
+// ─── Leaderboard audit ─────────────────────────────────────────────────────
+// The database refuses values no run can produce (see the leaderboard
+// integrity migration), but it can't tell whether a plausible score matches
+// the equations that claim to have produced it — scoring needs the classifier.
+// This recomputes each submission with the same code the game scores with.
+
+function auditRow(row) {
+  const exprs = Array.isArray(row.equations) ? row.equations : null;
+  if (!exprs || exprs.length === 0) {
+    // Rows predating the equations column, or a client that stripped it.
+    return { level: 'unverifiable', reason: 'No equations submitted' };
+  }
+  const parsed = exprs.map(expr => ({ expr, ...parseEquation(expr) }));
+  const broken = parsed.filter(e => !e.fn);
+  if (broken.length) {
+    return { level: 'bad', reason: `Does not parse: ${broken.map(e => e.expr).join(', ')}` };
+  }
+  const score = computeScore(parsed);
+  if (score !== row.best_score) {
+    return { level: 'bad', reason: `Score claims ${row.best_score}, equations give ${score}` };
+  }
+  const allowed = getPack(row.pack_id)?.allowedClass;
+  if (allowed) {
+    const wrong = parsed.filter(e => !classMatches(allowed, detectClass(e.expr)));
+    if (wrong.length) {
+      return { level: 'bad', reason: `Not ${allowed}: ${wrong.map(e => e.expr).join(', ')}` };
+    }
+  }
+  const data     = getLevelData(row.pack_id, row.level_index);
+  const expected = starRating(parsed.length, score, data.eqGoal, data.scoreGoal);
+  if (row.stars > expected) {
+    // Not proof: a row holds a personal best, and a 3-star run with more
+    // equations can score worse than a 2-star run with fewer, in which case
+    // the stored equations belong to the other run. Worth a look, not a ban.
+    return { level: 'suspect', reason: `${row.stars} stars, but these equations earn ${expected} — check the player's other runs` };
+  }
+  return { level: 'ok', reason: `Verified — score ${score}, ${expected} stars` };
+}
+
+function LeaderboardAudit({ padX, onBack }) {
+  const [rows,    setRows]    = useAS(null);
+  const [err,     setErr]     = useAS('');
+  const [showAll, setShowAll] = useAS(false);
+  const [busyKey, setBusyKey] = useAS(null);
+
+  const load = () => {
+    setErr(''); setRows(null);
+    FP_AUTH.fetchScoreRows()
+      .then(rs => setRows(rs.map(r => ({ ...r, audit: auditRow(r) }))))
+      .catch(e => setErr(e.message));
+  };
+  useASE(load, []);
+
+  const remove = (row) => {
+    const key = `${row.user_id}-${row.pack_id}-${row.level_index}`;
+    setBusyKey(key);
+    FP_AUTH.deleteScoreRow(row.user_id, row.pack_id, row.level_index)
+      .then(() => setRows(rs => rs.filter(r =>
+        `${r.user_id}-${r.pack_id}-${r.level_index}` !== key)))
+      .catch(e => setErr(e.message))
+      .finally(() => setBusyKey(null));
+  };
+
+  const count = level => rows.filter(r => r.audit.level === level).length;
+  const shown = !rows ? [] : showAll ? rows : rows.filter(r => r.audit.level !== 'ok');
+  const TONE  = { bad: '#c0392b', suspect: '#b8860b' };
+
+  return (
+    <ScreenFrameAS title="Leaderboard audit" onBack={onBack} padX={padX}>
+      <div style={{ padding: '14px 0 24px' }}>
+        {err && <div style={{ fontSize: 12.5, color: '#c0392b', marginBottom: 12 }}>{err}</div>}
+        {!rows && !err && <div style={{ fontSize: 13, color: 'var(--fp-ink-3)' }}>Checking submissions…</div>}
+
+        {rows && (
+          <div style={{ fontSize: 12.5, color: 'var(--fp-ink-2)', lineHeight: 1.7, marginBottom: 14 }}>
+            <div>{count('ok')} verified · {count('bad')} failed · {count('suspect')} to check · {count('unverifiable')} unverifiable</div>
+            <button onClick={() => setShowAll(v => !v)} style={{
+              marginTop: 6, fontSize: 12, color: 'var(--fp-ink-3)', textDecoration: 'underline',
+            }}>{showAll ? 'Show only problems' : 'Show every row'}</button>
+          </div>
+        )}
+
+        {rows && shown.length === 0 && (
+          <div style={{ fontSize: 13, color: 'var(--fp-ink-3)' }}>
+            Nothing to review — every submission matches its equations.
+          </div>
+        )}
+
+        {shown.map(row => {
+          const key  = `${row.user_id}-${row.pack_id}-${row.level_index}`;
+          const tone = TONE[row.audit.level] || null;
+          const bad  = row.audit.level === 'bad';
+          return (
+            <div key={key} style={{
+              border: `1px solid ${tone || 'var(--fp-line)'}`,
+              borderRadius: 12, padding: '11px 13px', marginBottom: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span>{row.avatar}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--fp-ink)', flex: 1 }}>{row.name}</span>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11.5, color: 'var(--fp-ink-3)' }}>
+                  {row.pack_id} · L{row.level_index + 1}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: tone || 'var(--fp-ink-3)', marginBottom: 6 }}>
+                {row.audit.reason}
+              </div>
+              {Array.isArray(row.equations) && row.equations.length > 0 && (
+                <div style={{
+                  fontFamily: "'Geist Mono', monospace", fontSize: 11.5,
+                  color: 'var(--fp-ink-2)', marginBottom: 8, wordBreak: 'break-all',
+                }}>{row.equations.join('   ')}</div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11.5, color: 'var(--fp-ink-3)', flex: 1 }}>
+                  {row.stars}★ · {row.best_score} pts{row.best_time != null ? ` · ${row.best_time}s` : ''}
+                </span>
+                <button onClick={() => remove(row)} disabled={busyKey === key} style={{
+                  padding: '6px 12px', borderRadius: 9, fontSize: 12, fontWeight: 500,
+                  background: bad ? '#c0392b' : 'var(--fp-surface)',
+                  color: bad ? '#fff' : 'var(--fp-ink)',
+                  border: bad ? 'none' : '1px solid var(--fp-line)',
+                  opacity: busyKey === key ? 0.5 : 1,
+                }}>{busyKey === key ? 'Removing…' : 'Remove'}</button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </ScreenFrameAS>
   );

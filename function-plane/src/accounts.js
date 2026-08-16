@@ -125,6 +125,19 @@
           if (tb === null) return ta;
           return Math.min(ta, tb);
         }),
+        maxScore: Array.from({ length: 10 }, (_, i) => {
+          const ma = pa.maxScore?.[i] ?? null, mb = pb.maxScore?.[i] ?? null;
+          if (ma === null && mb === null) return null;
+          return Math.max(ma ?? -Infinity, mb ?? -Infinity);
+        }),
+        // Follows whichever side owns the better score, so the equations
+        // always describe the run that produced it.
+        bestEqs: Array.from({ length: 10 }, (_, i) => {
+          const ba = pa.best?.[i] ?? null, bb = pb.best?.[i] ?? null;
+          if (ba === null) return pb.bestEqs?.[i] ?? null;
+          if (bb === null) return pa.bestEqs?.[i] ?? null;
+          return (ba <= bb ? pa.bestEqs?.[i] : pb.bestEqs?.[i]) ?? null;
+        }),
       };
     }
     return out;
@@ -281,35 +294,38 @@
       if (pRes.error)    console.warn('FP_AUTH: progress upsert error', pRes.error);
       if (profRes.error) console.warn('FP_AUTH: profile update error',  profRes.error);
 
-      // Upsert individual completed level rows (drives per-level leaderboards)
-      // Some installs may not have run the best_time migration yet — if the
-      // upsert fails because that column is missing, retry without it.
+      // Upsert individual completed level rows (drives per-level leaderboards).
+      // A database that hasn't had the latest migration applied is missing
+      // some of these columns, so an upsert naming one fails wholesale — drop
+      // whichever column the error names and retry, rather than losing the
+      // player's scores until the migration is run.
       const rowsFull = [];
       for (const [packId, pd] of Object.entries(progress)) {
         (pd?.best || []).forEach((score, levelIndex) => {
           const stars = pd?.stars?.[levelIndex] ?? -1;
           if (score != null && stars >= 1) {
-            const t = pd?.bestTime?.[levelIndex];
+            const t   = pd?.bestTime?.[levelIndex];
+            const eqs = pd?.bestEqs?.[levelIndex];
             rowsFull.push({
               user_id: userId, pack_id: packId, level_index: levelIndex,
               best_score: score, stars,
               best_time: t == null ? null : t,
+              equations: Array.isArray(eqs) ? eqs : null,
             });
           }
         });
       }
       if (rowsFull.length) {
-        let { error: upErr } = await _sb.from('level_scores').upsert(rowsFull, {
+        const upsert = rows => _sb.from('level_scores').upsert(rows, {
           onConflict: 'user_id,pack_id,level_index', ignoreDuplicates: false,
         });
-        if (upErr && /best_time/i.test(upErr.message || '')) {
-          // Retry without the new column for backwards compatibility
-          const rowsLegacy = rowsFull.map(({ best_time, ...rest }) => rest);
-          const r2 = await _sb.from('level_scores').upsert(rowsLegacy, {
-            onConflict: 'user_id,pack_id,level_index', ignoreDuplicates: false,
-          });
-          upErr = r2.error;
-          if (!upErr) console.warn('FP_AUTH: level_scores upserted without best_time (run the migration to enable time leaderboard)');
+        let rows = rowsFull;
+        let { error: upErr } = await upsert(rows);
+        for (const col of ['equations', 'best_time']) {
+          if (!upErr || !new RegExp(col, 'i').test(upErr.message || '')) continue;
+          rows = rows.map(({ [col]: _drop, ...rest }) => rest);
+          ({ error: upErr } = await upsert(rows));
+          if (!upErr) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
         }
         if (upErr) {
           console.warn('FP_AUTH: level_scores upsert error', upErr);
@@ -596,6 +612,38 @@
     if (error) throw new Error(error.message);
   }
 
+  // Admin-only: the raw leaderboard rows, newest submission first, for the
+  // audit screen. The database rejects values no run can produce; recomputing
+  // the score from the submitted equations is what catches a plausible-looking
+  // forgery, and that needs the real classifier, which only the client has.
+  async function fetchScoreRows(limit = 400) {
+    if (!_sb) throw new Error('Supabase not configured');
+    const { data, error } = await _sb.from('level_scores')
+      .select('user_id, pack_id, level_index, best_score, stars, best_time, equations, submitted_at')
+      .order('submitted_at', { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    const ids = [...new Set((data || []).map(r => r.user_id))];
+    if (!ids.length) return [];
+    const { data: profs } = await _sb.from('profiles').select('id, name, avatar').in('id', ids);
+    const pmap = new Map((profs || []).map(p => [p.id, p]));
+    return (data || []).map(r => ({
+      ...r,
+      name:   pmap.get(r.user_id)?.name   || 'Unknown',
+      avatar: pmap.get(r.user_id)?.avatar || '🟢',
+    }));
+  }
+
+  // Admin-only: remove a forged leaderboard entry. RLS lets the Test Account
+  // delete anyone's row; everyone else only their own.
+  async function deleteScoreRow(userId, packId, levelIndex) {
+    if (!_sb) throw new Error('Supabase not configured');
+    const { error } = await _sb.from('level_scores').delete()
+      .eq('user_id', userId).eq('pack_id', packId).eq('level_index', levelIndex);
+    if (error) throw new Error(error.message);
+    writeJSON(LB_KEY, {});   // cached boards still list the deleted entry
+  }
+
   // ── Web Push subscription ─────────────────────────────────────────────────
   // Subscribes the browser/PWA to push notifications (so the SW push handler
   // can fire). Requires window.VAPID_PUBLIC_KEY (set in supabase-config.js
@@ -667,6 +715,7 @@
     buildLeaderboard, totalStarsFromProgress,
     fetchOverrides, fetchOverridesVersion, savePackOverride, saveLevelOverride,
     saveAchievementOverride, deleteAchievementOverride,
+    fetchScoreRows, deleteScoreRow,
     subscribe,
     AVATARS,
   };
