@@ -1,6 +1,6 @@
 // Function Plane — Main Screen
 
-function MainScreen({ onPlay, onInfo, onAchievements, onAccount, onSettings, totalStars, continuePoint, progress, density = 'comfortable' }) {
+function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSettings, totalStars, continuePoint, progress, density = 'comfortable' }) {
   const padX = density === 'compact' ? 22 : 26;
   const hasAnyProgress = progress && Object.values(progress).some(pd =>
     pd.stars.some(s => s > 0)
@@ -79,6 +79,37 @@ function MainScreen({ onPlay, onInfo, onAchievements, onAccount, onSettings, tot
           progress={progress}
           hasAnyProgress={hasAnyProgress}
         />
+      </div>
+
+      {/* Sandbox — the second thing you can do, so it sits directly under the
+          first, outlined rather than filled so it reads as subordinate to Play
+          rather than competing with it. */}
+      <div style={{ padding: `8px ${padX}px 0`, flex: '0 0 auto' }}>
+        <button onClick={onSandbox} style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px 14px', borderRadius: 16, textAlign: 'left',
+          background: 'var(--fp-surface)', border: '1px solid var(--fp-line)',
+        }}>
+          <span style={{
+            width: 32, height: 32, borderRadius: 10, flex: '0 0 auto',
+            background: 'var(--fp-bg)', border: '1px solid var(--fp-line)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+              <path d="M3 21V3M3 21h18" stroke="var(--fp-ink-3)" strokeWidth={1.5} strokeLinecap="round"/>
+              <path d="M3 17C7 17 8 6 12 6s5 11 9 11" stroke="var(--fp-ink)" strokeWidth={1.7} strokeLinecap="round"/>
+            </svg>
+          </span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 500, color: 'var(--fp-ink)' }}>
+              Sandbox
+            </span>
+            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--fp-ink-3)', marginTop: 1 }}>
+              Graph anything — no goals
+            </span>
+          </span>
+          <Icon.Chevron dir="right" size={15} c="var(--fp-ink-4)"/>
+        </button>
       </div>
 
       <div style={{ flex: 1 }} />

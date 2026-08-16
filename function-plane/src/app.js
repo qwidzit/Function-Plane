@@ -242,6 +242,7 @@ function App() {
         progress: progress,
         density: settings.density,
         onPlay: () => navigate('packs'),
+        onSandbox: () => navigate('sandbox'),
         onInfo: () => navigate('how-to-play'),
         onAchievements: () => navigate('achievements'),
         onAccount: () => navigate('account'),
@@ -356,6 +357,13 @@ function App() {
         }),
         onComplete: handleComplete,
         onNext: handleNext
+      });
+    }
+    if (route === 'sandbox') {
+      return /*#__PURE__*/React.createElement(SandboxScreen, {
+        onBack: () => navigate('main'),
+        density: settings.density,
+        settings: settings
       });
     }
     if (route === 'how-to-play') {
@@ -699,7 +707,7 @@ function PlaceholderScreen({
   }, subtitle)));
 }
 function mount() {
-  if (typeof MainScreen === 'undefined' || typeof PackSelector === 'undefined' || typeof LevelSelector === 'undefined' || typeof SettingsScreen === 'undefined' || typeof LevelScreen === 'undefined' || typeof LevelCompletePopup === 'undefined' || typeof HowToPlayScreen === 'undefined' || typeof AchievementsScreen === 'undefined' || typeof AccountScreen === 'undefined' || typeof AdminScreen === 'undefined' || typeof LegalScreen === 'undefined' || typeof MathKeyboard === 'undefined' || typeof freshProgress === 'undefined' || typeof Icon === 'undefined' || typeof FP_AUTH === 'undefined') {
+  if (typeof MainScreen === 'undefined' || typeof PackSelector === 'undefined' || typeof LevelSelector === 'undefined' || typeof SettingsScreen === 'undefined' || typeof LevelScreen === 'undefined' || typeof LevelCompletePopup === 'undefined' || typeof HowToPlayScreen === 'undefined' || typeof AchievementsScreen === 'undefined' || typeof AccountScreen === 'undefined' || typeof AdminScreen === 'undefined' || typeof SandboxScreen === 'undefined' || typeof LegalScreen === 'undefined' || typeof MathKeyboard === 'undefined' || typeof freshProgress === 'undefined' || typeof Icon === 'undefined' || typeof FP_AUTH === 'undefined') {
     return setTimeout(mount, 30);
   }
   ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));

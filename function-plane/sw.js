@@ -1,4 +1,4 @@
-const CACHE = 'fp-v28';
+const CACHE = 'fp-v29';
 const SHELL = [
   './',
   './index.html',
@@ -40,6 +40,7 @@ const SHELL = [
   './src/achievements.js',
   './src/account-screen.js',
   './src/admin-screen.js',
+  './src/sandbox-screen.js',
   './src/legal-screens.js',
   './src/app.js',
   './icons/icon.svg',

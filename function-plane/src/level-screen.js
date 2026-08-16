@@ -309,7 +309,12 @@ function CoordPlane({
   startPos,
   autoZoomTrigger,
   autoZoomEnabled,
-  levelStars
+  levelStars,
+  trail,
+  editable,
+  selected,
+  onSelect,
+  onMove
 }) {
   const [view, setView] = useSL({
     cx: 0,
@@ -343,6 +348,7 @@ function CoordPlane({
   const ptrsRef = useRL({});
   const panRef = useRL(null); // { sx, sy, cx, cy }
   const pinchRef = useRL(null); // { dist, midPx, midPy, scale, cx, cy }
+  const dragRef = useRL(null); // sandbox: id of the object being dragged
 
   const m2p = (mx, my) => ({
     x: width / 2 + (mx - view.cx) * view.scale,
@@ -360,6 +366,22 @@ function CoordPlane({
     const n = t / p;
     return n < 1.5 ? p : n < 3 ? 2 * p : n < 7 ? 5 * p : 10 * p;
   }, [view.scale]);
+
+  // Sandbox editing: grab whichever object is under the finger instead of
+  // panning. Hit-testing in pixels keeps the target the same physical size at
+  // every zoom level, so a star stays grabbable when zoomed far out.
+  const grabAt = (clientX, clientY) => {
+    if (!editable) return null;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const px = clientX - rect.left,
+      py = clientY - rect.top;
+    const near = (mx, my) => Math.hypot(px - m2p(mx, my).x, py - m2p(mx, my).y) <= 26;
+    for (let i = 0; i < (levelStars?.length ?? 0); i++) {
+      if (near(levelStars[i].x, levelStars[i].y)) return `star-${i}`;
+    }
+    return near(startPos.x, startPos.y) ? 'ball' : null;
+  };
   const onPointerDown = e => {
     e.currentTarget.setPointerCapture(e.pointerId);
     ptrsRef.current[e.pointerId] = {
@@ -367,6 +389,17 @@ function CoordPlane({
       y: e.clientY
     };
     const ids = Object.keys(ptrsRef.current);
+    if (ids.length === 1) {
+      const grabbed = grabAt(e.clientX, e.clientY);
+      if (grabbed) {
+        dragRef.current = grabbed;
+        onSelect?.(grabbed);
+        panRef.current = null;
+        pinchRef.current = null;
+        return;
+      }
+      dragRef.current = null;
+    }
     if (ids.length === 1) {
       panRef.current = {
         sx: e.clientX,
@@ -399,6 +432,20 @@ function CoordPlane({
       y: e.clientY
     };
     const n = Object.keys(ptrsRef.current).length;
+    if (dragRef.current) {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const px = e.clientX - rect.left,
+        py = e.clientY - rect.top;
+      // Snapped to a quarter unit: fine enough to place anything, coarse
+      // enough that dragging lands on a round number instead of 2.0713.
+      const q = v => Math.round(v * 4) / 4;
+      onMove?.(dragRef.current, {
+        x: q(view.cx + (px - width / 2) / view.scale),
+        y: q(view.cy - (py - height / 2) / view.scale)
+      });
+      return;
+    }
     if (n === 1 && panRef.current) {
       const {
         sx,
@@ -434,6 +481,7 @@ function CoordPlane({
   };
   const onPointerUp = e => {
     delete ptrsRef.current[e.pointerId];
+    dragRef.current = null;
     const remaining = Object.entries(ptrsRef.current);
     if (remaining.length === 0) {
       panRef.current = null;
@@ -576,6 +624,7 @@ function CoordPlane({
   const starsEl = simStars.map((s, i) => {
     if (s.collected) return null;
     const p = m2p(s.x, s.y);
+    const isSel = selected === `star-${i}`;
     return /*#__PURE__*/React.createElement("g", {
       key: i,
       transform: `translate(${p.x},${p.y})`
@@ -583,9 +632,16 @@ function CoordPlane({
       r: 14,
       fill: "var(--lv-bg)",
       opacity: 0.65
+    }), isSel && /*#__PURE__*/React.createElement("circle", {
+      r: 19,
+      fill: "none",
+      stroke: "var(--lv-star)",
+      strokeWidth: 1.4,
+      opacity: 0.9
     }), /*#__PURE__*/React.createElement("path", {
       d: "M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z",
-      fill: "none",
+      fill: isSel ? 'var(--lv-star)' : 'none',
+      fillOpacity: 0.25,
       stroke: "var(--lv-star)",
       strokeWidth: 1.5,
       strokeLinejoin: "round"
@@ -594,6 +650,27 @@ function CoordPlane({
   const bp = m2p(ballPos.x, ballPos.y);
   const sp = m2p(startPos.x, startPos.y);
   const br = Math.max(4, BALL_R * view.scale);
+
+  // Where the ball actually went on the last run. A failed attempt otherwise
+  // tells the player nothing about why it failed. Drawn as one path with a
+  // gradient so the start fades out and the end — the part that matters — is
+  // the most visible.
+  // Anchored to the path's own ends, not to the ball: a failed run resets the
+  // ball to its start, which would collapse the gradient to zero length.
+  const trailPath = useML(() => {
+    if (!trail || trail.length < 2) return null;
+    const pts = trail.map(p => m2p(p.x, p.y));
+    const d = pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(1)} ${q.y.toFixed(1)}`).join('');
+    const a = pts[0],
+      z = pts[pts.length - 1];
+    return {
+      d,
+      x1: a.x,
+      y1: a.y,
+      x2: z.x,
+      y2: z.y
+    };
+  }, [trail, view.cx, view.cy, view.scale, width, height]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'relative',
@@ -641,7 +718,37 @@ function CoordPlane({
     fontFamily: "ui-monospace,monospace",
     fill: "var(--lv-tick)",
     textAnchor: "end"
-  }, "0"), tickLabels, eqPaths, /*#__PURE__*/React.createElement("circle", {
+  }, "0"), tickLabels, eqPaths, trailPath && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "fp-trail",
+    gradientUnits: "userSpaceOnUse",
+    x1: trailPath.x1,
+    y1: trailPath.y1,
+    x2: trailPath.x2,
+    y2: trailPath.y2
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: "var(--lv-ball)",
+    stopOpacity: 0.08
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: "var(--lv-ball)",
+    stopOpacity: 0.6
+  }))), /*#__PURE__*/React.createElement("path", {
+    d: trailPath.d,
+    fill: "none",
+    stroke: "url(#fp-trail)",
+    strokeWidth: 1.6,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  })), selected === 'ball' && /*#__PURE__*/React.createElement("circle", {
+    cx: sp.x,
+    cy: sp.y,
+    r: Math.max(br + 7, 14),
+    fill: "none",
+    stroke: "var(--lv-ball)",
+    strokeWidth: 1.4,
+    opacity: 0.9
+  }), /*#__PURE__*/React.createElement("circle", {
     cx: sp.x,
     cy: sp.y,
     r: br,
@@ -649,7 +756,7 @@ function CoordPlane({
     stroke: "var(--lv-ball)",
     strokeWidth: 1.5,
     strokeDasharray: "3 2",
-    opacity: 0.35
+    opacity: selected === 'ball' ? 0.8 : 0.35
   }), starsEl, /*#__PURE__*/React.createElement("g", {
     transform: `translate(${bp.x},${bp.y})`
   }, /*#__PURE__*/React.createElement("circle", {
@@ -745,7 +852,12 @@ function PlaneFiller({
   startPos,
   autoZoomTrigger,
   autoZoomEnabled,
-  levelStars
+  levelStars,
+  trail,
+  editable,
+  selected,
+  onSelect,
+  onMove
 }) {
   const ref = useRL(null);
   const [size, setSize] = useSL({
@@ -779,7 +891,12 @@ function PlaneFiller({
     startPos: startPos,
     autoZoomTrigger: autoZoomTrigger,
     autoZoomEnabled: autoZoomEnabled,
-    levelStars: levelStars
+    levelStars: levelStars,
+    trail: trail,
+    editable: editable,
+    selected: selected,
+    onSelect: onSelect,
+    onMove: onMove
   }));
 }
 
@@ -1626,6 +1743,8 @@ function LevelScreen({
   const [collectedCount, setCollectedCount] = useSL(0);
   const [completed, setCompleted] = useSL(null);
   const [missMsg, setMissMsg] = useSL(false);
+  // Path of the last run, kept on screen after it ends so a miss is readable.
+  const [trail, setTrail] = useSL(null);
   const physRef = useRL(null);
   const animRef = useRL(null);
   const equationsRef = useRL(equations);
@@ -1689,6 +1808,7 @@ function LevelScreen({
       cancelAnimationFrame(animRef.current);
       setRunning(false);
       resetSim();
+      setTrail(null);
       return;
     }
     if (classWarning) {
@@ -1710,7 +1830,12 @@ function LevelScreen({
       simS: 0,
       bounced: false,
       justCollected: false,
-      wonAtS: null
+      wonAtS: null,
+      tick: 0,
+      trail: [{
+        x: levelData.ball.x,
+        y: levelData.ball.y
+      }]
     };
     setSimStars(levelData.stars.map(s => ({
       ...s,
@@ -1719,6 +1844,7 @@ function LevelScreen({
     setCollectedCount(0);
     setElapsed(0);
     setCompleted(null);
+    setTrail(null);
     setRunning(true);
     if (settings?.autoZoom) setAutoZoomTrigger(t => t + 1);
   };
@@ -1751,6 +1877,12 @@ function LevelScreen({
         ph.acc -= TICK_DT;
         for (let s = 0; s < SUB_STEPS; s++) physicsStep(ph, colliders, dt);
         ph.simS += TICK_DT;
+        // Sampled every third tick (20/s): dense enough that a bounce reads as
+        // a corner, sparse enough that a full 28s run stays under 200 points.
+        if (ph.tick++ % 3 === 0) ph.trail.push({
+          x: ph.x,
+          y: ph.y
+        });
         // Checked per tick, not per frame, so the recorded finish time has
         // the same resolution however many ticks a frame happens to drain.
         if (ph.wonAtS == null && ph.stars.every(s => s.collected)) ph.wonAtS = ph.simS;
@@ -1781,6 +1913,7 @@ function LevelScreen({
       if (failed || succeeded) {
         cancelAnimationFrame(animRef.current);
         setRunning(false);
+        setTrail(ph.trail);
         if (failed) {
           resetSim();
           setMissMsg(true);
@@ -2037,7 +2170,8 @@ function LevelScreen({
     startPos: levelData.ball,
     autoZoomTrigger: autoZoomTrigger,
     autoZoomEnabled: settings?.autoZoom !== false,
-    levelStars: levelData.stars
+    levelStars: levelData.stars,
+    trail: trail
   }), missMsg && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -2235,3 +2369,16 @@ window.LevelScreen = LevelScreen;
 window.parseEquation = parseEquation;
 window.computeScore = computeScore;
 window.starRating = starRating;
+// Shared with the sandbox so it runs the same plane, panel and physics as a
+// real level rather than a lookalike that can drift.
+window.PlaneFiller = PlaneFiller;
+window.EquationsPanel = EquationsPanel;
+window.physicsStep = physicsStep;
+window.SIM = {
+  TICK_DT,
+  SUB_STEPS,
+  MAX_TICKS,
+  BALL_R,
+  FALL_LIMIT,
+  EQ_COLORS
+};

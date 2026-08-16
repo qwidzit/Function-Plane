@@ -93,7 +93,8 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     premium-config.js      # Stripe Payment Link URLs (web payment path) — not filled in yet
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
-    admin-screen.jsx       # in-app admin (grant premium, edit packs/levels)
+    admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
+    sandbox-screen.jsx     # free play — same plane/panel/physics, no goals
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
     keyboard.jsx           # custom math keyboard (basic/advanced pages)
     app.jsx                # root component, routing, mount() guard
@@ -299,6 +300,40 @@ the app does **not** trust the network for them:
   / trig / exp); enforcement runs in `level-screen.jsx`'s `classWarning` via
   `classMatches()`, which groups related classes (e.g. `exp` pack allows both
   `exp` and `log`; `trig` pack allows both `trig` and `inverseTrig`).
+
+## Sandbox (sandbox-screen.jsx)
+
+Free play: graph anything, run the ball, no goals and nothing recorded. It
+reuses `PlaneFiller`, `EquationsPanel` and `physicsStep` exported from
+`level-screen.js` rather than reimplementing them, so the ball behaves exactly
+as it does in a level — a lookalike would drift the first time physics
+changed.
+
+Stars and the spawn are **fixed objects you move**, not things you scatter by
+tapping: select one from the chip row or grab it on the plane, then drag it or
+type coordinates. Dragging snaps to a quarter unit so a drag lands on a round
+number. Tapping empty space still pans, so editing never fights navigation —
+`CoordPlane` hit-tests in *pixels* (26px), which keeps a star grabbable when
+zoomed far out. Editing is disabled while a run is in flight.
+
+The view frames the objects once on entry and never again: re-framing on Play
+would discard a view the player deliberately composed. The run ends when the
+ball leaves the world or a 30s clock expires; collecting every star just makes
+the noise.
+
+Reached from the main screen, directly under the Play card — the second thing
+you can do sits under the first, outlined rather than filled so it reads as
+subordinate to Play instead of competing with it.
+
+## Ball path trace
+
+Every run records the ball's position every third tick (20/s, so a full run
+stays under 200 points) and the path stays on screen once the run ends. A
+failed attempt otherwise tells the player nothing about *why* it failed. It is
+drawn as one path under a gradient anchored to the path's own two ends — not
+to the ball, which resets to its start on failure and would collapse the
+gradient to zero length — so the end of the run is the most visible part.
+Cleared when the next run starts.
 
 ## Custom math keyboard
 

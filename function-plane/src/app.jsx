@@ -193,6 +193,7 @@ function App() {
           progress={progress}
           density={settings.density}
           onPlay={() => navigate('packs')}
+          onSandbox={() => navigate('sandbox')}
           onInfo={() => navigate('how-to-play')}
           onAchievements={() => navigate('achievements')}
           onAccount={() => navigate('account')}
@@ -297,6 +298,10 @@ function App() {
           onNext={handleNext}
         />
       );
+    }
+
+    if (route === 'sandbox') {
+      return <SandboxScreen onBack={() => navigate('main')} density={settings.density} settings={settings}/>;
     }
 
     if (route === 'how-to-play') {
@@ -535,6 +540,7 @@ function mount() {
     typeof AchievementsScreen === 'undefined' ||
     typeof AccountScreen === 'undefined' ||
     typeof AdminScreen === 'undefined' ||
+    typeof SandboxScreen === 'undefined' ||
     typeof LegalScreen === 'undefined' ||
     typeof MathKeyboard === 'undefined' ||
     typeof freshProgress === 'undefined' ||

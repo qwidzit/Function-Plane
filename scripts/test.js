@@ -434,6 +434,24 @@ it('compiles every .jsx to a .js sibling', () => {
   eq(stale.length, 0, `.jsx without a compiled .js: ${stale.join(', ')}`);
 });
 
+it('guards every screen it renders in mount()', () => {
+  // The documented cold-load race: a screen added to the router but missing
+  // from mount()'s typeof poll renders before its script has finished
+  // parsing. Only reproduces on a slow first load, so it ships easily.
+  const appJs = read(path.join(SRC, 'app.js'));
+  const rendered = new Set(
+    [...appJs.matchAll(/React\.createElement\((\w+Screen)[,)]/g)].map(m => m[1])
+  );
+  const guarded = new Set(
+    [...appJs.matchAll(/typeof (\w+Screen) === 'undefined'/g)].map(m => m[1])
+  );
+  const unguarded = [...rendered]
+    // Screens declared in app.js itself have no race to lose.
+    .filter(n => !new RegExp(`function ${n}\\b`).test(appJs))
+    .filter(n => !guarded.has(n));
+  eq(unguarded.length, 0, `screens rendered without a mount() guard: ${unguarded.join(', ')}`);
+});
+
 it('loads app.js last', () => {
   eq(scriptSrcs[scriptSrcs.length - 1], 'src/app.js',
     'app.js calls createRoot().render() and must load after everything it renders');
