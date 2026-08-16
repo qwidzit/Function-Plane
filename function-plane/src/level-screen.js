@@ -811,7 +811,7 @@ function CoordPlane({
       ...v,
       scale: Math.max(6, v.scale / 1.4)
     }))
-  }, "−"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2212"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
       background: 'var(--lv-line)'
@@ -1044,7 +1044,7 @@ function DomainEditor({
       color: 'var(--fp-ink-4)',
       marginBottom: 6
     }
-  }, "No restriction — curve draws everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
+  }, "No restriction \u2014 curve draws everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: 'flex',
@@ -1058,7 +1058,7 @@ function DomainEditor({
       fontSize: 11,
       color: 'var(--fp-ink-3)'
     }
-  }, "x ∈"), /*#__PURE__*/React.createElement(DomValBtn, {
+  }, "x \u2208"), /*#__PURE__*/React.createElement(DomValBtn, {
     segId: `${i}-min`,
     val: seg.xMin,
     domKb: domKb,
@@ -1081,7 +1081,7 @@ function DomainEditor({
       lineHeight: 1,
       padding: '0 4px'
     }
-  }, "×"))), /*#__PURE__*/React.createElement("button", {
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
     onClick: add,
     style: {
       fontSize: 11.5,
@@ -2044,7 +2044,7 @@ function LevelScreen({
       textOverflow: 'ellipsis',
       maxWidth: '100%'
     }
-  }, pack.type === 'roman' ? `Pack ${pack.numeral}` : getPack(pack.id)?.name || pack.name, " · Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
+  }, pack.type === 'roman' ? `Pack ${pack.numeral}` : getPack(pack.id)?.name || pack.name, " \xB7 Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Instrument Serif',Georgia,serif",
       fontStyle: 'italic',

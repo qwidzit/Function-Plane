@@ -96,7 +96,7 @@ function MainScreen({
     }
   }, /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
-  }, totalStars), " ★"))), /*#__PURE__*/React.createElement("div", {
+  }, totalStars), " \u2605"))), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: '0 0 auto',
       margin: `19px ${padX}px`,
@@ -205,7 +205,7 @@ function MainScreen({
       color: 'var(--fp-ink-3)',
       marginTop: 1
     }
-  }, "Graph anything — no goals")), /*#__PURE__*/React.createElement(Icon.Chevron, {
+  }, "Graph anything \u2014 no goals")), /*#__PURE__*/React.createElement(Icon.Chevron, {
     dir: "right",
     size: 15,
     c: "var(--fp-ink-4)"
@@ -254,7 +254,7 @@ function MainScreen({
       paddingTop: 10,
       flex: '0 0 auto'
     }
-  }, "v 1.0 · build 1"), ratePopup && /*#__PURE__*/React.createElement("div", {
+  }, "v 1.0 \xB7 build 1"), ratePopup && /*#__PURE__*/React.createElement("div", {
     onClick: () => setRatePopup(false),
     style: {
       position: 'absolute',
@@ -284,7 +284,7 @@ function MainScreen({
       fontSize: 40,
       marginBottom: 14
     }
-  }, "🎮"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFAE"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Instrument Serif', Georgia, serif",
       fontStyle: 'italic',
@@ -300,7 +300,7 @@ function MainScreen({
       lineHeight: 1.6,
       marginBottom: 22
     }
-  }, "Function Plane isn't on Google Play yet — but it will be soon! Check back later to leave a rating."), /*#__PURE__*/React.createElement("button", {
+  }, "Function Plane isn't on Google Play yet \u2014 but it will be soon! Check back later to leave a rating."), /*#__PURE__*/React.createElement("button", {
     onClick: () => setRatePopup(false),
     style: {
       width: '100%',
@@ -475,7 +475,7 @@ function PlayCard({
       marginTop: 3,
       letterSpacing: '-0.02em'
     }
-  }, packLabel, " · Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
+  }, packLabel, " \xB7 Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 9,
       display: 'flex',

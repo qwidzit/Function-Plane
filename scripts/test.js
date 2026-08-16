@@ -701,6 +701,12 @@ try { babel = require('@babel/core'); } catch { /* optional */ }
 if (!babel) {
   console.log('  skip @babel/core not installed — run npm install to check .js/.jsx parity');
 } else {
+  // Named in the output because a mismatched Babel is the likeliest reason
+  // this check fails on one machine and passes on another: the escaping of
+  // non-ASCII changed between releases. package.json pins the version the
+  // committed .js were built with — if the line below disagrees with that pin,
+  // reinstall before believing the result.
+  console.log(`  info compiling with @babel/core ${require('@babel/core/package.json').version}`);
   it('keeps every compiled .js in sync with its .jsx', () => {
     // Babel versions differ in whether they escape non-ASCII in string
     // literals, so compare with escapes normalized (see CLAUDE.md).

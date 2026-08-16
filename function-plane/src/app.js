@@ -453,7 +453,7 @@ function App() {
       borderRadius: '50%',
       background: '#e34'
     }
-  }), "Offline — progress will sync when you reconnect")), toast && /*#__PURE__*/React.createElement("div", {
+  }), "Offline \u2014 progress will sync when you reconnect")), toast && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       top: 'calc(env(safe-area-inset-top, 0px) + 12px)',

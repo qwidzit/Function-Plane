@@ -299,14 +299,14 @@ function LeaderboardAudit({
       fontSize: 13,
       color: 'var(--fp-ink-3)'
     }
-  }, "Checking submissions…"), rows && /*#__PURE__*/React.createElement("div", {
+  }, "Checking submissions\u2026"), rows && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
       color: 'var(--fp-ink-2)',
       lineHeight: 1.7,
       marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("div", null, count('ok'), " verified · ", count('bad'), " failed · ", count('suspect'), " to check · ", count('unverifiable'), " unverifiable"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("div", null, count('ok'), " verified \xB7 ", count('bad'), " failed \xB7 ", count('suspect'), " to check \xB7 ", count('unverifiable'), " unverifiable"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowAll(v => !v),
     style: {
       marginTop: 6,
@@ -319,7 +319,7 @@ function LeaderboardAudit({
       fontSize: 13,
       color: 'var(--fp-ink-3)'
     }
-  }, "Nothing to review — every submission matches its equations."), shown.map(row => {
+  }, "Nothing to review \u2014 every submission matches its equations."), shown.map(row => {
     const key = `${row.user_id}-${row.pack_id}-${row.level_index}`;
     const tone = TONE[row.audit.level] || null;
     const bad = row.audit.level === 'bad';
@@ -351,7 +351,7 @@ function LeaderboardAudit({
         fontSize: 11.5,
         color: 'var(--fp-ink-3)'
       }
-    }, row.pack_id, " · L", row.level_index + 1)), /*#__PURE__*/React.createElement("div", {
+    }, row.pack_id, " \xB7 L", row.level_index + 1)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
         color: tone || 'var(--fp-ink-3)',
@@ -378,7 +378,7 @@ function LeaderboardAudit({
         color: 'var(--fp-ink-3)',
         flex: 1
       }
-    }, row.stars, "★ · ", row.best_score, " pts", row.best_time != null ? ` · ${row.best_time}s` : ''), /*#__PURE__*/React.createElement("button", {
+    }, row.stars, "\u2605 \xB7 ", row.best_score, " pts", row.best_time != null ? ` · ${row.best_time}s` : ''), /*#__PURE__*/React.createElement("button", {
       onClick: () => remove(row),
       disabled: busyKey === key,
       style: {
@@ -445,7 +445,7 @@ function UsersAdmin({
     }
   };
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
-    title: "Admin · Users",
+    title: "Admin \xB7 Users",
     onBack: onBack,
     padX: padX
   }, /*#__PURE__*/React.createElement("div", {
@@ -541,7 +541,7 @@ function UsersAdmin({
       fontSize: 11,
       color: 'var(--fp-ink-4)'
     }
-  }, r.total_stars, "★ ", r.is_premium && '· Premium')), /*#__PURE__*/React.createElement("button", {
+  }, r.total_stars, "\u2605 ", r.is_premium && '· Premium')), /*#__PURE__*/React.createElement("button", {
     onClick: () => togglePremium(r),
     style: {
       padding: '6px 10px',
@@ -869,7 +869,7 @@ function LevelEditor({
       flex: 1
     }
   }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Score goal (≤ for 2★)",
+    label: "Score goal (\u2264 for 2\u2605)",
     value: scoreGoal,
     onChange: setScoreGoal
   })), /*#__PURE__*/React.createElement("div", {
@@ -877,7 +877,7 @@ function LevelEditor({
       flex: 1
     }
   }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Equation goal (≤ for 3★)",
+    label: "Equation goal (\u2264 for 3\u2605)",
     value: eqGoal,
     onChange: setEqGoal
   }))), /*#__PURE__*/React.createElement("div", {
@@ -927,7 +927,7 @@ function LevelEditor({
       color: 'var(--fp-ink-4)',
       fontSize: 16
     }
-  }, "×"))), /*#__PURE__*/React.createElement("button", {
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
     onClick: addStar,
     style: {
       marginTop: 4,
@@ -954,7 +954,7 @@ function LevelEditor({
       lineHeight: 1.5,
       marginBottom: 8
     }
-  }, "Visible to players but locked — they can't edit or remove them, and they don't count toward score or equation budget."), preplaced.map((expr, i) => /*#__PURE__*/React.createElement("div", {
+  }, "Visible to players but locked \u2014 they can't edit or remove them, and they don't count toward score or equation budget."), preplaced.map((expr, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: 'flex',
@@ -983,7 +983,7 @@ function LevelEditor({
       color: 'var(--fp-ink-4)',
       fontSize: 16
     }
-  }, "×"))), /*#__PURE__*/React.createElement("button", {
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
     onClick: addPre,
     style: {
       marginTop: 4,
@@ -1037,7 +1037,7 @@ function AchievementsAdmin({
   const rows = getAchievementRows();
   const [showSql, setShowSql] = useAS(false);
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
-    title: "Admin · Achievements",
+    title: "Admin \xB7 Achievements",
     onBack: onBack,
     padX: padX
   }, /*#__PURE__*/React.createElement("div", {
@@ -1126,7 +1126,7 @@ function AchievementsAdmin({
       fontSize: 11.5,
       color: 'var(--fp-ink-3)'
     }
-  }, window.ACH_KINDS?.[r.kind]?.label || r.kind, " · id ", /*#__PURE__*/React.createElement("span", {
+  }, window.ACH_KINDS?.[r.kind]?.label || r.kind, " \xB7 id ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
   }, r.id))), r.builtin && /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1244,7 +1244,7 @@ function AchievementEditor({
   // Changing a built-in's id would orphan every unlock recorded
   // against it and resurrect the default alongside it.
   ? /*#__PURE__*/React.createElement(FieldReadonly, {
-    label: "ID (built-in — not editable)",
+    label: "ID (built-in \u2014 not editable)",
     value: id
   }) : /*#__PURE__*/React.createElement(FieldText, {
     label: "ID (stable, unique)",
@@ -1257,7 +1257,7 @@ function AchievementEditor({
     onChange: setName,
     placeholder: "e.g. Winter Champion"
   }), /*#__PURE__*/React.createElement(FieldText, {
-    label: "Description (optional — auto-generated if blank)",
+    label: "Description (optional \u2014 auto-generated if blank)",
     value: description,
     onChange: setDesc,
     placeholder: "Earn 100 stars in total"
@@ -1277,7 +1277,7 @@ function AchievementEditor({
     onChange: setPackId,
     options: PACK_OPTIONS
   }), needs.includes('levelIndex') && /*#__PURE__*/React.createElement(FieldText, {
-    label: "Level index (0–9)",
+    label: "Level index (0\u20139)",
     value: levelIndex,
     onChange: setLvl,
     placeholder: "0"

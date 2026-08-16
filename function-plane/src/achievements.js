@@ -550,7 +550,7 @@ function LeaderboardTab({
       fontSize: 12,
       padding: '28px 0'
     }
-  }, "Loading…"), rows !== null && rows.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, "Loading\u2026"), rows !== null && rows.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       color: 'var(--fp-ink-3)',
@@ -637,6 +637,6 @@ function LeaderboardTab({
     style: {
       color: 'var(--fp-ink-2)'
     }
-  }, myStars), " ★ as Guest")));
+  }, myStars), " \u2605 as Guest")));
 }
 window.AchievementsScreen = AchievementsScreen;
