@@ -1,0 +1,19 @@
+# `npm test` compares every committed .js against a fresh Babel build of its
+# .jsx, and Babel always writes LF. A Windows checkout with Git's default
+# core.autocrlf=true rewrites them to CRLF, which fails that check on every
+# file it has rewritten — and because Git only rewrites files a pull actually
+# touches, the failure shows up as a puzzling subset rather than all of them.
+# Pin the line endings here instead of depending on each machine's Git config.
+* text=auto eol=lf
+
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.ico     binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+*.keystore binary
+*.jks     binary
+*.aab     binary
+*.apk     binary
