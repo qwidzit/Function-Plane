@@ -77,6 +77,24 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    version-agnostic; `app.jsx` already handles both the Capacitor 6 and
    Capacitor 7+ shapes of `addListener`, so nothing in `src/` needs changing.
 
+   > **If `Build parity` fails here** with a list of stale `.js` files, it is
+   > almost always a stale `node_modules`, not a real problem with the code.
+   > `@babel/core` and `@babel/preset-react` are pinned to an exact version
+   > because Babel changed how it escapes non-ASCII between releases, and the
+   > committed `.js` are byte-identical to that version's output. An older
+   > install — or a `package-lock.json` from before the pin — silently uses a
+   > different compiler. Fix it with:
+   >
+   > ```bash
+   > rm -rf node_modules package-lock.json && npm install && npm test
+   > ```
+   >
+   > The parity check prints `info compiling with @babel/core <version>` right
+   > above its result. If that version disagrees with the pin in
+   > `package.json`, the install is the problem. If it agrees and the check
+   > still fails, then a `.jsx` really was edited without rebuilding — run
+   > `npm run build:jsx` and commit both files.
+
 > If the Capacitor 8 upgrade turns into a fight, the fallback is to stay on 6
 > and hand-edit `android/variables.gradle` to `compileSdkVersion = 36` /
 > `targetSdkVersion = 36` after step 1. It usually works, but it is an
