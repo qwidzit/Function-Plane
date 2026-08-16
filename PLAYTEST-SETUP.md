@@ -86,7 +86,22 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    > different compiler. Fix it with:
    >
    > ```bash
+   > # macOS / Linux / Git Bash
    > rm -rf node_modules package-lock.json && npm install && npm test
+   > ```
+   >
+   > ```powershell
+   > # Windows PowerShell
+   > Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
+   > npm install
+   > npm test
+   > ```
+   >
+   > ```bat
+   > :: Windows cmd.exe
+   > rmdir /s /q node_modules
+   > del /q package-lock.json
+   > npm install && npm test
    > ```
    >
    > The parity check prints `info compiling with @babel/core <version>` right
@@ -94,6 +109,17 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    > `package.json`, the install is the problem. If it agrees and the check
    > still fails, then a `.jsx` really was edited without rebuilding — run
    > `npm run build:jsx` and commit both files.
+   >
+   > **On Windows, check line endings too.** Babel writes LF; Git's default
+   > `core.autocrlf=true` rewrites the committed `.js` to CRLF on checkout,
+   > which fails the byte comparison. `.gitattributes` now pins LF, but a
+   > working tree checked out before that still has CRLF in it. To re-fetch
+   > every file through the new rules (this discards uncommitted changes):
+   >
+   > ```bash
+   > git rm --cached -r . -q
+   > git reset --hard
+   > ```
 
 > If the Capacitor 8 upgrade turns into a fight, the fallback is to stay on 6
 > and hand-edit `android/variables.gradle` to `compileSdkVersion = 36` /
