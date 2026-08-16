@@ -409,7 +409,13 @@ a deterministic server-side replay, which the fixed-tick sim clock now makes
 possible.
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual
-  restore.
+  restore. A paused project doesn't refuse connections, it stops answering
+  them, which is why every network call in `accounts.js` goes through
+  `_withTimeout` (10 s): `fetch` has no default timeout, so an unanswered
+  request leaves its promise pending forever and any spinner waiting on it
+  stays up for good. A leaderboard that fails with nothing cached emits
+  `fp-sync-error` so the reason reaches the player, instead of showing
+  "No scores yet" — which reads as fact when the truth is "couldn't ask".
 
 ## Progress data shape (localStorage + Supabase `progress.data`)
 

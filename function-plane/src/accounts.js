@@ -29,6 +29,25 @@
     catch {}
   }
 
+  // fetch() has no default timeout, so a request that is never answered — a
+  // paused Supabase project, a captive portal, a network that black-holes
+  // rather than refuses — leaves its promise pending forever, and any spinner
+  // waiting on it stays up for good. Every network call goes through this so a
+  // stall becomes a reportable error instead of an eternal "Loading…".
+  const NET_TIMEOUT_MS = 10000;
+  function _withTimeout(promise, what) {
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise).finally(() => clearTimeout(timer)),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${what} timed out — the server did not respond`)),
+          NET_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  }
+
   const readJSON  = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const progressKey = id  => id ? PROGRESS_PREFIX + id : GUEST_KEY;
@@ -287,10 +306,12 @@
     try {
       const totalStars = _countStars(progress);
 
-      const [pRes, profRes] = await Promise.all([
+      // A stall here would leave progress neither saved nor queued; the
+      // timeout throws instead, so the catch below queues it for the next try.
+      const [pRes, profRes] = await _withTimeout(Promise.all([
         _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
         _sb.from('profiles').update({ total_stars: totalStars }).eq('id', userId),
-      ]);
+      ]), 'Progress upload');
       if (pRes.error)    console.warn('FP_AUTH: progress upsert error', pRes.error);
       if (profRes.error) console.warn('FP_AUTH: profile update error',  profRes.error);
 
@@ -316,9 +337,9 @@
         });
       }
       if (rowsFull.length) {
-        const upsert = rows => _sb.from('level_scores').upsert(rows, {
+        const upsert = rows => _withTimeout(_sb.from('level_scores').upsert(rows, {
           onConflict: 'user_id,pack_id,level_index', ignoreDuplicates: false,
-        });
+        }), 'Score upload');
         let rows = rowsFull;
         let { error: upErr } = await upsert(rows);
         for (const col of ['equations', 'best_time']) {
@@ -367,7 +388,7 @@
     const hit = map[key];
     if (hit && Date.now() - hit.ts < LB_TTL) return hit.rows;
     try {
-      const rows = await fetchLive();
+      const rows = await _withTimeout(fetchLive(), 'Leaderboard');
       const next = readJSON(LB_KEY, {});
       next[key] = { ts: Date.now(), rows };
       const keys = Object.keys(next);
@@ -379,8 +400,12 @@
       writeJSON(LB_KEY, next);
       return rows;
     } catch (e) {
-      console.warn('FP_AUTH: leaderboard fetch failed' + (hit ? ', showing cached copy' : ''), e?.message || e);
-      return hit ? hit.rows : [];    // stale beats empty when offline
+      const msg = e?.message || String(e);
+      console.warn('FP_AUTH: leaderboard fetch failed' + (hit ? ', showing cached copy' : ''), msg);
+      // A stale board is better than a nag; an empty one needs explaining, or
+      // "No scores yet" reads as truth when the truth is "couldn't ask".
+      if (!hit) _emitSyncError('Leaderboard unavailable: ' + msg);
+      return hit ? hit.rows : [];
     }
   }
 
@@ -618,14 +643,15 @@
   // forgery, and that needs the real classifier, which only the client has.
   async function fetchScoreRows(limit = 400) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { data, error } = await _sb.from('level_scores')
+    const { data, error } = await _withTimeout(_sb.from('level_scores')
       .select('user_id, pack_id, level_index, best_score, stars, best_time, equations, submitted_at')
       .order('submitted_at', { ascending: false })
-      .limit(limit);
+      .limit(limit), 'Audit');
     if (error) throw new Error(error.message);
     const ids = [...new Set((data || []).map(r => r.user_id))];
     if (!ids.length) return [];
-    const { data: profs } = await _sb.from('profiles').select('id, name, avatar').in('id', ids);
+    const { data: profs } = await _withTimeout(
+      _sb.from('profiles').select('id, name, avatar').in('id', ids), 'Audit profiles');
     const pmap = new Map((profs || []).map(p => [p.id, p]));
     return (data || []).map(r => ({
       ...r,

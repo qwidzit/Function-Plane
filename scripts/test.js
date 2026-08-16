@@ -448,6 +448,36 @@ it('reports one version per release', () => {
   eq(versions.size, 1, `screens disagree on the build number: ${[...versions].join(' vs ')}`);
 });
 
+// ── 4b. Networking ─────────────────────────────────────────────────────────
+
+describe('Networking');
+
+const accountsJs = read(path.join(SRC, 'accounts.js'));
+
+it('bounds every network call with a timeout', () => {
+  // fetch() never times out on its own, so an unanswered request leaves its
+  // promise pending and whatever spinner is waiting on it stays up forever.
+  // This failure mode is invisible in a browser until you hit it in the wild.
+  ok(/function _withTimeout\(/.test(accountsJs), 'accounts.js must define _withTimeout');
+  const guarded = [
+    [/_withTimeout\(fetchLive\(\)/,            'leaderboard fetches'],
+    [/_withTimeout\(_sb\.from\('level_scores'\)\s*\n?\s*\.select/, 'the audit query'],
+    [/_withTimeout\(Promise\.all\(\[/,         'the progress upload'],
+    [/_withTimeout\(_sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
+  ];
+  for (const [re, what] of guarded) {
+    ok(re.test(accountsJs), `${what} must go through _withTimeout`);
+  }
+});
+
+it('explains an empty leaderboard rather than implying there are no scores', () => {
+  // "No scores yet — be the first!" is a lie when the real answer is "we
+  // could not reach the server", and it hides outages from the one person
+  // who could fix them.
+  ok(/_emitSyncError\('Leaderboard unavailable: '/.test(accountsJs),
+    'a failed leaderboard fetch with no cached copy must surface the reason');
+});
+
 // ── 5. Level data ──────────────────────────────────────────────────────────
 
 describe('Level data');
