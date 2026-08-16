@@ -214,6 +214,97 @@ it('recomputes a forged submission to a different score', () => {
     'claiming 3 stars with 3 equations against an eq_goal of 1 must not verify');
 });
 
+// ── 1c. Achievements ───────────────────────────────────────────────────────
+
+describe('Achievements');
+
+const ach = (() => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w;
+  global.React = w.React;
+  global.document = { createElement: () => ({}) };
+  for (const f of ['data.js', 'achievements.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  return w;
+})();
+
+const progressWith = patch => {
+  const p = ach.freshProgress();
+  for (const [k, v] of Object.entries(patch)) p[k] = { ...p[k], ...v };
+  return p;
+};
+const nulls = n => Array(n).fill(null);
+const packRun = extra => progressWith({
+  'r-I': { stars: [1, ...Array(9).fill(-1)], best: [60, ...nulls(9)], ...extra },
+});
+
+it('unlocks nothing on a fresh save', () => {
+  const unlocked = ach.getAchievementList().filter(a => a.check(ach.freshProgress()));
+  eq(unlocked.length, 0, `unlocked on a brand new profile: ${unlocked.map(a => a.id).join(', ')}`);
+});
+
+it('keeps every built-in working after the move to data rows', () => {
+  // The 17 built-ins used to be hand-written predicates. They are rows now so
+  // the admin can edit them; each must still fire on exactly what it did
+  // before, or players silently lose achievements they had earned.
+  const list = ach.getAchievementList();
+  const expectations = [
+    ['first_roll',    packRun()],
+    ['three_stars',   progressWith({ 'r-I': { stars: [3, ...Array(9).fill(-1)], best: [30, ...nulls(9)] } })],
+    ['minimalist',    progressWith({ 'r-I': { stars: [1, ...Array(9).fill(-1)], best: [50, ...nulls(9)] } })],
+    ['ten_levels',    progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
+    ['pack_complete', progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
+    ['pack_gold',     progressWith({ 'r-I': { stars: Array(10).fill(3), best: Array(10).fill(30) } })],
+    ['pack_i_done',   progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
+    ['special_start', progressWith({ 's-lin': { stars: [1, ...Array(9).fill(-1)], best: [60, ...nulls(9)] } })],
+    ['flash',         packRun({ bestTime: [0.55, ...nulls(9)] })],
+    ['sunday_stroll', packRun({ bestTime: [3.5, ...nulls(9)] })],
+    ['big_brain',     packRun({ best: [120, ...nulls(9)], maxScore: [120, ...nulls(9)] })],
+  ];
+  for (const [id, progress] of expectations) {
+    const a = list.find(x => x.id === id);
+    ok(a, `built-in ${id} disappeared`);
+    ok(a.check(progress), `${id} should unlock on its own fixture`);
+  }
+  // Thresholds must be boundaries, not approximations.
+  ok(!list.find(a => a.id === 'flash').check(packRun({ bestTime: [0.7, ...nulls(9)] })),
+    'flash must not fire at 0.7s');
+  ok(!list.find(a => a.id === 'sunday_stroll').check(packRun({ bestTime: [2.0, ...nulls(9)] })),
+    'sunday_stroll must not fire at 2.0s');
+});
+
+it('lets an override edit a built-in and a delete restore it', () => {
+  const before = ach.getAchievementRows().find(r => r.id === 'stars_200');
+  eq(before.threshold, 200, 'shipped threshold');
+  ach.FP_ACH_OVERRIDES = [{ id: 'stars_200', name: 'Star Lord', threshold: 150,
+                            kind: null, description: null, pack_id: null, level_index: null }];
+  const after = ach.getAchievementRows().find(r => r.id === 'stars_200');
+  eq(after.threshold, 150, 'override threshold wins');
+  eq(after.name, 'Star Lord', 'override name wins');
+  // Null columns are "unset", not "clear it" — the row stores null for every
+  // param its kind doesn't use, which must not wipe the built-in's own.
+  eq(after.kind, 'total_stars', 'null in an override must not erase the kind');
+  ach.FP_ACH_OVERRIDES = [];
+  eq(ach.getAchievementRows().find(r => r.id === 'stars_200').threshold, 200, 'deleting restores the default');
+});
+
+it('hides an achievement when its override says so', () => {
+  ach.FP_ACH_OVERRIDES = [{ id: 'stars_200', is_hidden: true }];
+  ok(!ach.getAchievementList().some(a => a.id === 'stars_200'), 'hidden built-in must not be listed');
+  ach.FP_ACH_OVERRIDES = [];
+  ok(ach.getAchievementList().some(a => a.id === 'stars_200'), 'and must come back');
+});
+
+it('exposes every kind the built-ins use', () => {
+  for (const row of ach.BUILTIN_ACH_ROWS) {
+    ok(ach.ACH_KINDS[row.kind], `${row.id} uses unknown kind ${row.kind}`);
+    ok(ach.buildAchievement(row), `${row.id} is missing a param its kind requires`);
+  }
+});
+
 // ── 2. Physics engine ──────────────────────────────────────────────────────
 
 describe('Physics engine');
@@ -224,13 +315,25 @@ const FP_PHYSICS = phys.FP_PHYSICS;
 // Must match the constants in level-screen.jsx.
 const GRAVITY = 12, BALL_R = 0.22, SUB_STEPS = 20, TICK_DT = 1 / 60;
 const STEP_DT = TICK_DT / SUB_STEPS;
+// Must mirror physicsStep() in level-screen exactly. Anything missing here is
+// a tuning knob the suite silently stops covering.
 const CFG = {
   gravity:         GRAVITY,
   ballR:           BALL_R,
   bounciness:      phys.PHYSICS_CONFIG.bounciness,
   energyRetention: phys.PHYSICS_CONFIG.energyRetention,
+  traction:        phys.PHYSICS_CONFIG.traction,
   bounceThreshold: 1.5,
 };
+
+it('passes the shipped physics config, not a subset of it', () => {
+  const stepSrc = read(path.join(SRC, 'level-screen.js'))
+    .match(/stepBall\(ph, colliders, dt, \{[\s\S]*?\}\)/)[0];
+  for (const key of Object.keys(phys.PHYSICS_CONFIG)) {
+    ok(stepSrc.includes(key), `level-screen must pass ${key} to stepBall`);
+    ok(key in CFG, `this suite must exercise ${key}`);
+  }
+});
 
 function simulate(colliderDefs, start, seconds) {
   const colliders = FP_PHYSICS.makeColliders(colliderDefs, BALL_R);
@@ -267,17 +370,51 @@ it('never lets the ball sink through the surface', () => {
   ok(lowest > -2 + BALL_R - 0.05, `ball reached y=${lowest}, below the surface`);
 });
 
-it('keeps momentum rolling down a slope', () => {
+const slopeAt = deg => [{ fn: x => -x * Math.tan(deg * Math.PI / 180), domain: null, isImplicit: false }];
+
+it('never stops a ball gliding down a slope', () => {
   // The regression guard for the energyRetention gate. If retention is ever
   // applied to sliding contact instead of real bounces only, a rolling ball
-  // loses everything in about a second and every slope level breaks.
-  const slope = [{ fn: x => -x, domain: null, isImplicit: false }];
-  const at2 = simulate(slope, { x: -3, y: 3.5, vx: 0, vy: 0 }, 2.0);
-  const at4 = simulate(slope, { x: -3, y: 3.5, vx: 0, vy: 0 }, 4.0);
-  const speed2 = Math.hypot(at2.vx, at2.vy);
-  const speed4 = Math.hypot(at4.vx, at4.vy);
-  ok(speed2 > 10, `rolling ball should be moving after 2s, speed=${speed2}`);
-  ok(speed4 > speed2, `rolling ball should still be accelerating (2s=${speed2}, 4s=${speed4})`);
+  // loses everything in about a second and every slope level breaks. Traction
+  // is drag, not a brake: it caps speed, it must never cancel it.
+  for (const deg of [20, 45]) {
+    const terminal = GRAVITY * Math.sin(deg * Math.PI / 180) / CFG.traction;
+    for (const secs of [2, 6, 12]) {
+      const ph = simulate(slopeAt(deg), { x: -3, y: 3 * Math.tan(deg * Math.PI / 180) + 0.3, vx: 0, vy: 0 }, secs);
+      const speed = Math.hypot(ph.vx, ph.vy);
+      ok(speed > terminal * 0.6,
+        `${deg}deg slope after ${secs}s: still gliding at ${speed.toFixed(2)} (terminal ${terminal.toFixed(2)})`);
+    }
+  }
+});
+
+it('caps slope speed at terminal instead of accelerating forever', () => {
+  const terminal = GRAVITY * Math.SQRT1_2 / CFG.traction;
+  const at4  = simulate(slopeAt(45), { x: -3, y: 3.3, vx: 0, vy: 0 }, 4);
+  const at12 = simulate(slopeAt(45), { x: -3, y: 3.3, vx: 0, vy: 0 }, 12);
+  near(Math.hypot(at4.vx,  at4.vy),  terminal, terminal * 0.15, 'speed at 4s');
+  near(Math.hypot(at12.vx, at12.vy), terminal, terminal * 0.05, 'speed at 12s');
+});
+
+it('comes to rest on flat ground', () => {
+  // The one place traction should fully stop the ball: no tangential gravity.
+  const ph = simulate(flatGround(-2), { x: 0, y: 3, vx: 6, vy: 0 }, 10);
+  ok(Math.abs(ph.vx) < 0.1, `should have stopped sliding, vx=${ph.vx}`);
+});
+
+it('applies traction by contact time, not per substep', () => {
+  // stepBall subdivides into up to 8 passes at speed. A per-call factor would
+  // make a fast ball lose 8x the grip of a slow one on identical geometry, and
+  // would shift the moment MAX_TICKS clamped a stalled frame.
+  const speeds = [10, 20, 40, 80].map(sub => {
+    const stepDt = (1 / 60) / sub;
+    const colliders = FP_PHYSICS.makeColliders(slopeAt(45), BALL_R);
+    const ph = { x: -3, y: 3.3, vx: 0, vy: 0 };
+    for (let i = 0; i < Math.round(3 / stepDt); i++) FP_PHYSICS.stepBall(ph, colliders, stepDt, CFG);
+    return Math.hypot(ph.vx, ph.vy);
+  });
+  const spread = Math.max(...speeds) - Math.min(...speeds);
+  ok(spread < 0.05, `speed must not depend on substep count: ${speeds.map(s => s.toFixed(3)).join(', ')}`);
 });
 
 it('loses energy on a real bounce', () => {

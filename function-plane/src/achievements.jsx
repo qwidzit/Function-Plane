@@ -2,13 +2,15 @@
 
 const { useState: useACHState } = React;
 
-// ── Predicate templates for admin-defined achievements ─────────────────────
-// To keep the achievements table data-only (no eval'd code) the admin picks
-// a `kind` from this list and supplies its parameters. Adding new mechanics
-// = add a new entry here + wire its inputs in admin-screen.jsx.
+// ── Achievement kinds ──────────────────────────────────────────────────────
+// Every achievement — built-in or admin-created — is a data row naming one of
+// these kinds plus its parameters. Nothing is eval'd, so the table stays
+// data-only, and the admin panel can edit all of them through one editor.
+// Adding a new mechanic = add a kind here; the editor picks it up from
+// `needs` automatically.
 //
-// Param shape: { threshold?, packId?, levelIndex? }. Each kind documents
-// which params it consumes; others are ignored.
+// Param shape: { threshold?, packId?, levelIndex? }. Each kind documents which
+// params it consumes; the rest are ignored.
 const ACH_KINDS = {
   total_stars: {
     label: 'Earn N stars total',
@@ -40,6 +42,39 @@ const ACH_KINDS = {
       return stars.length === 10 && stars.every(s => s === 3);
     },
   },
+  any_pack_complete: {
+    label: 'Complete every level of any one pack',
+    needs: [],
+    desc: () => 'Complete all 10 levels in a single pack',
+    build: () => p => Object.values(p).some(pd => pd.stars.filter(s => s >= 1).length >= 10),
+  },
+  any_pack_gold: {
+    label: '3★ on every level of any one pack',
+    needs: [],
+    desc: () => 'Earn 3 stars on every level in a pack',
+    build: () => p => Object.values(p).some(pd =>
+      pd.stars.length === 10 && pd.stars.every(s => s === 3)),
+  },
+  all_roman_packs: {
+    label: 'Complete every released Roman pack',
+    needs: [],
+    desc: () => 'Complete every released Roman numeral pack',
+    // Scoped to released packs: a fixed I–X list would be unobtainable while
+    // any pack is still hidden.
+    build: () => p => {
+      const released = (window.ROMAN_PACKS ?? []).filter(
+        pk => !window.FP_PACK_OVERRIDES?.[pk.id]?.is_hidden);
+      return released.length > 0 && released.every(pk =>
+        (p[pk.id]?.stars ?? []).filter(s => s >= 1).length >= 10);
+    },
+  },
+  themed_level: {
+    label: 'Complete any Themed pack level',
+    needs: [],
+    desc: () => 'Complete any Themed pack level',
+    build: () => p => (window.SPECIAL_PACKS ?? []).some(pk =>
+      (p[pk.id]?.stars ?? []).some(s => s >= 1)),
+  },
   any_3stars: {
     label: '3★ on at least one level (any pack)',
     needs: [],
@@ -54,193 +89,105 @@ const ACH_KINDS = {
       pd.best.some((b, i) => b != null && b <= threshold && (pd.stars[i] ?? -1) >= 1)
     ),
   },
+  score_over: {
+    label: 'Finish a level with score > N',
+    needs: ['threshold'],
+    desc: ({ threshold }) => `Beat any level with an equation score over ${threshold} points`,
+    // maxScore is the highest score used on a winning run; older progress
+    // entries only have `best`.
+    build: ({ threshold }) => p => Object.values(p).some(pd =>
+      (pd.maxScore ?? pd.best ?? []).some((s, i) => s != null && s > threshold && (pd.stars[i] ?? -1) >= 1)
+    ),
+  },
+  time_under: {
+    label: 'Finish a level in under N milliseconds',
+    needs: ['threshold'],
+    thresholdLabel: 'Milliseconds',
+    desc: ({ threshold }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds`,
+    build: ({ threshold }) => p => Object.values(p).some(pd =>
+      (pd.bestTime ?? []).some(t => t != null && t <= threshold / 1000)
+    ),
+  },
+  time_over: {
+    label: 'Finish a level in over N milliseconds',
+    needs: ['threshold'],
+    thresholdLabel: 'Milliseconds',
+    desc: ({ threshold }) => `Beat any level with a time of ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds or more`,
+    build: ({ threshold }) => p => Object.values(p).some(pd =>
+      (pd.bestTime ?? []).some((t, i) => t != null && t >= threshold / 1000 && (pd.stars[i] ?? -1) >= 1)
+    ),
+  },
 };
 
-// Build runtime achievement objects from raw Supabase rows. Bad rows (missing
-// required params, unknown kind) are skipped silently — admins see them as
-// invalid in the editor instead.
-function buildCustomAchievements(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) return [];
-  return rows.filter(r => !r.is_hidden).map(r => {
-    const def = ACH_KINDS[r.kind];
-    if (!def) return null;
-    const params = {
-      threshold:  r.threshold,
-      packId:     r.pack_id,
-      levelIndex: r.level_index,
-    };
-    for (const need of def.needs) {
-      if (params[need] == null || params[need] === '') return null;
-    }
-    return {
-      id:    r.id,
-      name:  r.name,
-      desc:  r.description || def.desc(params),
-      check: def.build(params),
-      _custom: true,
-    };
-  }).filter(Boolean);
-}
-window.ACH_KINDS = ACH_KINDS;
-window.buildCustomAchievements = buildCustomAchievements;
-
-const BUILTIN_ACH_LIST = [
-  {
-    id: 'first_roll',
-    name: 'First Roll',
-    desc: 'Complete your first level',
-    check: p => Object.values(p).some(pd => pd.stars.some(s => s >= 1)),
-  },
-  {
-    id: 'three_stars',
-    name: 'Shooting Star',
-    desc: 'Earn 3 stars on any level',
-    check: p => Object.values(p).some(pd => pd.stars.some(s => s === 3)),
-  },
-  {
-    id: 'minimalist',
-    name: 'Minimalist',
-    desc: 'Complete a level with a score of 50 or less',
-    check: p => Object.values(p).some(pd =>
-      pd.best.some((b, i) => b != null && b <= 50 && (pd.stars[i] ?? -1) >= 1)
-    ),
-  },
-  {
-    id: 'ten_levels',
-    name: 'On a Roll',
-    desc: 'Complete 10 levels across all packs',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.filter(s => s >= 1).length, 0
-    ) >= 10,
-  },
-  {
-    id: 'pack_complete',
-    name: 'Pack Master',
-    desc: 'Complete all 10 levels in a single pack',
-    check: p => Object.values(p).some(pd => pd.stars.filter(s => s >= 1).length >= 10),
-  },
-  {
-    id: 'pack_gold',
-    name: 'Golden Pack',
-    desc: 'Earn 3 stars on every level in a pack',
-    check: p => Object.values(p).some(pd =>
-      pd.stars.length === 10 && pd.stars.every(s => s === 3)
-    ),
-  },
-  {
-    id: 'pack_i_done',
-    name: 'Scholar',
-    desc: 'Complete all Pack I levels',
-    check: p => (p['r-I']?.stars ?? []).filter(s => s >= 1).length >= 10,
-  },
-  {
-    id: 'fifty_stars',
-    name: 'Star Collector',
-    desc: 'Earn 50 stars in total',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.reduce((b, s) => b + (s > 0 ? s : 0), 0), 0
-    ) >= 50,
-  },
-  {
-    id: 'special_start',
-    name: 'Extra Credit',
-    desc: 'Complete any Themed pack level',
-    check: p => ['s-lin','s-qua','s-trig','s-exp'].some(id =>
-      (p[id]?.stars ?? []).some(s => s >= 1)
-    ),
-  },
-  {
-    id: 'all_roman',
-    name: 'Completionist',
-    desc: 'Complete every released Roman numeral pack',
-    // Scoped to released packs, not all ten — unreleased packs are hidden and
-    // unplayable, so a fixed I–X list makes this permanently unobtainable.
-    check: p => {
-      const released = (window.ROMAN_PACKS ?? []).filter(
-        pk => !window.FP_PACK_OVERRIDES?.[pk.id]?.is_hidden
-      );
-      return released.length > 0 && released.every(pk =>
-        (p[pk.id]?.stars ?? []).filter(s => s >= 1).length >= 10
-      );
-    },
-  },
-
-  // ── Time-based achievements ───────────────────────────────────────────────
-  {
-    id: 'flash',
-    name: 'Flash',
-    desc: 'Beat any level in under 0.6 seconds',
-    check: p => Object.values(p).some(pd =>
-      (pd.bestTime ?? []).some(t => t != null && t <= 0.6)
-    ),
-  },
-  {
-    id: 'sunday_stroll',
-    name: 'Sunday Stroll',
-    desc: 'Beat any level with a time of 3 seconds or more',
-    check: p => Object.values(p).some(pd =>
-      (pd.bestTime ?? []).some((t, i) => t != null && t >= 3.0 && (pd.stars[i] ?? -1) >= 1)
-    ),
-  },
-
-  // ── Score-based achievements ──────────────────────────────────────────────
-  {
-    id: 'big_brain',
-    name: 'Big Brain',
-    desc: 'Beat any level with an equation score over 100 points',
-    // maxScore tracks the highest score used in a winning run (populated by
-    // handleComplete in app.jsx). Falls back to "best" for old progress entries.
-    check: p => Object.values(p).some(pd =>
-      (pd.maxScore ?? pd.best ?? []).some((s, i) => s != null && s > 100 && (pd.stars[i] ?? -1) >= 1)
-    ),
-  },
-
-  // ── Star milestones ───────────────────────────────────────────────────────
-  {
-    id: 'stars_15',
-    name: 'Rising Star',
-    desc: 'Earn 15 stars in total',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.reduce((b, s) => b + (s > 0 ? s : 0), 0), 0
-    ) >= 15,
-  },
-  {
-    id: 'stars_30',
-    name: 'Stargazer',
-    desc: 'Earn 30 stars in total',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.reduce((b, s) => b + (s > 0 ? s : 0), 0), 0
-    ) >= 30,
-  },
-  {
-    id: 'stars_100',
-    name: 'Supernova',
-    desc: 'Earn 100 stars in total',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.reduce((b, s) => b + (s > 0 ? s : 0), 0), 0
-    ) >= 100,
-  },
-  {
-    id: 'stars_200',
-    name: 'Galaxy Brain',
-    desc: 'Earn 200 stars in total',
-    check: p => Object.values(p).reduce(
-      (a, pd) => a + pd.stars.reduce((b, s) => b + (s > 0 ? s : 0), 0), 0
-    ) >= 200,
-  },
+// ── Built-in achievements ──────────────────────────────────────────────────
+// Shipped as rows in exactly the shape `achievement_overrides` uses, so the
+// admin panel edits them through the same editor as custom ones. An override
+// row sharing an id replaces whichever fields it sets; deleting that row
+// restores the defaults below.
+const BUILTIN_ACH_ROWS = [
+  { id: 'first_roll',    kind: 'total_levels',      threshold: 1,   name: 'First Roll',     description: 'Complete your first level' },
+  { id: 'three_stars',   kind: 'any_3stars',                        name: 'Shooting Star',  description: 'Earn 3 stars on any level' },
+  { id: 'minimalist',    kind: 'min_score',         threshold: 50,  name: 'Minimalist',     description: 'Complete a level with a score of 50 or less' },
+  { id: 'ten_levels',    kind: 'total_levels',      threshold: 10,  name: 'On a Roll',      description: 'Complete 10 levels across all packs' },
+  { id: 'pack_complete', kind: 'any_pack_complete',                 name: 'Pack Master',    description: 'Complete all 10 levels in a single pack' },
+  { id: 'pack_gold',     kind: 'any_pack_gold',                     name: 'Golden Pack',    description: 'Earn 3 stars on every level in a pack' },
+  { id: 'pack_i_done',   kind: 'pack_complete',     threshold: 10,  pack_id: 'r-I', name: 'Scholar', description: 'Complete all Pack I levels' },
+  { id: 'fifty_stars',   kind: 'total_stars',       threshold: 50,  name: 'Star Collector', description: 'Earn 50 stars in total' },
+  { id: 'special_start', kind: 'themed_level',                      name: 'Extra Credit',   description: 'Complete any Themed pack level' },
+  { id: 'all_roman',     kind: 'all_roman_packs',                   name: 'Completionist',  description: 'Complete every released Roman numeral pack' },
+  { id: 'flash',         kind: 'time_under',        threshold: 600, name: 'Flash',          description: 'Beat any level in under 0.6 seconds' },
+  { id: 'sunday_stroll', kind: 'time_over',         threshold: 3000, name: 'Sunday Stroll', description: 'Beat any level with a time of 3 seconds or more' },
+  { id: 'big_brain',     kind: 'score_over',        threshold: 100, name: 'Big Brain',      description: 'Beat any level with an equation score over 100 points' },
+  { id: 'stars_15',      kind: 'total_stars',       threshold: 15,  name: 'Rising Star',    description: 'Earn 15 stars in total' },
+  { id: 'stars_30',      kind: 'total_stars',       threshold: 30,  name: 'Stargazer',      description: 'Earn 30 stars in total' },
+  { id: 'stars_100',     kind: 'total_stars',       threshold: 100, name: 'Supernova',      description: 'Earn 100 stars in total' },
+  { id: 'stars_200',     kind: 'total_stars',       threshold: 200, name: 'Galaxy Brain',   description: 'Earn 200 stars in total' },
 ];
 
-
-// Combine built-in achievements with any defined in Supabase.
-function getAchievementList() {
-  const custom = buildCustomAchievements(window.FP_ACH_OVERRIDES || []);
-  return [...BUILTIN_ACH_LIST, ...custom];
+// Built-in defaults with any override applied. Only fields the override
+// actually sets win — a row storing null for the params its kind doesn't use
+// must not wipe a built-in's threshold.
+function getAchievementRows() {
+  const overrides = window.FP_ACH_OVERRIDES || [];
+  const byId = new Map(overrides.map(r => [r.id, r]));
+  const builtin = BUILTIN_ACH_ROWS.map(base => {
+    const ov = byId.get(base.id);
+    if (!ov) return { ...base, builtin: true };
+    const patch = {};
+    for (const [k, v] of Object.entries(ov)) if (v != null) patch[k] = v;
+    return { ...base, ...patch, builtin: true };
+  });
+  const builtinIds = new Set(BUILTIN_ACH_ROWS.map(b => b.id));
+  const custom = overrides.filter(r => !builtinIds.has(r.id)).map(r => ({ ...r, builtin: false }));
+  return [...builtin, ...custom];
 }
-window.getAchievementList = getAchievementList;
-// Back-compat: a few callers (and dev consoles) still read window.ACH_LIST.
-// Keep it as the built-ins; live UI uses getAchievementList() which includes
-// custom rows.
-const ACH_LIST = BUILTIN_ACH_LIST;
+
+// Row → runtime achievement. Returns null for a row whose kind is unknown or
+// whose required params are missing; the editor flags those instead.
+function buildAchievement(row) {
+  const def = ACH_KINDS[row.kind];
+  if (!def) return null;
+  const params = { threshold: row.threshold, packId: row.pack_id, levelIndex: row.level_index };
+  for (const need of def.needs) {
+    if (params[need] == null || params[need] === '') return null;
+  }
+  return {
+    id:   row.id,
+    name: row.name,
+    desc: row.description || def.desc(params),
+    check: def.build(params),
+    builtin: !!row.builtin,
+  };
+}
+
+function getAchievementList() {
+  return getAchievementRows()
+    .filter(r => !r.is_hidden)
+    .map(buildAchievement)
+    .filter(Boolean);
+}
+
+Object.assign(window, { ACH_KINDS, BUILTIN_ACH_ROWS, getAchievementRows, buildAchievement, getAchievementList });
 
 function AchievementsScreen({ onBack, progress, density = 'comfortable' }) {
   const padX = density === 'compact' ? 22 : 26;
@@ -457,4 +404,3 @@ function LeaderboardTab({ padX, myStars }) {
 }
 
 window.AchievementsScreen = AchievementsScreen;
-window.ACH_LIST = ACH_LIST;

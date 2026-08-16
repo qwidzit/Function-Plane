@@ -75,6 +75,13 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
 - Physics feels off → check whether the "only apply `energyRetention` when
   `-vn > 1.5`" gate got broken. That gate is what keeps a ball rolling down a
   slope from dying instantly.
+- A ball grinds to a halt on a slope, or behaves differently when fast →
+  traction was applied per call instead of per contact-second. `stepBall`
+  subdivides into up to 8 passes at speed; anything that damps velocity must
+  scale with `h` (see *Physics engine* in `ABOUT.md`).
+- Added a tuning knob to `PHYSICS_CONFIG` → pass it through `physicsStep` in
+  `level-screen.jsx` too. `npm test` fails if the two drift, because a knob
+  the game never passes is a knob the tests silently stop covering.
 - Recorded times look wrong or device-dependent → something is deriving
   elapsed time from the `requestAnimationFrame` timestamp again instead of
   counting ticks (see *Sim timing* in `ABOUT.md`).
@@ -86,6 +93,9 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   should allow) → the classifier is AST-based; check `detectClass()` in
   `equation-classifier.js` directly against the expression before assuming
   the pack-gating logic (`classMatches`) is at fault.
+- The ball looks like it sinks into the curve → that's rendering, not
+  physics: both strokes straddle their paths (see *Ball rendering* in
+  `ABOUT.md`). Measure the resting distance before touching the engine.
 - iOS folder mysteriously missing → it's never been generated. Needs a Mac +
   `npm run cap:add:ios`.
 

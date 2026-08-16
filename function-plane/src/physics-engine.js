@@ -294,7 +294,7 @@
   }
 
   // ── Contact resolution — identical response law to the old engine ────
-  function resolve(ph, col, cfg) {
+  function resolve(ph, col, cfg, h) {
     const R = cfg.ballR;
     const hit = col.query(ph.x, ph.y);
     if (!hit) return;
@@ -327,6 +327,24 @@
         ph.bounced = true;
       }
     }
+
+    // Traction: bleed tangential speed for as long as the ball is touching.
+    // Decayed by elapsed contact *time* rather than per call, because stepBall
+    // subdivides a substep into up to 8 passes at speed — a per-call factor
+    // would make a fast ball lose 8x the grip of a slow one on identical
+    // geometry, and would change with frame rate the moment MAX_TICKS kicked
+    // in. exp(-k*h) composes to exp(-k*dt) however the substep is cut up.
+    //
+    // Drag is proportional to speed, so on a slope the ball settles at
+    // g*sin(theta)/traction instead of stopping: it always keeps gliding, and
+    // only comes to rest where gravity has no tangential pull to fight.
+    if (cfg.traction > 0 && h > 0) {
+      const tx = -ny, ty = nx;
+      const vt = ph.vx * tx + ph.vy * ty;
+      const lost = vt * (1 - Math.exp(-cfg.traction * h));
+      ph.vx -= lost * tx;
+      ph.vy -= lost * ty;
+    }
   }
 
   // ── Public API ───────────────────────────────────────────────────────
@@ -358,7 +376,7 @@
         ph.x  += ph.vx * h;
         ph.y  += ph.vy * h;
         for (let c = 0; c < colliders.length; c++) {
-          resolve(ph, colliders[c], cfg);
+          resolve(ph, colliders[c], cfg, h);
         }
       }
     },

@@ -1032,7 +1032,9 @@ function AchievementsAdmin({
   onEdit,
   onChanged
 }) {
-  const rows = window.FP_ACH_OVERRIDES || [];
+  // Built-ins and custom rows in one list — every achievement is a data row
+  // now, and the same editor handles both.
+  const rows = getAchievementRows();
   const [showSql, setShowSql] = useAS(false);
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
     title: "Admin · Achievements",
@@ -1093,56 +1095,7 @@ function AchievementsAdmin({
       color: 'var(--fp-ink-3)',
       marginBottom: 8
     }
-  }, "Built-in (", (window.ACH_LIST || []).length, ")"), (window.ACH_LIST || []).map((a, i) => /*#__PURE__*/React.createElement("div", {
-    key: a.id,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      padding: '10px 12px',
-      marginBottom: 5,
-      borderRadius: 11,
-      background: 'var(--fp-surface)',
-      border: '1px solid var(--fp-line)',
-      opacity: 0.7
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      fontWeight: 500,
-      color: 'var(--fp-ink)'
-    }
-  }, a.name), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: 'var(--fp-ink-3)'
-    }
-  }, a.desc)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      color: 'var(--fp-ink-4)'
-    }
-  }, "code"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-      color: 'var(--fp-ink-3)',
-      margin: '18px 0 8px'
-    }
-  }, "Custom (", rows.length, ")"), rows.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      color: 'var(--fp-ink-3)',
-      fontSize: 12.5,
-      padding: '14px 0'
-    }
-  }, "None yet — tap “New achievement” to add one."), rows.map(r => /*#__PURE__*/React.createElement("button", {
+  }, "All achievements (", rows.length, ")"), rows.map(r => /*#__PURE__*/React.createElement("button", {
     key: r.id,
     onClick: () => onEdit(r.id),
     style: {
@@ -1175,7 +1128,12 @@ function AchievementsAdmin({
     }
   }, window.ACH_KINDS?.[r.kind]?.label || r.kind, " · id ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
-  }, r.id))), r.is_hidden && /*#__PURE__*/React.createElement("span", {
+  }, r.id))), r.builtin && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: 'var(--fp-ink-4)'
+    }
+  }, "built-in"), r.is_hidden && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
       color: 'var(--fp-ink-4)'
@@ -1192,7 +1150,11 @@ function AchievementEditor({
   onBack,
   onChanged
 }) {
-  const existing = (window.FP_ACH_OVERRIDES || []).find(r => r.id === editId);
+  // Built-ins load their shipped defaults; editing one writes an override row
+  // with the same id, and deleting that row restores the default.
+  const existing = getAchievementRows().find(r => r.id === editId);
+  const isBuiltin = !!existing?.builtin;
+  const hasOverride = !!(window.FP_ACH_OVERRIDES || []).find(r => r.id === editId);
   const [id, setId] = useAS(existing?.id || '');
   const [name, setName] = useAS(existing?.name || '');
   const [description, setDesc] = useAS(existing?.description || '');
@@ -1253,9 +1215,9 @@ function AchievementEditor({
   const remove = async () => {
     if (!existing) return;
     const ok = await window.fpConfirm({
-      title: `Delete "${existing.name}"?`,
-      body: 'This removes the achievement for everyone. Already-earned ones will simply disappear from their list.',
-      confirmLabel: 'Delete',
+      title: isBuiltin ? `Reset "${existing.name}"?` : `Delete "${existing.name}"?`,
+      body: isBuiltin ? 'This drops your edits and restores the achievement that ships with the game.' : 'This removes the achievement for everyone. Already-earned ones will simply disappear from their list.',
+      confirmLabel: isBuiltin ? 'Reset' : 'Delete',
       danger: true
     });
     if (!ok) return;
@@ -1278,7 +1240,13 @@ function AchievementEditor({
     style: {
       padding: '18px 0 24px'
     }
-  }, /*#__PURE__*/React.createElement(FieldText, {
+  }, isBuiltin
+  // Changing a built-in's id would orphan every unlock recorded
+  // against it and resurrect the default alongside it.
+  ? /*#__PURE__*/React.createElement(FieldReadonly, {
+    label: "ID (built-in — not editable)",
+    value: id
+  }) : /*#__PURE__*/React.createElement(FieldText, {
     label: "ID (stable, unique)",
     value: id,
     onChange: setId,
@@ -1299,7 +1267,7 @@ function AchievementEditor({
     onChange: setKind,
     options: KIND_OPTIONS
   }), needs.includes('threshold') && /*#__PURE__*/React.createElement(FieldText, {
-    label: "Threshold (N)",
+    label: def?.thresholdLabel ? `Threshold (${def.thresholdLabel})` : 'Threshold (N)',
     value: threshold,
     onChange: setThr,
     placeholder: "e.g. 50"
@@ -1350,7 +1318,7 @@ function AchievementEditor({
     onClick: save,
     disabled: busy,
     style: primaryBtn(busy)
-  }, busy ? 'Saving…' : existing ? 'Save changes' : 'Create achievement'), existing && /*#__PURE__*/React.createElement("button", {
+  }, busy ? 'Saving…' : existing ? 'Save changes' : 'Create achievement'), existing && (!isBuiltin || hasOverride) && /*#__PURE__*/React.createElement("button", {
     onClick: remove,
     disabled: busy,
     style: {
@@ -1365,7 +1333,7 @@ function AchievementEditor({
       fontWeight: 500,
       opacity: busy ? 0.6 : 1
     }
-  }, "Delete achievement"), msg && /*#__PURE__*/React.createElement("div", {
+  }, isBuiltin ? 'Reset to default' : 'Delete achievement'), msg && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       fontSize: 12,
@@ -1432,6 +1400,33 @@ function ScreenFrameAS({
       paddingBottom: 'max(28px, env(safe-area-inset-bottom, 0px))'
     }
   }, children));
+}
+function FieldReadonly({
+  label,
+  value
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color: 'var(--fp-ink-3)',
+      marginBottom: 5
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "fp-mono",
+    style: {
+      ...miniInput(),
+      display: 'flex',
+      alignItems: 'center',
+      color: 'var(--fp-ink-3)',
+      background: 'var(--fp-surface-2)'
+    }
+  }, value));
 }
 function FieldText({
   label,

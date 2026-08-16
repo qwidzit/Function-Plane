@@ -207,11 +207,22 @@ Current design:
   (`floor()` risers) renders as a solid stroke and is solid; an
   asymptote-scale jump (`tan`, `1/x`) is where the renderer lifts the pen, and
   the ball passes through the gap instead of hitting an invisible wall.
-- **Response law is unchanged** from before the rewrite: reflect the
-  inward normal-velocity component by `PHYSICS_CONFIG.bounciness`
-  (`physics-config.js`), and apply `energyRetention` only on **real bounces**
-  (`-vn > 1.5`), never on sliding/rolling contact — otherwise a ball rolling
-  down a slope loses all momentum in under a second. Don't touch this gate.
+- **Response law**: reflect the inward normal-velocity component by
+  `PHYSICS_CONFIG.bounciness` (`physics-config.js`), and apply
+  `energyRetention` only on **real bounces** (`-vn > 1.5`), never on
+  sliding/rolling contact — otherwise a ball rolling down a slope loses all
+  momentum in under a second. Don't touch this gate.
+- **Traction** (`PHYSICS_CONFIG.traction`) bleeds *tangential* speed while the
+  ball is touching anything. It is decayed by elapsed contact **time**
+  (`exp(-k*h)`), never per call, because `stepBall` subdivides a substep into
+  up to 8 passes at speed: a per-call factor would make a fast ball lose 8x
+  the grip of a slow one on identical geometry, and would shift the moment
+  `MAX_TICKS` clamped a stalled frame. `exp(-k*h)` composes to `exp(-k*dt)`
+  however the substep is cut up.
+  Because the drag is proportional to speed, a ball on a slope settles at
+  `gravity*sin(angle)/traction` instead of stopping — it keeps gliding
+  forever, just stops accelerating forever. It only comes fully to rest where
+  the surface is flat enough that gravity has no tangential pull.
 - `GRAVITY = 12`, `SUB_STEPS = 20` substeps/frame, `BALL_R = 0.22` are defined
   in `level-screen.jsx`. `physics-engine.js` also micro-substeps internally at
   extreme speeds to avoid tunneling; normal speeds integrate identically to
@@ -324,6 +335,18 @@ the noise.
 Reached from the main screen, directly under the Play card — the second thing
 you can do sits under the first, outlined rather than filled so it reads as
 subordinate to Play instead of competing with it.
+
+## Ball rendering vs the drawn curve
+
+The physics rests the ball *exactly* `BALL_R` from a curve's true centreline —
+measured, not assumed. But an SVG stroke straddles its path, so the curve
+covers `EQ_STROKE/2` px either side of that centreline and the ball's own
+outline reaches `BALL_OUTLINE/2` px past its radius. Drawing the ball at the
+full `BALL_R * scale` therefore *looks* like it is sunk into the line by about
+2px even though the simulation is perfect. `br` subtracts both half-strokes so
+the ball's edge kisses the top of the stroke, which is what resting on a line
+looks like. If either stroke width changes, that subtraction has to follow —
+which is why they are named constants rather than literals.
 
 ## Ball path trace
 
@@ -476,22 +499,37 @@ of best/bestTime.
 
 ## Achievements
 
-Two sources merge at render time via `getAchievementList()` in
-`achievements.jsx`:
+**Every achievement is a data row** — there is no such thing as a hard-coded
+one any more, so the admin panel edits all of them through a single editor.
 
-1. **Built-in** — `BUILTIN_ACH_LIST` (17 total, each with an inline
-   `check(progress) → boolean`).
-2. **Custom (admin-authored)** — rows from `achievement_overrides`, built via
-   `buildCustomAchievements(rows)`. Each picks a `kind` from `ACH_KINDS` (a
-   fixed set of predicate templates: `total_stars`, `total_levels`,
-   `pack_complete`, `pack_full_gold`, `any_3stars`, `min_score`) and supplies
-   parameters.
+- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships 17 rows in exactly the shape
+  the `achievement_overrides` table uses.
+- `getAchievementRows()` merges a matching override row over each built-in,
+  taking **only the fields the override actually sets** — a row stores `null`
+  for every param its kind doesn't use, and those nulls must not wipe the
+  built-in's own threshold. Custom rows (ids not among the built-ins) are
+  appended.
+- `buildAchievement(row)` turns a row into `{ id, name, desc, check }` using
+  its `kind`, and returns null if the kind is unknown or a required param is
+  missing. `getAchievementList()` is the filtered, built list the UI renders.
 
-Adding a built-in: append to `BUILTIN_ACH_LIST`, `npm run build:jsx`, bump the
-SW cache. Unlock toasts are driven by `app.jsx`'s effect on
-`[progress, overridesRev]`. Adding a custom `ACH_KINDS` template: extend
-`ACH_KINDS` in `achievements.jsx` **and** wire its params in
-`admin-screen.jsx`'s `AchievementEditor`.
+Editing a built-in in the admin panel writes an override row with the same id;
+**Reset to default deletes that row** and the shipped values come back. A
+built-in's id is not editable — changing it would orphan every unlock recorded
+against it and resurrect the default alongside it. `is_hidden` works on
+built-ins too, which is how an achievement is retired without deleting
+anyone's history.
+
+`ACH_KINDS` is the fixed set of predicate templates (nothing is ever eval'd):
+`total_stars`, `total_levels`, `pack_complete`, `pack_full_gold`,
+`any_pack_complete`, `any_pack_gold`, `all_roman_packs`, `themed_level`,
+`any_3stars`, `min_score`, `score_over`, `time_under`, `time_over`. Time
+thresholds are stored in **milliseconds** because the column is an integer; a
+kind can set `thresholdLabel` and the editor labels its input accordingly.
+
+Adding a mechanic = add a kind here; the editor picks up its `needs`
+automatically. Unlock toasts are driven by `app.jsx`'s effect on
+`[progress, overridesRev]`.
 
 ## Capacitor / WebView gotchas
 

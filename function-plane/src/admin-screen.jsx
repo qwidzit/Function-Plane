@@ -553,7 +553,9 @@ create policy "ach_admin_write" on achievement_overrides for all
   with check(exists (select 1 from profiles where id = auth.uid() and name = 'Test Account'));`;
 
 function AchievementsAdmin({ padX, onBack, onEdit, onChanged }) {
-  const rows = window.FP_ACH_OVERRIDES || [];
+  // Built-ins and custom rows in one list — every achievement is a data row
+  // now, and the same editor handles both.
+  const rows = getAchievementRows();
   const [showSql, setShowSql] = useAS(false);
 
   return (
@@ -584,31 +586,8 @@ function AchievementsAdmin({ padX, onBack, onEdit, onChanged }) {
         )}
 
         <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fp-ink-3)', marginBottom: 8 }}>
-          Built-in ({(window.ACH_LIST || []).length})
+          All achievements ({rows.length})
         </div>
-        {(window.ACH_LIST || []).map((a, i) => (
-          <div key={a.id} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-            marginBottom: 5, borderRadius: 11,
-            background: 'var(--fp-surface)', border: '1px solid var(--fp-line)',
-            opacity: 0.7,
-          }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fp-ink)' }}>{a.name}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--fp-ink-3)' }}>{a.desc}</div>
-            </div>
-            <span style={{ fontSize: 10.5, color: 'var(--fp-ink-4)' }}>code</span>
-          </div>
-        ))}
-
-        <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fp-ink-3)', margin: '18px 0 8px' }}>
-          Custom ({rows.length})
-        </div>
-        {rows.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--fp-ink-3)', fontSize: 12.5, padding: '14px 0' }}>
-            None yet — tap “New achievement” to add one.
-          </div>
-        )}
         {rows.map(r => (
           <button key={r.id} onClick={() => onEdit(r.id)} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 10,
@@ -622,6 +601,7 @@ function AchievementsAdmin({ padX, onBack, onEdit, onChanged }) {
                 {window.ACH_KINDS?.[r.kind]?.label || r.kind} · id <span className="fp-mono">{r.id}</span>
               </div>
             </div>
+            {r.builtin && <span style={{ fontSize: 10.5, color: 'var(--fp-ink-4)' }}>built-in</span>}
             {r.is_hidden && <span style={{ fontSize: 10.5, color: 'var(--fp-ink-4)' }}>hidden</span>}
             <Icon.Chevron dir="right" size={13} c="var(--fp-ink-3)"/>
           </button>
@@ -632,7 +612,11 @@ function AchievementsAdmin({ padX, onBack, onEdit, onChanged }) {
 }
 
 function AchievementEditor({ padX, editId, onBack, onChanged }) {
-  const existing = (window.FP_ACH_OVERRIDES || []).find(r => r.id === editId);
+  // Built-ins load their shipped defaults; editing one writes an override row
+  // with the same id, and deleting that row restores the default.
+  const existing = getAchievementRows().find(r => r.id === editId);
+  const isBuiltin = !!existing?.builtin;
+  const hasOverride = !!(window.FP_ACH_OVERRIDES || []).find(r => r.id === editId);
   const [id,           setId]    = useAS(existing?.id || '');
   const [name,         setName]  = useAS(existing?.name || '');
   const [description,  setDesc]  = useAS(existing?.description || '');
@@ -682,9 +666,11 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
   const remove = async () => {
     if (!existing) return;
     const ok = await window.fpConfirm({
-      title: `Delete "${existing.name}"?`,
-      body: 'This removes the achievement for everyone. Already-earned ones will simply disappear from their list.',
-      confirmLabel: 'Delete',
+      title: isBuiltin ? `Reset "${existing.name}"?` : `Delete "${existing.name}"?`,
+      body: isBuiltin
+        ? 'This drops your edits and restores the achievement that ships with the game.'
+        : 'This removes the achievement for everyone. Already-earned ones will simply disappear from their list.',
+      confirmLabel: isBuiltin ? 'Reset' : 'Delete',
       danger: true,
     });
     if (!ok) return;
@@ -699,13 +685,18 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
   return (
     <ScreenFrameAS title={existing ? `Achievement · ${existing.id}` : 'New achievement'} onBack={onBack} padX={padX}>
       <div style={{ padding: '18px 0 24px' }}>
-        <FieldText label="ID (stable, unique)" value={id} onChange={setId} placeholder="e.g. winter_event_2026"/>
+        {isBuiltin
+          // Changing a built-in's id would orphan every unlock recorded
+          // against it and resurrect the default alongside it.
+          ? <FieldReadonly label="ID (built-in — not editable)" value={id}/>
+          : <FieldText label="ID (stable, unique)" value={id} onChange={setId} placeholder="e.g. winter_event_2026"/>}
         <FieldText label="Name (shown to players)" value={name} onChange={setName} placeholder="e.g. Winter Champion"/>
         <FieldText label="Description (optional — auto-generated if blank)" value={description} onChange={setDesc} placeholder="Earn 100 stars in total"/>
         <FieldSelect label="Kind" value={kind} onChange={setKind} options={KIND_OPTIONS}/>
 
         {needs.includes('threshold') && (
-          <FieldText label="Threshold (N)" value={threshold} onChange={setThr} placeholder="e.g. 50"/>
+          <FieldText label={def?.thresholdLabel ? `Threshold (${def.thresholdLabel})` : 'Threshold (N)'}
+            value={threshold} onChange={setThr} placeholder="e.g. 50"/>
         )}
         {needs.includes('packId') && (
           <FieldSelect label="Pack" value={packId} onChange={setPackId} options={PACK_OPTIONS}/>
@@ -734,13 +725,13 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
           {busy ? 'Saving…' : (existing ? 'Save changes' : 'Create achievement')}
         </button>
 
-        {existing && (
+        {existing && (!isBuiltin || hasOverride) && (
           <button onClick={remove} disabled={busy} style={{
             width:'100%', height:42, marginTop:10, borderRadius:12,
             background:'transparent', color:'#e34',
             border:'1px solid #e34', fontSize:13, fontWeight:500,
             opacity: busy ? 0.6 : 1,
-          }}>Delete achievement</button>
+          }}>{isBuiltin ? 'Reset to default' : 'Delete achievement'}</button>
         )}
 
         {msg && <div style={{ marginTop: 10, fontSize: 12, textAlign: 'center', color: msg === 'Saved' ? 'var(--fp-accent)' : '#e34' }}>{msg}</div>}
@@ -769,6 +760,18 @@ function ScreenFrameAS({ title, onBack, padX, children }) {
       <div className="fp-scroll" style={{ flex:1, overflowY:'auto', padding:`0 ${padX}px`, paddingBottom:'max(28px, env(safe-area-inset-bottom, 0px))' }}>
         {children}
       </div>
+    </div>
+  );
+}
+
+function FieldReadonly({ label, value }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--fp-ink-3)', marginBottom: 5 }}>{label}</div>
+      <div className="fp-mono" style={{
+        ...miniInput(), display: 'flex', alignItems: 'center',
+        color: 'var(--fp-ink-3)', background: 'var(--fp-surface-2)',
+      }}>{value}</div>
     </div>
   );
 }

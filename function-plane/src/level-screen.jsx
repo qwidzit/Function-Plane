@@ -19,6 +19,12 @@ const TICK_DT    = 1/60;
 const MAX_TICKS  = 5;
 const STAR_R     = 0.55;
 const BALL_R     = 0.22;
+// Stroke widths, named because the ball's drawn radius has to subtract them:
+// an SVG stroke straddles its path, so the curve covers EQ_STROKE/2 px either
+// side of the true curve and the ball's outline reaches BALL_OUTLINE/2 px past
+// its radius.
+const EQ_STROKE    = 2.2;
+const BALL_OUTLINE = 1.5;
 const FALL_LIMIT = -13;
 const TIME_LIMIT = 28;
 
@@ -250,6 +256,7 @@ function physicsStep(ph, colliders, dt) {
     ballR:           BALL_R,
     bounciness:      PHYSICS_CONFIG.bounciness,
     energyRetention: PHYSICS_CONFIG.energyRetention,
+    traction:        PHYSICS_CONFIG.traction,
     bounceThreshold: 1.5,
   });
 
@@ -456,7 +463,7 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
         ? (x,y) => inDomain(x,eq.domain) ? eq.fn(x,y) : NaN
         : eq.fn;
       const d = marchingSquares(implFn, range.xMin, range.xMax, range.yMin, range.yMax, 60, m2p);
-      return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={2.2}
+      return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={EQ_STROKE}
         fill="none" strokeLinecap="round" strokeLinejoin="round"/>;
     }
     let d = '', pen = false, prevY = NaN;
@@ -469,7 +476,7 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
       d += pen?`L${p.x.toFixed(1)} ${p.y.toFixed(1)}`:`M${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
       pen=true; prevY=y;
     }
-    return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={2.2}
+    return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={EQ_STROKE}
       fill="none" strokeLinecap="round" strokeLinejoin="round"/>;
   });
 
@@ -490,7 +497,12 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
 
   const bp = m2p(ballPos.x, ballPos.y);
   const sp = m2p(startPos.x, startPos.y);
-  const br = Math.max(4, BALL_R * view.scale);
+  // The physics rests the ball exactly BALL_R from the curve's true centreline,
+  // but the curve is *drawn* EQ_STROKE wide about that centreline, so a ball
+  // drawn at the full BALL_R*scale visibly sinks into the line by both
+  // half-strokes. Subtracting them makes the ball's edge kiss the top of the
+  // stroke, which is what "resting on the line" looks like.
+  const br = Math.max(3, BALL_R * view.scale - (EQ_STROKE + BALL_OUTLINE) / 2);
 
   // Where the ball actually went on the last run. A failed attempt otherwise
   // tells the player nothing about why it failed. Drawn as one path with a
@@ -549,7 +561,7 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
           strokeDasharray="3 2" opacity={selected === 'ball' ? 0.8 : 0.35}/>
         {starsEl}
         <g transform={`translate(${bp.x},${bp.y})`}>
-          <circle r={br} fill="var(--lv-ball)" stroke="var(--lv-ball-stroke)" strokeWidth={1.5}/>
+          <circle r={br} fill="var(--lv-ball)" stroke="var(--lv-ball-stroke)" strokeWidth={BALL_OUTLINE}/>
           <circle r={br * 0.31} cx={-br * 0.31} cy={-br * 0.31} fill="var(--lv-ball-shine)"/>
         </g>
       </svg>
