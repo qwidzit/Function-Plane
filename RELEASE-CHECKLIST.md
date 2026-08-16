@@ -9,7 +9,11 @@ the work on the game itself.
 Claude writes the code, you supply a key or press the button.
 
 Order is by area, not priority. See [`PLAYTEST-SETUP.md`](./PLAYTEST-SETUP.md)
-for which of these block the start of closed testing.
+for which of these block the start of closed testing, and for the exact steps.
+
+**Done** marks work that has landed in the repo. Several of those still need
+something from you to take effect — a URL pasted in, a file deployed, an asset
+approved — and each one says so.
 
 ---
 
@@ -28,7 +32,7 @@ for which of these block the start of closed testing.
 |---|---|---|---|
 | 5 | Google Play Billing | The Play build must use Play Billing; Stripe is forbidden there for digital goods. | Both |
 | 6 | Restore purchases | A restore button is a Play requirement for any paid entitlement. | Claude |
-| 7 | Channel detection | Play build shows Play Billing, web/sideload shows Stripe, never both. Showing Stripe inside the Play build is an anti-steering violation. | Claude |
+| 7 | Channel detection | **Done.** `FP_PAY_CHANNEL` in `src/store-config.js` resolves to `play` on any native build and `stripe` on web; the premium screen refuses to open a Stripe link unless the channel is `stripe`. A sideloaded build is treated as `play` — we can't tell it from a Play install without native code, and that's the safe way to be wrong. | Claude |
 | 8 | Entitlement webhook | A verified purchase has to flip `is_premium` server-side, not client-side. | Both |
 | 9 | Stripe payment links | `premium-config.js` holds three empty strings; the web channel is dead until they're filled. | You |
 | 10 | Decide: ship premium at all in v1 | Launching with premium hidden is a legitimate option and removes items 5–9 from the critical path. | You |
@@ -50,7 +54,7 @@ for which of these block the start of closed testing.
 |---|---|---|---|
 | 17 | Publish the legal-text corrections | The privacy policy no longer lists Google Fonts or CDNs as processors; the live site must match. | You |
 | 18 | Correct the level count and ad wording | The site advertises 140 levels; v1 ships 70, and the game is fully ad-free. | You |
-| 19 | Add a web account-deletion page | Google requires a deletion request reachable from the web, not only inside the app. | You |
+| 19 | Add a web account-deletion page | **Done** — `legal/delete-account.html`, matching the existing legal pages. **You still need to deploy it** to `https://functionplane.pages.dev/delete-account.html`; the Data safety form checks the URL resolves. | Both |
 
 ## Store submission
 
@@ -60,9 +64,9 @@ for which of these block the start of closed testing.
 | 21 | Create and back up the signing keystore | Losing it means never being able to update the app again, with no recovery. | You |
 | 22 | Generate app icons and splash | Source art exists in `assets/`; the tooling needs a real machine. | You |
 | 23 | Set the version scheme | `versionCode` must increase on every single upload, forever. | You |
-| 24 | Confirm the target API level | Google enforces a minimum; Capacitor 6 is recent but it must be checked. | You |
-| 25 | Store listing text | Title, short and full description. | Both |
-| 26 | Screenshots and feature graphic | 4–6 phone screenshots plus a 1024×500 banner. Claude can generate real screenshots from the running app for you to approve. | Both |
+| 24 | Confirm the target API level | **Blocker, with a deadline.** Capacitor 6 (what `package.json` pins) generates an Android project targeting API 34. Google's floor is already 35, and from **31 Aug 2026** every new app and update needs **36**. Fix by upgrading to Capacitor 8 *before* `cap add android` — step 0 of `PLAYTEST-SETUP.md`. | You |
+| 25 | Store listing text | **Drafted** in `store-assets/LISTING.md` — title, short and full description, all within Google's limits, plus the exact Data safety and content-rating answers. Yours to approve or rewrite. | Both |
+| 26 | Screenshots and feature graphic | **Done, pending your approval.** Eight real 1080×1920 captures in `store-assets/screenshots/` and a `1024×500` feature graphic, both generated from the running app. Re-capture once the real levels exist — the current shots use placeholder levels. | Both |
 | 27 | Complete the Data safety form | Declares email + progress, no ads, no third-party sharing — all now literally true. | You |
 | 28 | Complete the content rating questionnaire | Short form; a puzzle game with no ads or user content rates trivially. | You |
 
@@ -70,7 +74,7 @@ for which of these block the start of closed testing.
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 29 | Point the Rate button at the store | It currently opens a "not on Google Play yet" popup. Needs the live listing URL. | Claude |
+| 29 | Point the Rate button at the store | **Done** — the button opens `FP_STORE_LINKS.android` when it's set and falls back to the existing popup when it isn't. **Paste the listing URL** into `src/store-config.js` once the app is live. | Both |
 | 30 | Add crash and error reporting | Without it, production failures are invisible. Needs a Sentry (or equivalent) DSN from you. | Both |
 | 31 | Test on a real low-end device | Frame rate, touch targets, the custom keyboard, and cold-start offline behaviour. | You |
 | 32 | Final pass on the whole game | Play every level start to finish on a phone before strangers do. | You |

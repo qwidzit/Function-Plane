@@ -417,7 +417,18 @@ function PremiumView({ onBack, padX }) {
     { id:'lifetime',label:'Lifetime',price:'$14.99', sub:'One-time purchase' },
   ];
 
+  // Stripe must never be reachable from inside the Play build — external
+  // payment for digital goods is an anti-steering violation. Play Billing
+  // isn't wired up yet, so on native the answer is "not yet", not a checkout.
   const onContinue = () => {
+    if ((window.FP_PAY_CHANNEL || 'stripe') !== 'stripe') {
+      window.fpConfirm?.({
+        title: 'Not available yet',
+        body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
+        confirmLabel: 'OK',
+      });
+      return;
+    }
     const url = (window.PREMIUM_LINKS || {})[selected];
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');

@@ -18,6 +18,13 @@ function MainScreen({
     useState: useMS
   } = React;
   const [ratePopup, setRatePopup] = useMS(false);
+
+  // Straight to the listing once it exists; the popup is the pre-launch state,
+  // so a tester never gets sent to a 404.
+  const onRate = () => {
+    const url = (window.FP_STORE_LINKS || {}).android;
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');else setRatePopup(true);
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",
     style: {
@@ -236,7 +243,7 @@ function MainScreen({
       c: "var(--fp-ink)"
     }),
     label: "Rate",
-    onClick: () => setRatePopup(true)
+    onClick: onRate
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',

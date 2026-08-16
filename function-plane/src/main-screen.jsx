@@ -8,6 +8,14 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
   const { useState: useMS } = React;
   const [ratePopup, setRatePopup] = useMS(false);
 
+  // Straight to the listing once it exists; the popup is the pre-launch state,
+  // so a tester never gets sent to a 404.
+  const onRate = () => {
+    const url = (window.FP_STORE_LINKS || {}).android;
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    else setRatePopup(true);
+  };
+
   return (
     <div className="fp-screen" style={{
       width: '100%', height: '100%',
@@ -119,7 +127,7 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
         <div style={{ display: 'flex', gap: 6 }}>
           <IconTile icon={<Icon.Info size={20} c="var(--fp-ink)"/>} label="How to play" onClick={onInfo} />
           <IconTile icon={<Icon.Trophy size={20} c="var(--fp-ink)"/>} label="Achievements" onClick={onAchievements} />
-          <IconTile icon={<Icon.Heart size={18} c="var(--fp-ink)"/>} label="Rate" onClick={() => setRatePopup(true)} />
+          <IconTile icon={<Icon.Heart size={18} c="var(--fp-ink)"/>} label="Rate" onClick={onRate} />
         </div>
       </div>
 

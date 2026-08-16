@@ -1,4 +1,4 @@
-const CACHE = 'fp-v31';
+const CACHE = 'fp-v32';
 const SHELL = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ const SHELL = [
   './vendor/supabase.js',
   './src/supabase-config.js',
   './src/premium-config.js',
+  './src/store-config.js',
   './src/physics-config.js',
   './src/physics-engine.js',
   './src/audio.js',

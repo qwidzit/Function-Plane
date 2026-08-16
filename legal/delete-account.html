@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index,follow" />
+  <title>Delete your account — Function Plane</title>
+  <meta name="description" content="How to delete your Function Plane account and the data associated with it." />
+  <meta name="theme-color" content="#0e0f10" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #faf9f7; --surface: #ffffff; --ink: #16171a; --ink-2: #3a3b3e;
+      --ink-3: #6c6d70; --line: #e5e3de; --accent: #0e0f10;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e0f10; --surface: #161719; --ink: #f2f1ef; --ink-2: #c9c8c5;
+        --ink-3: #8a8987; --line: #26282b; --accent: #f2f1ef;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink-2);
+      font-family: 'Geist', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-weight: 400; line-height: 1.65; font-size: 16px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 40px 22px 72px; }
+    .doc {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 18px; padding: 40px 34px;
+    }
+    h1, h2 {
+      font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
+      font-weight: 400; color: var(--ink); letter-spacing: -0.02em; line-height: 1.15;
+    }
+    h1 { font-size: 40px; margin: 0 0 4px; }
+    h2 { font-size: 25px; margin: 34px 0 10px; }
+    p { margin: 10px 0; color: var(--ink-2); }
+    ul { margin: 10px 0; padding-left: 22px; }
+    li { margin: 6px 0; color: var(--ink-2); }
+    strong { color: var(--ink); font-weight: 600; }
+    a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+    .eyebrow {
+      font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-3); margin: 0 0 20px;
+    }
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li {
+      counter-increment: step; position: relative;
+      padding-left: 40px; margin: 12px 0;
+    }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 0; top: 1px;
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--line); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: var(--ink);
+    }
+    .callout {
+      margin: 18px 0; padding: 16px 18px;
+      border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+    }
+    .callout p:first-child { margin-top: 0; }
+    .callout p:last-child { margin-bottom: 0; }
+    .mail {
+      display: inline-block; margin-top: 6px; padding: 10px 16px;
+      border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+      font-weight: 500; text-decoration: none; color: var(--ink);
+    }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td {
+      text-align: left; padding: 9px 10px; font-size: 15px;
+      border-bottom: 1px solid var(--line); vertical-align: top;
+    }
+    th { color: var(--ink); font-weight: 600; }
+    nav.top { margin-bottom: 20px; font-size: 14px; }
+    nav.top a { color: var(--ink-3); text-decoration: none; margin-right: 18px; }
+    nav.top a:hover { color: var(--ink); }
+    footer {
+      margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line);
+      font-size: 13px; color: var(--ink-3);
+    }
+    footer a { color: var(--ink-3); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="top">
+      <a href="/">← Function Plane</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/terms.html">Terms of Service</a>
+    </nav>
+    <article class="doc">
+      <h1>Delete your account</h1>
+      <p class="eyebrow">Function Plane · app.functionplane</p>
+
+      <p>You can delete your Function Plane account and its data at any time. There are two ways to do it — from inside the app, or by email if you can no longer sign in.</p>
+
+      <h2>Option 1 — In the app (immediate)</h2>
+      <ol class="steps">
+        <li>Open <strong>Function Plane</strong> and tap the account chip in the top-right of the main screen.</li>
+        <li>Make sure you are signed in to the account you want removed.</li>
+        <li>Scroll to the bottom and tap <strong>Delete account</strong>.</li>
+        <li>Confirm. Your data is deleted straight away and you are signed out.</li>
+      </ol>
+
+      <h2>Option 2 — By email</h2>
+      <p>If you cannot sign in — a lost password, a lost device, or an account you no longer have access to — email us from the address the account was registered with:</p>
+      <a class="mail" href="mailto:functionplane.support@gmail.com?subject=Account%20deletion%20request">functionplane.support@gmail.com</a>
+      <p>Put <strong>“Account deletion request”</strong> in the subject and include the display name on the account. We will confirm and complete the deletion within <strong>30 days</strong>, and reply when it is done.</p>
+
+      <div class="callout">
+        <p><strong>Deletion is permanent.</strong> Progress, stars, best scores and best times are removed and cannot be restored. There is no undo, and no grace period during which the account can be recovered.</p>
+      </div>
+
+      <h2>What gets deleted</h2>
+      <table>
+        <tr><th>Data</th><th>What happens</th></tr>
+        <tr><td>Account and sign-in credentials (email address, password hash)</td><td>Deleted</td></tr>
+        <tr><td>Profile (display name, avatar, star total, premium flag)</td><td>Deleted</td></tr>
+        <tr><td>Level progress (stars, best scores, best times)</td><td>Deleted</td></tr>
+        <tr><td>Leaderboard entries</td><td>Deleted — your rows are removed from every board</td></tr>
+        <tr><td>Locally cached progress on the device</td><td>Cleared from the app on that device</td></tr>
+      </table>
+
+      <h2>What is kept, and for how long</h2>
+      <ul>
+        <li><strong>Encrypted backups.</strong> Deleted records may persist in routine database backups for up to <strong>30 days</strong>, after which they are overwritten. They are not accessible to the game during that time.</li>
+        <li><strong>Aggregate statistics.</strong> Counts that cannot identify you — such as the total number of players who have cleared a level — are retained.</li>
+        <li><strong>Support correspondence.</strong> If you emailed us, that email thread is retained as normal business correspondence. Ask us in the same message and we will delete it too.</li>
+      </ul>
+      <p>We keep nothing else. Function Plane serves no advertising, collects no advertising identifier, runs no analytics, and shares no data with third parties.</p>
+
+      <h2>Playing without an account</h2>
+      <p>An account is optional. If you would rather keep playing but stop syncing, delete the account and keep using the app as a guest — progress is then stored only on your device, and uninstalling the app removes it.</p>
+
+      <h2>Questions</h2>
+      <p>Email <a href="mailto:functionplane.support@gmail.com">functionplane.support@gmail.com</a>. See the <a href="/privacy.html">Privacy Policy</a> for the full description of what we collect and why.</p>
+
+      <footer>
+        <div>Function Plane — published by Nikolay Yaremko.</div>
+        <div><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a></div>
+      </footer>
+    </article>
+  </div>
+</body>
+</html>
