@@ -1140,7 +1140,8 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         }
 
         const userEqs  = equationsRef.current.filter(e => !e.preplaced);
-        const eqsN     = userEqs.filter(e=>e.fn).length;
+        const exprs    = userEqs.filter(e => e.fn).map(e => e.expr);
+        const eqsN     = exprs.length;
         const sc       = computeScore(userEqs);
         const finishT  = +ph.wonAtS.toFixed(2);
         const rating   = starRating(eqsN, sc, eqGoal, scoreGoal);
@@ -1155,7 +1156,6 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         try {
           const key = `fp-history-${pack.id}-${levelIndex}`;
           const prev = JSON.parse(localStorage.getItem(key) || '[]');
-          const exprs = userEqs.filter(e => e.fn).map(e => e.expr);
           const sig = exprs.join('||');
           const entry = {
             exprs, score: sc, time: finishT, stars: rating,
@@ -1170,7 +1170,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           prevBest: best, isNewBest: isNew,
           time: finishT, prevBestTime: bestTime, isNewBestTime: isNewT,
         });
-        onComplete(rating, sc, finishT);
+        onComplete(rating, sc, finishT, exprs);
         return;
       }
       animRef.current = requestAnimationFrame(frame);
@@ -1398,3 +1398,4 @@ function HistoryPopup({ packId, levelIndex, onClose, onLoad }) {
 window.LevelScreen = LevelScreen;
 window.parseEquation = parseEquation;
 window.computeScore = computeScore;
+window.starRating = starRating;

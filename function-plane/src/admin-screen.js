@@ -60,6 +60,10 @@ function AdminScreen({
     padX: padX,
     onBack: () => setView('list')
   });
+  if (view === 'audit') return /*#__PURE__*/React.createElement(LeaderboardAudit, {
+    padX: padX,
+    onBack: () => setView('list')
+  });
   if (view === 'achievements') return /*#__PURE__*/React.createElement(AchievementsAdmin, {
     padX: padX,
     onBack: () => setView('list'),
@@ -131,6 +135,30 @@ function AdminScreen({
     dir: "right",
     size: 14,
     c: "currentColor"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setView('audit'),
+    style: {
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '12px 14px',
+      marginBottom: 14,
+      borderRadius: 12,
+      background: 'var(--fp-ink)',
+      color: 'var(--fp-bg)',
+      textAlign: 'left',
+      fontSize: 14,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, "Audit leaderboard"), /*#__PURE__*/React.createElement(Icon.Chevron, {
+    dir: "right",
+    size: 14,
+    c: "currentColor"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
@@ -163,6 +191,208 @@ function AdminScreen({
       setView('pack');
     }
   }))));
+}
+
+// ─── Leaderboard audit ─────────────────────────────────────────────────────
+// The database refuses values no run can produce (see the leaderboard
+// integrity migration), but it can't tell whether a plausible score matches
+// the equations that claim to have produced it — scoring needs the classifier.
+// This recomputes each submission with the same code the game scores with.
+
+function auditRow(row) {
+  const exprs = Array.isArray(row.equations) ? row.equations : null;
+  if (!exprs || exprs.length === 0) {
+    // Rows predating the equations column, or a client that stripped it.
+    return {
+      level: 'unverifiable',
+      reason: 'No equations submitted'
+    };
+  }
+  const parsed = exprs.map(expr => ({
+    expr,
+    ...parseEquation(expr)
+  }));
+  const broken = parsed.filter(e => !e.fn);
+  if (broken.length) {
+    return {
+      level: 'bad',
+      reason: `Does not parse: ${broken.map(e => e.expr).join(', ')}`
+    };
+  }
+  const score = computeScore(parsed);
+  if (score !== row.best_score) {
+    return {
+      level: 'bad',
+      reason: `Score claims ${row.best_score}, equations give ${score}`
+    };
+  }
+  const allowed = getPack(row.pack_id)?.allowedClass;
+  if (allowed) {
+    const wrong = parsed.filter(e => !classMatches(allowed, detectClass(e.expr)));
+    if (wrong.length) {
+      return {
+        level: 'bad',
+        reason: `Not ${allowed}: ${wrong.map(e => e.expr).join(', ')}`
+      };
+    }
+  }
+  const data = getLevelData(row.pack_id, row.level_index);
+  const expected = starRating(parsed.length, score, data.eqGoal, data.scoreGoal);
+  if (row.stars > expected) {
+    // Not proof: a row holds a personal best, and a 3-star run with more
+    // equations can score worse than a 2-star run with fewer, in which case
+    // the stored equations belong to the other run. Worth a look, not a ban.
+    return {
+      level: 'suspect',
+      reason: `${row.stars} stars, but these equations earn ${expected} — check the player's other runs`
+    };
+  }
+  return {
+    level: 'ok',
+    reason: `Verified — score ${score}, ${expected} stars`
+  };
+}
+function LeaderboardAudit({
+  padX,
+  onBack
+}) {
+  const [rows, setRows] = useAS(null);
+  const [err, setErr] = useAS('');
+  const [showAll, setShowAll] = useAS(false);
+  const [busyKey, setBusyKey] = useAS(null);
+  const load = () => {
+    setErr('');
+    setRows(null);
+    FP_AUTH.fetchScoreRows().then(rs => setRows(rs.map(r => ({
+      ...r,
+      audit: auditRow(r)
+    })))).catch(e => setErr(e.message));
+  };
+  useASE(load, []);
+  const remove = row => {
+    const key = `${row.user_id}-${row.pack_id}-${row.level_index}`;
+    setBusyKey(key);
+    FP_AUTH.deleteScoreRow(row.user_id, row.pack_id, row.level_index).then(() => setRows(rs => rs.filter(r => `${r.user_id}-${r.pack_id}-${r.level_index}` !== key))).catch(e => setErr(e.message)).finally(() => setBusyKey(null));
+  };
+  const count = level => rows.filter(r => r.audit.level === level).length;
+  const shown = !rows ? [] : showAll ? rows : rows.filter(r => r.audit.level !== 'ok');
+  const TONE = {
+    bad: '#c0392b',
+    suspect: '#b8860b'
+  };
+  return /*#__PURE__*/React.createElement(ScreenFrameAS, {
+    title: "Leaderboard audit",
+    onBack: onBack,
+    padX: padX
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 0 24px'
+    }
+  }, err && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: '#c0392b',
+      marginBottom: 12
+    }
+  }, err), !rows && !err && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink-3)'
+    }
+  }, "Checking submissions…"), rows && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: 'var(--fp-ink-2)',
+      lineHeight: 1.7,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, count('ok'), " verified · ", count('bad'), " failed · ", count('suspect'), " to check · ", count('unverifiable'), " unverifiable"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAll(v => !v),
+    style: {
+      marginTop: 6,
+      fontSize: 12,
+      color: 'var(--fp-ink-3)',
+      textDecoration: 'underline'
+    }
+  }, showAll ? 'Show only problems' : 'Show every row')), rows && shown.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink-3)'
+    }
+  }, "Nothing to review — every submission matches its equations."), shown.map(row => {
+    const key = `${row.user_id}-${row.pack_id}-${row.level_index}`;
+    const tone = TONE[row.audit.level] || null;
+    const bad = row.audit.level === 'bad';
+    return /*#__PURE__*/React.createElement("div", {
+      key: key,
+      style: {
+        border: `1px solid ${tone || 'var(--fp-line)'}`,
+        borderRadius: 12,
+        padding: '11px 13px',
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", null, row.avatar), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13.5,
+        fontWeight: 500,
+        color: 'var(--fp-ink)',
+        flex: 1
+      }
+    }, row.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: 11.5,
+        color: 'var(--fp-ink-3)'
+      }
+    }, row.pack_id, " · L", row.level_index + 1)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: tone || 'var(--fp-ink-3)',
+        marginBottom: 6
+      }
+    }, row.audit.reason), Array.isArray(row.equations) && row.equations.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: 11.5,
+        color: 'var(--fp-ink-2)',
+        marginBottom: 8,
+        wordBreak: 'break-all'
+      }
+    }, row.equations.join('   ')), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: 11.5,
+        color: 'var(--fp-ink-3)',
+        flex: 1
+      }
+    }, row.stars, "★ · ", row.best_score, " pts", row.best_time != null ? ` · ${row.best_time}s` : ''), /*#__PURE__*/React.createElement("button", {
+      onClick: () => remove(row),
+      disabled: busyKey === key,
+      style: {
+        padding: '6px 12px',
+        borderRadius: 9,
+        fontSize: 12,
+        fontWeight: 500,
+        background: bad ? '#c0392b' : 'var(--fp-surface)',
+        color: bad ? '#fff' : 'var(--fp-ink)',
+        border: bad ? 'none' : '1px solid var(--fp-line)',
+        opacity: busyKey === key ? 0.5 : 1
+      }
+    }, busyKey === key ? 'Removing…' : 'Remove')));
+  })));
 }
 
 // ─── Users / premium grant ─────────────────────────────────────────────────
@@ -215,7 +445,7 @@ function UsersAdmin({
     }
   };
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
-    title: "Admin \xB7 Users",
+    title: "Admin · Users",
     onBack: onBack,
     padX: padX
   }, /*#__PURE__*/React.createElement("div", {
@@ -311,7 +541,7 @@ function UsersAdmin({
       fontSize: 11,
       color: 'var(--fp-ink-4)'
     }
-  }, r.total_stars, "\u2605 ", r.is_premium && '· Premium')), /*#__PURE__*/React.createElement("button", {
+  }, r.total_stars, "★ ", r.is_premium && '· Premium')), /*#__PURE__*/React.createElement("button", {
     onClick: () => togglePremium(r),
     style: {
       padding: '6px 10px',
@@ -639,7 +869,7 @@ function LevelEditor({
       flex: 1
     }
   }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Score goal (\u2264 for 2\u2605)",
+    label: "Score goal (≤ for 2★)",
     value: scoreGoal,
     onChange: setScoreGoal
   })), /*#__PURE__*/React.createElement("div", {
@@ -647,7 +877,7 @@ function LevelEditor({
       flex: 1
     }
   }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Equation goal (\u2264 for 3\u2605)",
+    label: "Equation goal (≤ for 3★)",
     value: eqGoal,
     onChange: setEqGoal
   }))), /*#__PURE__*/React.createElement("div", {
@@ -697,7 +927,7 @@ function LevelEditor({
       color: 'var(--fp-ink-4)',
       fontSize: 16
     }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+  }, "×"))), /*#__PURE__*/React.createElement("button", {
     onClick: addStar,
     style: {
       marginTop: 4,
@@ -724,7 +954,7 @@ function LevelEditor({
       lineHeight: 1.5,
       marginBottom: 8
     }
-  }, "Visible to players but locked \u2014 they can't edit or remove them, and they don't count toward score or equation budget."), preplaced.map((expr, i) => /*#__PURE__*/React.createElement("div", {
+  }, "Visible to players but locked — they can't edit or remove them, and they don't count toward score or equation budget."), preplaced.map((expr, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: 'flex',
@@ -753,7 +983,7 @@ function LevelEditor({
       color: 'var(--fp-ink-4)',
       fontSize: 16
     }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+  }, "×"))), /*#__PURE__*/React.createElement("button", {
     onClick: addPre,
     style: {
       marginTop: 4,
@@ -805,7 +1035,7 @@ function AchievementsAdmin({
   const rows = window.FP_ACH_OVERRIDES || [];
   const [showSql, setShowSql] = useAS(false);
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
-    title: "Admin \xB7 Achievements",
+    title: "Admin · Achievements",
     onBack: onBack,
     padX: padX
   }, /*#__PURE__*/React.createElement("div", {
@@ -912,7 +1142,7 @@ function AchievementsAdmin({
       fontSize: 12.5,
       padding: '14px 0'
     }
-  }, "None yet \u2014 tap \u201CNew achievement\u201D to add one."), rows.map(r => /*#__PURE__*/React.createElement("button", {
+  }, "None yet — tap “New achievement” to add one."), rows.map(r => /*#__PURE__*/React.createElement("button", {
     key: r.id,
     onClick: () => onEdit(r.id),
     style: {
@@ -943,7 +1173,7 @@ function AchievementsAdmin({
       fontSize: 11.5,
       color: 'var(--fp-ink-3)'
     }
-  }, window.ACH_KINDS?.[r.kind]?.label || r.kind, " \xB7 id ", /*#__PURE__*/React.createElement("span", {
+  }, window.ACH_KINDS?.[r.kind]?.label || r.kind, " · id ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
   }, r.id))), r.is_hidden && /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1059,7 +1289,7 @@ function AchievementEditor({
     onChange: setName,
     placeholder: "e.g. Winter Champion"
   }), /*#__PURE__*/React.createElement(FieldText, {
-    label: "Description (optional \u2014 auto-generated if blank)",
+    label: "Description (optional — auto-generated if blank)",
     value: description,
     onChange: setDesc,
     placeholder: "Earn 100 stars in total"
@@ -1079,7 +1309,7 @@ function AchievementEditor({
     onChange: setPackId,
     options: PACK_OPTIONS
   }), needs.includes('levelIndex') && /*#__PURE__*/React.createElement(FieldText, {
-    label: "Level index (0\u20139)",
+    label: "Level index (0–9)",
     value: levelIndex,
     onChange: setLvl,
     placeholder: "0"

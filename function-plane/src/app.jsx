@@ -242,7 +242,7 @@ function App() {
 
     if (route === 'level') {
       const { pack, levelIndex } = nav;
-      const handleComplete = (rating, score, time) => {
+      const handleComplete = (rating, score, time, exprs) => {
         setProgress(prev => {
           const next  = { ...prev };
           const pd    = next[pack.id] = { ...prev[pack.id] };
@@ -252,8 +252,15 @@ function App() {
           // maxScore: highest score ever achieved on a winning run (for achievements
           // like "solve a level with a complex equation worth 100+ pts").
           const maxScore = pd.maxScore  ? [...pd.maxScore]  : Array(10).fill(null);
+          // bestEqs: the equations behind the best score, uploaded with the
+          // leaderboard row so a submission can be audited against the
+          // classifier. Only meaningful next to the score it produced.
+          const bestEqs  = pd.bestEqs   ? [...pd.bestEqs]   : Array(10).fill(null);
           stars[levelIndex] = Math.max(stars[levelIndex] ?? -1, rating);
-          best[levelIndex]  = best[levelIndex] == null ? score : Math.min(best[levelIndex], score);
+          if (best[levelIndex] == null || score < best[levelIndex]) {
+            best[levelIndex]    = score;
+            bestEqs[levelIndex] = exprs ?? null;
+          }
           if (time != null) {
             bestTime[levelIndex] = bestTime[levelIndex] == null ? time : Math.min(bestTime[levelIndex], time);
           }
@@ -265,6 +272,7 @@ function App() {
           pd.best     = best;
           pd.bestTime = bestTime;
           pd.maxScore = maxScore;
+          pd.bestEqs  = bestEqs;
           return next;
         });
       };

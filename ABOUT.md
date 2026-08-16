@@ -369,10 +369,44 @@ If you change fonts, update the `document.fonts.load(...)` calls in
   `user_id`, `keys`). Schemas live in the Supabase dashboard, not this repo.
   RLS: users read/write only their own rows; overrides tables restrict writes
   to the `Test Account` profile.
-- Older Supabase projects may lack the `level_scores.best_time` column;
-  `_uploadProgress` in `accounts.js` catches the missing-column error and
-  retries without it — the time leaderboard just silently doesn't work until
-  the migration runs.
+- A database that hasn't had the latest migration applied is missing newer
+  `level_scores` columns (`best_time`, `equations`). An upsert naming a
+  missing column fails wholesale, so `_uploadProgress` in `accounts.js` drops
+  whichever column the error names and retries — scores keep saving, the
+  dependent feature just stays dark until the migration runs.
+
+## Leaderboard integrity
+
+Clients write their own `level_scores` rows, so anyone with devtools could
+once post any score, star count or time. Full verification means replaying the
+physics server-side; short of that, two layers do the useful work.
+
+**The database refuses the impossible.** `supabase/migrations/` holds
+`20260816_leaderboard_integrity.sql`, which adds a `before insert or update`
+trigger rejecting a `level_index` outside 0–9, stars outside 1–3, a score
+under 30 (the cheapest winning run is one linear equation: complexity 10 plus
+20 per equation), a score under `30 × equation count`, and a time outside
+0.05–30 s (`TIME_LIMIT` is 28). It also makes the **server** decide what
+"best" means — `least`/`greatest` against the stored row — so a client cannot
+walk a record backwards and a stale offline sync cannot clobber a better
+result. A 2-star claim whose score misses `score_goal` is *clamped* to 1 star
+rather than rejected, because rejecting would make retuning a level's goals
+lock every existing record holder out of syncing. RLS restricts writes to
+`auth.uid() = user_id`, keeps reads public (the leaderboard is public by
+design), and lets the `Test Account` delete anyone's row.
+
+**The app catches the plausible-but-false.** Scoring runs through the
+classifier, which SQL has no access to, so each row also carries the
+`equations` that produced its best score. *Admin → Audit leaderboard*
+recomputes every submission with the same `computeScore`/`starRating` the game
+uses and flags rows whose score doesn't match their equations, whose
+equations don't parse, or which use a class the themed pack forbids — with a
+Remove button. Star mismatches are flagged amber, not red: a row holds a
+personal best, and a 3-star run using more equations can score worse than a
+2-star run using fewer, so the stored equations aren't necessarily from the
+run that earned the stars. That is detection, not prevention; prevention needs
+a deterministic server-side replay, which the fixed-tick sim clock now makes
+possible.
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual
   restore.
