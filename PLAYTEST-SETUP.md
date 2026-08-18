@@ -23,7 +23,7 @@ Only these, from [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md):
 |---|---|---|
 | 24 | Confirm the target API level | **Do this one first — see the warning below.** An upload below Google's floor is rejected outright, and the fix is far cheaper before `android/` exists. |
 | 11 | Confirm the leaderboard migration is applied | Testers create real accounts and real scores; the guard should be live before that data exists. |
-| 12 | Upgrade off the Supabase free tier | The project pausing mid-test looks like a broken game to 12 people at once. |
+| 12 | Stop the Supabase project auto-pausing | It pausing mid-test looks like a broken game to 12 people at once. **Does not require paying** — a free scheduled keepalive is committed, see step 11. |
 | 15 | Add the reset-password redirect URL | A tester who forgets their password is stuck otherwise. |
 | 20 | Generate the Android project | Nothing to upload without it. |
 | 21 | Create and back up the signing keystore | The first upload locks the app to this key permanently. |
@@ -57,13 +57,39 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
 
 ---
 
+## How to read this guide
+
+Step numbers never change, so you can stop and come back. Each step says
+**where** you are (a terminal, Android Studio, a website) before it says what to
+do.
+
+Two conventions:
+
+- `Menu → Submenu → Button` is a click path.
+- Anything in a grey box is meant to be copied exactly.
+
+**Opening a terminal in the project folder** (needed for every terminal step):
+open the `Function-Plane` folder in File Explorer, click the address bar, type
+`cmd`, press Enter. A black window opens already pointed at the right folder.
+If a command says "not recognized", you are almost certainly in the wrong
+folder — run `dir` and check you can see `package.json`.
+
+---
+
 ## Step by step
+
+> **Where you are.** Steps **1–2, 4–10 and 13–17** are done. Still outstanding:
+> **3** (run the test suite), **11** (the Supabase plan decision — there is a
+> free route, see below), **12** (Site URL + redirect URL), and **18–27**
+> (Play Console, then the first release). Steps marked `[done]` need no
+> further action.
+
 
 ### 0. Raise the target API level (item 24)
 
-1. Pull the latest `main` and run `npm install` on your own machine (it fails
+1. `[done]` Pull the latest `main` and run `npm install` on your own machine (it fails
    in sandboxes, not on a real one).
-2. Upgrade Capacitor to 8, which targets API 36:
+2. `[done]` Upgrade Capacitor to 8, which targets API 36:
 
    ```bash
    npm install @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8 @capacitor/app@^8
@@ -73,12 +99,24 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    Capacitor 8 needs **JDK 21** and a recent Android Studio. If `npx cap` then
    complains about the Java version, install JDK 21 and point Android Studio at
    it (*Settings → Build Tools → Gradle → Gradle JDK*).
-3. `npm test` — should still print **43 passed**. The app code itself is
-   version-agnostic; `app.jsx` already handles both the Capacitor 6 and
-   Capacitor 7+ shapes of `addListener`, so nothing in `src/` needs changing.
+3. **Run the test suite.** In a terminal in the project folder:
 
-   > **If `Build parity` fails here** with a list of stale `.js` files, it is
-   > almost always a stale `node_modules`, not a real problem with the code.
+   ```bash
+   npm test
+   ```
+
+   It takes about a second. The last two lines should read:
+
+   ```
+   ────────────────────────────────────────────────────────────
+   43 passed
+   ```
+
+   That is the whole check — no browser, no build, nothing to click. If it says
+   `43 passed`, move on to step 4.
+
+   > **If `Build parity` fails** with a list of stale `.js` files, it is almost
+   > always a stale `node_modules`, not a real problem with the code.
    > `@babel/core` and `@babel/preset-react` are pinned to an exact version
    > because Babel changed how it escapes non-ASCII between releases, and the
    > committed `.js` are byte-identical to that version's output. An older
@@ -104,6 +142,9 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    > npm install && npm test
    > ```
    >
+   > "Cannot find the path" from the delete just means it was not there —
+   > ignore it.
+   >
    > The parity check prints `info compiling with @babel/core <version>` right
    > above its result. If that version disagrees with the pin in
    > `package.json`, the install is the problem. If it agrees and the check
@@ -121,16 +162,11 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
    > git reset --hard
    > ```
 
-> If the Capacitor 8 upgrade turns into a fight, the fallback is to stay on 6
-> and hand-edit `android/variables.gradle` to `compileSdkVersion = 36` /
-> `targetSdkVersion = 36` after step 1. It usually works, but it is an
-> untested combination — prefer the upgrade.
-
 ### 1. Prepare the build (items 20, 22, 23)
 
-4. `npx cap add android` — creates the `android/` folder.
-5. `npx cap sync android`.
-6. **Verify the SDK levels actually landed.** Open `android/variables.gradle`
+4. `[done]` `npx cap add android` — creates the `android/` folder.
+5. `[done]` `npx cap sync android`.
+6. `[done]` **Verify the SDK levels actually landed.** Open `android/variables.gradle`
    and confirm:
 
    ```gradle
@@ -141,14 +177,16 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
 
    If it still says 34, step 0 didn't take. Stop and fix it now — everything
    downstream is wasted otherwise.
-7. Generate the icons and splash from the source art already in `assets/`:
+7. `[done]` Generate the icons and splash from the source art already in `assets/`:
 
    ```bash
    npx @capacitor/assets generate --android
    ```
 
-   This also produces the 512×512 icon the Console asks for.
-8. Set the version scheme in `android/app/build.gradle`:
+   This writes the launcher icons and splash screens into `android/`. It does
+   not reliably produce the separate 512×512 PNG the Console asks for, so make
+   that one yourself in step 19.
+8. `[done]` Set the version scheme in `android/app/build.gradle`:
 
    ```gradle
    versionCode 1
@@ -167,110 +205,382 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
 
 ### 2. Get the backend ready (items 11, 12, 15)
 
-Do these before any tester creates an account — they are much harder to fix
-once real data exists.
+**Where you are:** the Supabase dashboard in a browser, signed in with the
+account that owns the project. Your project is `miuxqxllxjvxddolpzno` (it is
+in `src/supabase-config.js`, and it is public — not a secret). Every link
+below goes straight to the right page.
 
-9. **Confirm the leaderboard migration is applied (item 11).** In the Supabase
-   dashboard → *SQL editor*, run:
+Do all of this **before any tester creates an account**. It is much harder to
+fix once real data exists.
 
-    ```sql
-    -- columns
-    select column_name from information_schema.columns
-    where table_name = 'level_scores'
-      and column_name in ('best_time','equations','submitted_at');
-    -- expect 3 rows
+9. `[done]` **Confirm the leaderboard migration is applied (item 11).**
 
-    -- the guard trigger
-    select tgname from pg_trigger
-    where tgrelid = 'public.level_scores'::regclass and not tgisinternal;
-    -- expect: level_scores_guard
+   Open the SQL editor:
+   <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/sql/new>
 
-    -- RLS on, with four policies
-    select relrowsecurity from pg_class where oid = 'public.level_scores'::regclass;
-    -- expect: true
-    select policyname from pg_policies
-    where schemaname = 'public' and tablename = 'level_scores';
-    -- expect 4: read, insert, update, delete
-    ```
+   You get a big empty text box with a **Run** button (bottom right, or press
+   Ctrl+Enter). Paste the block below, press Run, and read the table that
+   appears underneath.
 
-    If anything is missing, apply
-    `supabase/migrations/20260816_leaderboard_integrity.sql` by pasting it into
-    the SQL editor. It is written to be safely re-runnable.
+   ```sql
+   select column_name from information_schema.columns
+   where table_name = 'level_scores'
+     and column_name in ('best_time','equations','submitted_at');
+   ```
 
-10. **Prove the guard actually rejects nonsense.** Still in the SQL editor:
+   **Expected: 3 rows** — `best_time`, `equations`, `submitted_at`. Clear the
+   box and run each of the next three the same way.
+
+   ```sql
+   select tgname from pg_trigger
+   where tgrelid = 'public.level_scores'::regclass and not tgisinternal;
+   ```
+
+   **Expected: 1 row reading `level_scores_guard`.**
+
+   ```sql
+   select relrowsecurity from pg_class where oid = 'public.level_scores'::regclass;
+   ```
+
+   **Expected: 1 row reading `true`.** (If it says `false`, row-level security
+   is off and anyone could rewrite anyone's scores.)
+
+   ```sql
+   select policyname from pg_policies
+   where schemaname = 'public' and tablename = 'level_scores';
+   ```
+
+   **Expected: exactly 4 rows** — `level_scores_read`, `level_scores_insert`,
+   `level_scores_update`, `level_scores_delete`.
+
+   > **If you get more than 4, stop and clean them up — this one matters.**
+   > Postgres combines permissive policies with OR, so an older, looser policy
+   > left over from a previous setup silently overrides everything the
+   > migration just installed. A stale `scores_insert` that only checks "is
+   > this user logged in" would let any signed-in player write a row under
+   > anyone else's id, no matter what `level_scores_insert` says.
+   >
+   > See what the extras actually allow:
+   >
+   > ```sql
+   > select policyname, cmd, permissive, qual, with_check
+   > from pg_policies
+   > where schemaname = 'public' and tablename = 'level_scores'
+   > order by policyname;
+   > ```
+   >
+   > Then drop the legacy names (safe to run even if they are already gone):
+   >
+   > ```sql
+   > drop policy if exists scores_read   on public.level_scores;
+   > drop policy if exists scores_insert on public.level_scores;
+   > drop policy if exists scores_update on public.level_scores;
+   > drop policy if exists scores_delete on public.level_scores;
+   > ```
+   >
+   > Re-run the count query — it should now return exactly the 4 rows above.
+   > The migration in this repo drops these old names too, so a fresh apply
+   > will not leave them behind again.
+
+
+   **If any of those came back short**, the migration has not been applied.
+   Fix it: open `supabase/migrations/20260816_leaderboard_integrity.sql` from
+   this repo in any text editor, select all, copy, paste the whole thing into
+   the SQL editor, and Run. It is written to be safe to run more than once, so
+   you cannot break anything by running it twice. Then repeat the four checks
+   above.
+
+10. `[done]` **Prove the guard actually rejects nonsense.**
+
+    This one is backwards from every other step: **a red error message means it
+    worked.** You are deliberately trying to insert an impossible score to
+    confirm the database refuses it.
+
+    Still in the SQL editor, run:
 
     ```sql
     insert into public.level_scores (user_id, pack_id, level_index, best_score, stars, best_time)
     values (auth.uid(), 'r-I', 0, 1, 3, 0.01);
     ```
 
-    This must fail with `best_score 1 is below the minimum a winning run can
-    produce`. If it succeeds, the trigger is not attached — go back to step 9.
-    (Delete the row if it somehow lands.)
+    **Expected: a red error box** saying
+    `best_score 1 is below the minimum a winning run can produce`.
+    That is success — the guard is live. Move on.
 
-11. **Upgrade off the free tier (item 12).** *Settings → Billing* → Pro. A free
-    project auto-pauses after ~7 days idle and does not refuse connections, it
-    stops answering them — which to a tester looks like the game hanging. This
-    is the single most likely way to lose your 14-day streak.
+    **If instead it says "Success. No rows returned"**, the trigger is not
+    attached. Go back to step 9 and apply the migration, then delete the junk
+    row it just let through:
 
-12. **Add the reset-password redirect URL (item 15).** *Authentication → URL
-    Configuration → Redirect URLs* → add exactly:
+    ```sql
+    delete from public.level_scores where best_score = 1 and level_index = 0;
+    ```
+
+11. **Deal with the free tier pausing (item 12).**
+
+    The problem: a free project **pauses itself after about 7 days with no
+    requests**. A paused project does not refuse connections, it stops
+    answering them — so the game does not show an error, it hangs. If that
+    happens mid-test, 12 people see a broken app on the same day.
+
+    There are two ways to solve it. **You do not have to pay.**
+
+    **Option A — keep it awake for free (no card needed).** Any request resets
+    the 7-day timer, so one cheap read a day is enough. A scheduled job to do
+    that is committed at `.github/workflows/supabase-keepalive.yml`; it runs
+    daily on GitHub's free tier and needs no secrets, because it reads the
+    project URL and the publishable key out of `supabase-config.js`.
+
+    To turn it on: push this branch, open the repo on GitHub → **Actions** tab
+    → if prompted, click **I understand my workflows, enable them** →
+    select **Supabase keepalive** → **Run workflow** to test it once by hand.
+    A green tick means the project answered. From then on it runs itself.
+
+    Two things worth knowing:
+
+    - Once testers are actually playing, they generate far more traffic than
+      this job does. It matters most in the quiet stretches — before the test
+      starts, and any week nobody happens to play.
+    - GitHub disables scheduled workflows in a repository with no activity for
+      60 days. You will be committing regularly during the test, so this
+      should not bite, but if the game ever goes quiet for two months, check
+      the Actions tab.
+
+    If the job ever fails, that is your early warning that the project went
+    down — a paused project times out rather than answering.
+
+    **Option B — pay for Pro** (around $25/month; check the current price at
+    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/settings/billing>).
+    Projects on a paid plan never auto-pause, and you also get higher limits
+    and daily backups. Worth revisiting when the game earns something, but it
+    is not a launch requirement.
+
+    Free tier is genuinely fine for a 15-person closed test — 500 MB of
+    database and 50,000 monthly active users is far more headroom than this
+    needs. The pausing was the only real risk, and Option A addresses it.
+
+    > **If the project has already paused**, open the dashboard and click
+    > **Restore project**. It takes a few minutes and loses nothing.
+
+12. **Add the reset-password redirect URL (item 15).**
+
+    Go to
+    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/auth/url-configuration>
+
+    There are two boxes on this page and they do different jobs.
+
+    **Site URL** — the fallback Supabase uses when a link in an email has no
+    explicit destination, and the base for `{{ .SiteURL }}` in the email
+    templates. Set it to the website root:
+
+    ```
+    https://functionplane.pages.dev
+    ```
+
+    No trailing slash. If it is still the default `http://localhost:3000`,
+    every link Supabase emails anyone points at a machine that isn't theirs.
+
+    **Redirect URLs** — the allow-list of destinations a link is permitted to
+    send someone to. Click **Add URL** and paste exactly:
 
     ```
     https://functionplane.pages.dev/auth/reset
     ```
 
-    Then test it end to end: request a reset from the app, click the emailed
-    link, set a new password, sign in with it. `accounts.js` hard-codes this
-    URL, so a typo here breaks password recovery silently.
+    Click Save. No trailing slash, no typos — `accounts.js` hard-codes this
+    exact string in `resetPassword()`, and a mismatch makes password recovery
+    fail with an error page instead of working.
 
-13. **Decide the email-confirmation setting (item 14)** while you are in this
-    screen. The app has no "check your inbox" state, so if confirmations are
-    **on**, a tester registers and then cannot sign in with no explanation.
-    For closed testing, turn confirmations **off** — or accept that you'll be
-    fielding that question 15 times.
+    **Then test it end to end**, because "it looks right" is not evidence:
+    open the app, sign out, tap *Forgot password*, enter an address you can
+    actually read email at, click the link in the email, set a new password,
+    and sign in with it. If the link lands on an error page, the URL above does
+    not match what is in the Redirect URLs list.
+
+13. `[done]` **Decide the email-confirmation setting (item 14).**
+
+    Go to
+    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/auth/providers>,
+    expand **Email**, and look for **Confirm email**.
+
+    The app has no "check your inbox" screen. So if this is **on**, a tester
+    registers, sees nothing happen, tries to sign in, and is told their
+    credentials are wrong — with no hint that an unopened email is the reason.
+
+    **For closed testing, turn it off.** Click Save. (Turning it back on before
+    public launch is a reasonable choice, but then the app needs that missing
+    screen first.)
 
 ### 3. Create the signing key (item 21)
 
-14. In Android Studio: **Build → Generate Signed Bundle / APK → Android App
-    Bundle → Create new keystore**.
-15. Save the keystore file and its passwords somewhere permanent that is **not
-    this repository** — a password manager, plus one offline backup.
-16. Opt into **Play App Signing** when the Console offers it. It lets Google
-    recover your app if the upload key is ever lost. Without it, a lost
-    keystore means the app can never be updated again.
-17. Build the signed **AAB** (not APK — the Play Store takes bundles).
+**Where you are:** Android Studio, on your own machine.
+
+**Opening the project the right way.** From a terminal in the project folder:
+
+```bash
+npx cap open android
+```
+
+That launches Android Studio pointed at the `android/` folder. If you would
+rather do it by hand: Android Studio → **File → Open** → select the `android`
+folder *inside* `Function-Plane` (not `Function-Plane` itself — opening the
+wrong folder is the most common way to get a project that will not build).
+
+The first time, a progress bar at the bottom reads *Gradle sync* and can take
+several minutes on a cold cache. **Wait for it to finish** before touching any
+menu; most "the menu item is greyed out" problems are just an unfinished sync.
+
+14. `[done]` **Build → Generate Signed App Bundle / APK** (older versions say *Generate
+    Signed Bundle / APK*). Choose **Android App Bundle**, then **Next**, then
+    **Create new…** under the key store field.
+15. `[done]` Fill in the keystore dialog: pick a path, set a password, set a key alias
+    and key password, fill in at least first/last name and country. Then save
+    **the keystore file and both passwords** somewhere permanent that is **not
+    this repository** — a password manager, plus one offline backup (a USB
+    stick or a printed copy in a drawer both count).
+16. `[done]` Opt into **Play App Signing** when the Console offers it on your first
+    upload. It lets Google re-issue your app signing key if the upload key is
+    ever lost. Without it, a lost keystore means the app **can never be updated
+    again** — not by you, not by Google, not by anyone. There is no appeal
+    process for this.
+17. `[done]` Finish the wizard, choose the **release** build variant, and click
+    **Create**. When it completes, Android Studio shows a notification with a
+    **locate** link; the file is at:
+
+    ```
+    android/app/release/app-release.aab
+    ```
+
+    That `.aab` is what you upload. If you only see `.apk` files, you picked
+    APK instead of Android App Bundle — run the wizard again.
 
 ### 4. Set up the Play Console listing (items 25, 26, 27, 28)
 
-18. Create the app: name **Function Plane**, type **Game**, category
-    **Puzzle**, free.
-19. Fill in the store listing. The copy is drafted in
-    [`store-assets/LISTING.md`](./store-assets/LISTING.md) — title, short
-    description and full description, all inside Google's character limits.
-    The assets are next to it:
-    - `store-assets/feature-graphic-1024x500.png`
-    - `store-assets/screenshots/` — eight real 1080×1920 captures; upload 4–6.
-    - the 512×512 icon from step 7.
-20. Add the privacy policy URL:
-    `https://functionplane.pages.dev/privacy.html`
-21. Complete the **content rating** questionnaire — answers in `LISTING.md`.
-22. Complete the **Data safety** form — the exact per-field answers are in
-    `LISTING.md`. The account-deletion URL it asks for is
-    `https://functionplane.pages.dev/delete-account.html`, so **deploy
-    `legal/delete-account.html` to the website before you fill this in**
-    (item 19). Google checks that the URL resolves.
-23. Complete the **Government apps**, **Financial features**, **Ads** (answer:
-    no ads) and **Target audience** (13+) declarations.
+**Where you are:** <https://play.google.com/console>, signed in with your
+developer account (the one you paid the $25 registration fee on).
+
+**The single most useful thing to know:** after you create the app, the
+**Dashboard** page shows a task list called *Set up your app*. It lists every
+declaration Google requires, with a tick as you finish each. Working down that
+list is more reliable than following any written guide, including this one,
+because it reflects what your account actually needs today. Use the steps below
+as explanation for the tasks on that list rather than as a replacement for it.
+
+Menu labels move between Console redesigns. If you cannot find something, the
+search box at the top of the Console finds pages by name.
+
+18. **Create the app.** *All apps → Create app*. Fill in:
+
+    | Field | Value |
+    |---|---|
+    | App name | `Function Plane` |
+    | Default language | English (or your preference) |
+    | App or game | **Game** |
+    | Free or paid | **Free** — this cannot be changed to paid later |
+
+    Tick the two declarations at the bottom and click **Create app**.
+
+19. **Fill in the store listing.** Left menu → **Grow** (or *Grow users*) →
+    **Store presence → Main store listing**.
+
+    All the text is written for you in
+    [`store-assets/LISTING.md`](./store-assets/LISTING.md) — copy the app name,
+    short description and full description straight out of it. Then upload:
+
+    | Asset | Where it is | Notes |
+    |---|---|---|
+    | App icon, 512×512 PNG | resize `assets/icon.png` to exactly 512×512 in any image editor | required; must be PNG, no transparency |
+    | Feature graphic, 1024×500 PNG | `store-assets/feature-graphic-1024x500.png` | required |
+    | Phone screenshots | `store-assets/screenshots/` | minimum 2, upload 4–6 |
+
+    Suggested screenshot picks: `01-main`, `05-run`, `04-level`, `03-levels`,
+    `06-howtoplay`, `08-sandbox`. **Save** at the bottom.
+
+20. **Add the privacy policy URL.** Left menu → **Policy** (some accounts show
+    *Policy and programs*) → **App content** → *Privacy policy* → **Start**.
+
+    ```
+    https://functionplane.pages.dev/privacy.html
+    ```
+
+    Google fetches this URL, so it must already be live. Save.
+
+21. **Content rating.** Same **App content** page → *Content rating* →
+    **Start**. Enter your email, choose category **Game**, then answer the
+    questionnaire. Every substantive answer is **No** — the exact walkthrough,
+    including the two questions that need care, is in `LISTING.md`. Submit at
+    the end; the rating is issued immediately.
+
+22. **Data safety.** Same **App content** page → *Data safety* → **Start**.
+
+    This is the longest form and the easiest to get wrong. `LISTING.md` has the
+    complete per-field answers — work through it with that file open beside
+    you. The shape of it:
+
+    - You **do** collect data → *Yes*.
+    - Data **is** encrypted in transit → *Yes*.
+    - Users **can** request deletion → *Yes*, and the URL it asks for is
+      `https://functionplane.pages.dev/delete-account.html`.
+    - Three data types are collected, none shared: **email address**, **user
+      IDs** (the display name), and **in-app actions** (level progress).
+    - Everything else — location, photos, contacts, advertising ID, crash logs
+      — is **not collected**.
+
+    > **Deploy `legal/delete-account.html` to the website before you submit
+    > this form.** Google checks that the deletion URL resolves, and a 404 here
+    > is a rejection.
+
+23. **The remaining declarations.** Still on **App content**, work down whatever
+    the page still shows as incomplete: *Ads* (answer **No ads**), *Target
+    audience and content* (**13 and over** — do not tick any younger band, the
+    privacy policy sets 13 as the floor), *News apps* (No), *Government apps*
+    (No), *Financial features* (None), *Health apps* (No), *Data deletion*
+    (already covered above).
+
+    Keep going until the *Set up your app* task list on the Dashboard is fully
+    ticked. Google will not let you release to **any** track, closed included,
+    while something on it is outstanding.
 
 ### 5. Release to closed testing
 
-24. **Testing → Closed testing → Create track.**
-25. Create an email list of your testers, or a Google Group. Add all ~15
-    addresses.
-26. Upload the AAB, add a short release note (one is drafted at the bottom of
-    `LISTING.md`), and roll out to the track.
-27. Copy the opt-in link and send it to your testers.
+24. **Open the closed testing track.** Left menu → **Test and release** →
+    **Testing → Closed testing**.
+
+    There is usually already a track there called **Alpha**. Use it — click
+    **Manage track**. There is no benefit to creating a second one for your
+    first release. (If the list is empty, click **Create track** and name it
+    anything.)
+
+25. **Add your testers.** Inside the track, open the **Testers** tab →
+    **Create email list**. Give it a name, paste in all ~15 tester email
+    addresses (one per line, or comma-separated), and save. Tick the list so it
+    is attached to this track.
+
+    The addresses must be the **Google accounts** your testers use on their
+    phones. A work address that is not a Google account will silently never
+    receive access.
+
+26. **Upload the build.** Back on the track, click **Create new release**.
+
+    - If prompted about **Play App Signing**, accept it (see step 16).
+    - Drag `android/app/release/app-release.aab` into the upload box, or click
+      **Upload** and browse to it.
+    - **Release name** is filled in automatically from the version — leave it.
+    - **Release notes** go in the box below. A draft is at the bottom of
+      `LISTING.md`; one honest sentence beats changelog boilerplate.
+    - Check the **countries/regions** for the track include everywhere your
+      testers actually live, or they will not see the app.
+
+    Then **Next** → review the warnings page → **Save and publish** (labelled
+    *Start rollout to Closed testing* on some accounts). Confirm.
+
+    Google reviews closed-testing releases too, usually within about 24 hours.
+    The track shows *In review* until then; this is normal and nothing is
+    wrong.
+
+27. **Send out the opt-in link.** Once the release is live, go to the
+    **Testers** tab and copy the link under **How testers join your test** (it
+    looks like `https://play.google.com/apps/testing/app.functionplane`).
+    Send that to all ~15 testers.
 
 ### 6. Get the testers actually opted in
 
@@ -284,15 +594,23 @@ once real data exists.
 
 ### 7. During the 14 days
 
-31. Keep uploading. Increment `versionCode` every time, `npx cap sync android`,
-    rebuild the signed AAB, upload to the same closed track. Testers update
-    automatically.
+31. Keep uploading. The loop each time:
+
+    ```bash
+    # 1. bump versionCode in android/app/build.gradle first
+    npx cap sync android
+    ```
+
+    then Android Studio → *Build → Generate Signed App Bundle / APK* → choose
+    the **existing** keystore this time → upload the new `.aab` to the same
+    closed track. Testers update automatically.
+
 32. Work through the rest of `RELEASE-CHECKLIST.md` — the content items (1–4)
     are the long pole and should get most of this window.
 33. Collect feedback in one place. The Console's feedback channel is weak;
     a shared doc or a chat group is better.
-34. Watch **Android vitals** in the Console for crashes and ANRs on real
-    hardware. This is your only crash visibility until item 30 lands.
+34. Watch **Android vitals** (left menu → *Quality*) for crashes and ANRs on
+    real hardware. This is your only crash visibility until item 30 lands.
 
 ### 8. Going public
 
