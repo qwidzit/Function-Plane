@@ -1,0 +1,53 @@
+# Keeps the Supabase project from auto-pausing, so the free tier stays usable.
+#
+# A free-tier project pauses itself after ~7 days with no requests, and a paused
+# project does not refuse connections — it stops answering them, so the game
+# hangs rather than showing an error. Any request resets that timer, so one
+# cheap read a day is enough.
+#
+# Once the closed test is running, 12 testers generate more than enough traffic
+# on their own. This covers the quiet stretches before and after, and any week
+# where nobody happens to play.
+#
+# The URL and key are read out of the committed config rather than duplicated
+# here, so there is one source of truth. That key is the *publishable* (anon)
+# key and is safe in public — row-level security is what protects the data.
+# Never put the service-role key in this file.
+
+name: Supabase keepalive
+
+on:
+  schedule:
+    # 07:14 UTC daily. Deliberately off the hour: GitHub delays cron jobs that
+    # land on busy minutes, sometimes by a lot.
+    - cron: '14 7 * * *'
+  workflow_dispatch:        # also runnable by hand from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read one row from the database
+        run: |
+          CFG=function-plane/src/supabase-config.js
+          URL=$(sed -n "s/.*SUPABASE_URL *= *'\([^']*\)'.*/\1/p" "$CFG")
+          KEY=$(sed -n "s/.*SUPABASE_ANON_KEY *= *'\([^']*\)'.*/\1/p" "$CFG")
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::Could not read the Supabase URL/key out of $CFG"
+            exit 1
+          fi
+          echo "Pinging $URL"
+          code=$(curl -sS -m 30 -o /tmp/body.txt -w '%{http_code}' \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY" \
+            "$URL/rest/v1/profiles?select=id&limit=1")
+          echo "HTTP $code"
+          head -c 300 /tmp/body.txt; echo
+          # 2xx means the project answered. A paused project times out instead,
+          # so a red run here is the early warning that it went down.
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Supabase did not answer with 2xx — the project may be paused."
+            exit 1
+          fi

@@ -125,6 +125,16 @@ drop policy if exists level_scores_insert on public.level_scores;
 drop policy if exists level_scores_update on public.level_scores;
 drop policy if exists level_scores_delete on public.level_scores;
 
+-- Policies from before this migration named the table differently. Postgres
+-- OR's permissive policies together, so leaving an older, looser one in place
+-- silently defeats every restriction below — a stale `scores_insert` that only
+-- checked `authenticated` would let anyone write anyone's row no matter what
+-- `level_scores_insert` says. Drop them by their old names too.
+drop policy if exists scores_read   on public.level_scores;
+drop policy if exists scores_insert on public.level_scores;
+drop policy if exists scores_update on public.level_scores;
+drop policy if exists scores_delete on public.level_scores;
+
 create policy level_scores_read
   on public.level_scores for select
   using (true);

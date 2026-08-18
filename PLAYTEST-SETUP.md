@@ -23,7 +23,7 @@ Only these, from [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md):
 |---|---|---|
 | 24 | Confirm the target API level | **Do this one first — see the warning below.** An upload below Google's floor is rejected outright, and the fix is far cheaper before `android/` exists. |
 | 11 | Confirm the leaderboard migration is applied | Testers create real accounts and real scores; the guard should be live before that data exists. |
-| 12 | Upgrade off the Supabase free tier | The project pausing mid-test looks like a broken game to 12 people at once. |
+| 12 | Stop the Supabase project auto-pausing | It pausing mid-test looks like a broken game to 12 people at once. **Does not require paying** — a free scheduled keepalive is committed, see step 11. |
 | 15 | Add the reset-password redirect URL | A tester who forgets their password is stuck otherwise. |
 | 20 | Generate the Android project | Nothing to upload without it. |
 | 21 | Create and back up the signing keystore | The first upload locks the app to this key permanently. |
@@ -78,11 +78,18 @@ folder — run `dir` and check you can see `package.json`.
 
 ## Step by step
 
+> **Where you are.** Steps **1–2, 4–10 and 13–17** are done. Still outstanding:
+> **3** (run the test suite), **11** (the Supabase plan decision — there is a
+> free route, see below), **12** (Site URL + redirect URL), and **18–27**
+> (Play Console, then the first release). Steps marked `[done]` need no
+> further action.
+
+
 ### 0. Raise the target API level (item 24)
 
-1. Pull the latest `main` and run `npm install` on your own machine (it fails
+1. `[done]` Pull the latest `main` and run `npm install` on your own machine (it fails
    in sandboxes, not on a real one).
-2. Upgrade Capacitor to 8, which targets API 36:
+2. `[done]` Upgrade Capacitor to 8, which targets API 36:
 
    ```bash
    npm install @capacitor/core@^8 @capacitor/cli@^8 @capacitor/android@^8 @capacitor/app@^8
@@ -157,9 +164,9 @@ folder — run `dir` and check you can see `package.json`.
 
 ### 1. Prepare the build (items 20, 22, 23)
 
-4. `npx cap add android` — creates the `android/` folder.
-5. `npx cap sync android`.
-6. **Verify the SDK levels actually landed.** Open `android/variables.gradle`
+4. `[done]` `npx cap add android` — creates the `android/` folder.
+5. `[done]` `npx cap sync android`.
+6. `[done]` **Verify the SDK levels actually landed.** Open `android/variables.gradle`
    and confirm:
 
    ```gradle
@@ -170,7 +177,7 @@ folder — run `dir` and check you can see `package.json`.
 
    If it still says 34, step 0 didn't take. Stop and fix it now — everything
    downstream is wasted otherwise.
-7. Generate the icons and splash from the source art already in `assets/`:
+7. `[done]` Generate the icons and splash from the source art already in `assets/`:
 
    ```bash
    npx @capacitor/assets generate --android
@@ -179,7 +186,7 @@ folder — run `dir` and check you can see `package.json`.
    This writes the launcher icons and splash screens into `android/`. It does
    not reliably produce the separate 512×512 PNG the Console asks for, so make
    that one yourself in step 19.
-8. Set the version scheme in `android/app/build.gradle`:
+8. `[done]` Set the version scheme in `android/app/build.gradle`:
 
    ```gradle
    versionCode 1
@@ -206,7 +213,7 @@ below goes straight to the right page.
 Do all of this **before any tester creates an account**. It is much harder to
 fix once real data exists.
 
-9. **Confirm the leaderboard migration is applied (item 11).**
+9. `[done]` **Confirm the leaderboard migration is applied (item 11).**
 
    Open the SQL editor:
    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/sql/new>
@@ -243,7 +250,38 @@ fix once real data exists.
    where schemaname = 'public' and tablename = 'level_scores';
    ```
 
-   **Expected: 4 rows**, one each for read, insert, update and delete.
+   **Expected: exactly 4 rows** — `level_scores_read`, `level_scores_insert`,
+   `level_scores_update`, `level_scores_delete`.
+
+   > **If you get more than 4, stop and clean them up — this one matters.**
+   > Postgres combines permissive policies with OR, so an older, looser policy
+   > left over from a previous setup silently overrides everything the
+   > migration just installed. A stale `scores_insert` that only checks "is
+   > this user logged in" would let any signed-in player write a row under
+   > anyone else's id, no matter what `level_scores_insert` says.
+   >
+   > See what the extras actually allow:
+   >
+   > ```sql
+   > select policyname, cmd, permissive, qual, with_check
+   > from pg_policies
+   > where schemaname = 'public' and tablename = 'level_scores'
+   > order by policyname;
+   > ```
+   >
+   > Then drop the legacy names (safe to run even if they are already gone):
+   >
+   > ```sql
+   > drop policy if exists scores_read   on public.level_scores;
+   > drop policy if exists scores_insert on public.level_scores;
+   > drop policy if exists scores_update on public.level_scores;
+   > drop policy if exists scores_delete on public.level_scores;
+   > ```
+   >
+   > Re-run the count query — it should now return exactly the 4 rows above.
+   > The migration in this repo drops these old names too, so a fresh apply
+   > will not leave them behind again.
+
 
    **If any of those came back short**, the migration has not been applied.
    Fix it: open `supabase/migrations/20260816_leaderboard_integrity.sql` from
@@ -252,7 +290,7 @@ fix once real data exists.
    you cannot break anything by running it twice. Then repeat the four checks
    above.
 
-10. **Prove the guard actually rejects nonsense.**
+10. `[done]` **Prove the guard actually rejects nonsense.**
 
     This one is backwards from every other step: **a red error message means it
     worked.** You are deliberately trying to insert an impossible score to
@@ -277,33 +315,80 @@ fix once real data exists.
     delete from public.level_scores where best_score = 1 and level_index = 0;
     ```
 
-11. **Upgrade off the free tier (item 12).**
+11. **Deal with the free tier pausing (item 12).**
 
-    Go to
-    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/settings/billing>
-    and move the project onto a paid plan (Pro is around $25/month; check the
-    current price on the page).
+    The problem: a free project **pauses itself after about 7 days with no
+    requests**. A paused project does not refuse connections, it stops
+    answering them — so the game does not show an error, it hangs. If that
+    happens mid-test, 12 people see a broken app on the same day.
 
-    Why this is a blocker and not a nicety: a free project **pauses itself
-    after about 7 days of inactivity**. A paused project does not refuse
-    connections, it simply stops answering them — so the game does not show an
-    error, it hangs. If that happens mid-test, 12 people see a broken app on
-    the same day, and restoring it is a manual click you might not make for
-    hours. This is the single most likely way to lose your 14-day streak.
+    There are two ways to solve it. **You do not have to pay.**
+
+    **Option A — keep it awake for free (no card needed).** Any request resets
+    the 7-day timer, so one cheap read a day is enough. A scheduled job to do
+    that is committed at `.github/workflows/supabase-keepalive.yml`; it runs
+    daily on GitHub's free tier and needs no secrets, because it reads the
+    project URL and the publishable key out of `supabase-config.js`.
+
+    To turn it on: push this branch, open the repo on GitHub → **Actions** tab
+    → if prompted, click **I understand my workflows, enable them** →
+    select **Supabase keepalive** → **Run workflow** to test it once by hand.
+    A green tick means the project answered. From then on it runs itself.
+
+    Two things worth knowing:
+
+    - Once testers are actually playing, they generate far more traffic than
+      this job does. It matters most in the quiet stretches — before the test
+      starts, and any week nobody happens to play.
+    - GitHub disables scheduled workflows in a repository with no activity for
+      60 days. You will be committing regularly during the test, so this
+      should not bite, but if the game ever goes quiet for two months, check
+      the Actions tab.
+
+    If the job ever fails, that is your early warning that the project went
+    down — a paused project times out rather than answering.
+
+    **Option B — pay for Pro** (around $25/month; check the current price at
+    <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/settings/billing>).
+    Projects on a paid plan never auto-pause, and you also get higher limits
+    and daily backups. Worth revisiting when the game earns something, but it
+    is not a launch requirement.
+
+    Free tier is genuinely fine for a 15-person closed test — 500 MB of
+    database and 50,000 monthly active users is far more headroom than this
+    needs. The pausing was the only real risk, and Option A addresses it.
+
+    > **If the project has already paused**, open the dashboard and click
+    > **Restore project**. It takes a few minutes and loses nothing.
 
 12. **Add the reset-password redirect URL (item 15).**
 
     Go to
     <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/auth/url-configuration>
 
-    Find the **Redirect URLs** section, click **Add URL**, and paste exactly:
+    There are two boxes on this page and they do different jobs.
+
+    **Site URL** — the fallback Supabase uses when a link in an email has no
+    explicit destination, and the base for `{{ .SiteURL }}` in the email
+    templates. Set it to the website root:
+
+    ```
+    https://functionplane.pages.dev
+    ```
+
+    No trailing slash. If it is still the default `http://localhost:3000`,
+    every link Supabase emails anyone points at a machine that isn't theirs.
+
+    **Redirect URLs** — the allow-list of destinations a link is permitted to
+    send someone to. Click **Add URL** and paste exactly:
 
     ```
     https://functionplane.pages.dev/auth/reset
     ```
 
     Click Save. No trailing slash, no typos — `accounts.js` hard-codes this
-    exact string, and a mismatch makes password recovery fail silently.
+    exact string in `resetPassword()`, and a mismatch makes password recovery
+    fail with an error page instead of working.
 
     **Then test it end to end**, because "it looks right" is not evidence:
     open the app, sign out, tap *Forgot password*, enter an address you can
@@ -311,7 +396,7 @@ fix once real data exists.
     and sign in with it. If the link lands on an error page, the URL above does
     not match what is in the Redirect URLs list.
 
-13. **Decide the email-confirmation setting (item 14).**
+13. `[done]` **Decide the email-confirmation setting (item 14).**
 
     Go to
     <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/auth/providers>,
@@ -344,20 +429,20 @@ The first time, a progress bar at the bottom reads *Gradle sync* and can take
 several minutes on a cold cache. **Wait for it to finish** before touching any
 menu; most "the menu item is greyed out" problems are just an unfinished sync.
 
-14. **Build → Generate Signed App Bundle / APK** (older versions say *Generate
+14. `[done]` **Build → Generate Signed App Bundle / APK** (older versions say *Generate
     Signed Bundle / APK*). Choose **Android App Bundle**, then **Next**, then
     **Create new…** under the key store field.
-15. Fill in the keystore dialog: pick a path, set a password, set a key alias
+15. `[done]` Fill in the keystore dialog: pick a path, set a password, set a key alias
     and key password, fill in at least first/last name and country. Then save
     **the keystore file and both passwords** somewhere permanent that is **not
     this repository** — a password manager, plus one offline backup (a USB
     stick or a printed copy in a drawer both count).
-16. Opt into **Play App Signing** when the Console offers it on your first
+16. `[done]` Opt into **Play App Signing** when the Console offers it on your first
     upload. It lets Google re-issue your app signing key if the upload key is
     ever lost. Without it, a lost keystore means the app **can never be updated
     again** — not by you, not by Google, not by anyone. There is no appeal
     process for this.
-17. Finish the wizard, choose the **release** build variant, and click
+17. `[done]` Finish the wizard, choose the **release** build variant, and click
     **Create**. When it completes, Android Studio shows a notification with a
     **locate** link; the file is at:
 

@@ -42,7 +42,7 @@ approved — and each one says so.
 | # | Item | Description | Who |
 |---|---|---|---|
 | 11 | Confirm the leaderboard migration is applied | `supabase/migrations/20260816_leaderboard_integrity.sql` — verify the trigger, columns and policies exist. | You |
-| 12 | Upgrade off the Supabase free tier | A free project auto-pauses after ~7 days idle, which takes the whole game down. | You |
+| 12 | Stop the Supabase project auto-pausing | A free project auto-pauses after ~7 days idle, which takes the whole game down. **Handled without paying** by `.github/workflows/supabase-keepalive.yml` — enable it in the repo's Actions tab. Paying for Pro is the alternative, not the requirement. | Both |
 | 13 | Verify RLS on every table | Confirm players can only write their own rows and only the admin account can write override tables. | You |
 | 14 | Decide the email-confirmation setting | Signup has no "check your inbox" state, so confirmations being on is confusing today. | You |
 | 15 | Add the reset-password redirect URL | Supabase must allow `https://functionplane.pages.dev/auth/reset` as a redirect target. | You |
