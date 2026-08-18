@@ -11,8 +11,10 @@ Assets that go with it are in this folder:
   app. Play needs a minimum of 2; 4–6 is the useful number. Suggested pick:
   `01-main`, `05-run`, `04-level`, `03-levels`, `06-howtoplay`, `08-sandbox`.
 
-The app icon (512×512) is **not** here — it comes out of `assets/icon.png` via
-`@capacitor/assets` on your machine (checklist item 22).
+- `icon-512.png` — the 512×512 app icon the Console asks for, resized from
+  `assets/icon.png`. `@capacitor/assets` only writes mipmaps up to 192px, so
+  this one is generated separately; regenerate it whenever the source art
+  changes.
 
 ---
 
