@@ -42,29 +42,29 @@ approved — and each one says so.
 | # | Item | Description | Who |
 |---|---|---|---|
 | 11 | Confirm the leaderboard migration is applied | `supabase/migrations/20260816_leaderboard_integrity.sql` — verify the trigger, columns and policies exist. | You |
-| 12 | Stop the Supabase project auto-pausing | A free project auto-pauses after ~7 days idle, which takes the whole game down. **Handled without paying** by `.github/workflows/supabase-keepalive.yml` — enable it in the repo's Actions tab. Paying for Pro is the alternative, not the requirement. | Both |
+| 12 | Stop the Supabase project auto-pausing | **Done, without paying.** `.github/workflows/supabase-keepalive.yml` is enabled and has run green (HTTP 200 from the project). Paying for Pro remains the alternative, not the requirement. | Both |
 | 13 | Verify RLS on every table | Confirm players can only write their own rows and only the admin account can write override tables. | You |
 | 14 | Decide the email-confirmation setting | Signup has no "check your inbox" state, so confirmations being on is confusing today. | You |
-| 15 | Add the reset-password redirect URL | Supabase must allow `https://functionplane.pages.dev/auth/reset` as a redirect target. | You |
+| 15 | Add the reset-password redirect URL | **Done.** Site URL set to the site root and `https://functionplane.pages.dev/auth/reset` added to the allow-list; that page is live again after the redirect-loop fix. | You |
 | 16 | Reset all test data | Wipe progress, scores and times so the public leaderboard starts clean. | You |
 
 ## Website
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 17 | Publish the legal-text corrections | The privacy policy no longer lists Google Fonts or CDNs as processors; the live site must match. | You |
-| 18 | Correct the level count and ad wording | The site advertises 140 levels; v1 ships 70, and the game is fully ad-free. | You |
-| 19 | Add a web account-deletion page | **Done** — `legal/delete-account.html`, matching the existing legal pages. **You still need to deploy it** to `https://functionplane.pages.dev/delete-account.html`; the Data safety form checks the URL resolves. | Both |
+| 17 | Publish the legal-text corrections | **Done.** `/privacy` and `/terms` on the live site are byte-identical to `legal/privacy.html` and `legal/terms.html`. | You |
+| 18 | Correct the level count and ad wording | **Done.** The site says 70 levels / 210 stars and carries no ad claims. The footer's reversed support address was fixed at the same time. | You |
+| 19 | Add a web account-deletion page | **Done and deployed** — `https://functionplane.pages.dev/delete-account.html` serves the real page. It previously fell through to the site's catch-all and returned the homepage with a 200. | Both |
 
 ## Store submission
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 20 | Generate the Android project | `android/` has never been created; it is gitignored and built locally. | You |
-| 21 | Create and back up the signing keystore | Losing it means never being able to update the app again, with no recovery. | You |
-| 22 | Generate app icons and splash | Source art exists in `assets/`; the tooling needs a real machine. | You |
-| 23 | Set the version scheme | `versionCode` must increase on every single upload, forever. | You |
-| 24 | Confirm the target API level | **Blocker, with a deadline.** Capacitor 6 (what `package.json` pins) generates an Android project targeting API 34. Google's floor is already 35, and from **31 Aug 2026** every new app and update needs **36**. Fix by upgrading to Capacitor 8 *before* `cap add android` — step 0 of `PLAYTEST-SETUP.md`. | You |
+| 20 | Generate the Android project | **Done.** `android/` regenerated on Capacitor 8; still gitignored and local. | You |
+| 21 | Create and back up the signing keystore | **Done.** PKCS12 upload key (alias `function-plane`, valid to 2054), read by Gradle from the gitignored `android/keystore.properties`; `app-release.aab` is built and its signature verified against the key. **Still back the `.jks` up offline.** | You |
+| 22 | Generate app icons and splash | **Done.** 87 launcher/splash assets, plus `store-assets/icon-512.png` (opaque, 512x512) for the Console. | You |
+| 23 | Set the version scheme | **Done** at `versionCode 1` / `versionName "1.0"`. It must increase on every single upload, forever. | You |
+| 24 | Confirm the target API level | **Done.** `package.json` pins Capacitor 8; `variables.gradle` reads min 24 / compile 36 / target 36, confirmed as `targetSdkVersion:'36'` in a compiled artifact. | You |
 | 25 | Store listing text | **Drafted** in `store-assets/LISTING.md` — title, short and full description, all within Google's limits, plus the exact Data safety and content-rating answers. Yours to approve or rewrite. | Both |
 | 26 | Screenshots and feature graphic | **Done, pending your approval.** Eight real 1080×1920 captures in `store-assets/screenshots/` and a `1024×500` feature graphic, both generated from the running app. Re-capture once the real levels exist — the current shots use placeholder levels. | Both |
 | 27 | Complete the Data safety form | Declares email + progress, no ads, no third-party sharing — all now literally true. | You |

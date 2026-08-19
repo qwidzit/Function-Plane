@@ -19,19 +19,19 @@ dropping below 12. Recruit ~15 for margin.
 
 Only these, from [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md):
 
-| # | Item | Why it blocks |
+| # | Item | Status |
 |---|---|---|
-| 24 | Confirm the target API level | **Do this one first — see the warning below.** An upload below Google's floor is rejected outright, and the fix is far cheaper before `android/` exists. |
-| 11 | Confirm the leaderboard migration is applied | Testers create real accounts and real scores; the guard should be live before that data exists. |
-| 12 | Stop the Supabase project auto-pausing | It pausing mid-test looks like a broken game to 12 people at once. **Does not require paying** — a free scheduled keepalive is committed, see step 11. |
-| 15 | Add the reset-password redirect URL | A tester who forgets their password is stuck otherwise. |
-| 20 | Generate the Android project | Nothing to upload without it. |
-| 21 | Create and back up the signing keystore | The first upload locks the app to this key permanently. |
-| 22 | Generate app icons and splash | A default Capacitor icon on 15 phones is avoidable. |
-| 23 | Set the version scheme | Every upload after the first is rejected without an increasing `versionCode`. |
-| 27 | Complete the Data safety form | Required before any track, including closed, can be released. |
-| 28 | Complete the content rating questionnaire | Same. |
-| 19 | Add a web account-deletion page | Required for any app with accounts. **The page is written** (`legal/delete-account.html`) — it just needs deploying with the rest of the website. |
+| 24 | Confirm the target API level | **Done.** Capacitor 8, `targetSdkVersion = 36`, verified in a compiled artifact. |
+| 11 | Confirm the leaderboard migration is applied | **Done** (step 9), guard proven to reject a bad row (step 10). |
+| 12 | Stop the Supabase project auto-pausing | **Done, without paying.** The keepalive workflow is enabled and has run green. |
+| 19 | Add a web account-deletion page | **Done and deployed** — `https://functionplane.pages.dev/delete-account.html` serves the real page. |
+| 20 | Generate the Android project | **Done.** `android/` exists on Capacitor 8. |
+| 22 | Generate app icons and splash | **Done.** 87 assets, plus `store-assets/icon-512.png` for the Console. |
+| 23 | Set the version scheme | **Done.** `versionCode 1` / `versionName "1.0"`, matching the app's `v 1.0 · build 1`. |
+| 15 | Add the reset-password redirect URL | **Done.** Site URL and redirect URL set; the page they point at is live. |
+| 21 | Create and back up the signing keystore | **Done.** PKCS12 upload key, wired into Gradle; a signed AAB is built and verified. **Back the `.jks` up.** |
+| 27 | Complete the Data safety form | **Outstanding — step 22.** Required before any track, including closed, can be released. |
+| 28 | Complete the content rating questionnaire | **Outstanding — step 21.** Same. |
 
 **Deliberately not blockers:** items 1–4 (content), 5–10 (payments), 17–18
 (website copy), 25–26 (listing text and screenshots — both drafted for you in
@@ -42,18 +42,19 @@ If you're shipping v1 without premium, decide item 10 now — it removes items
 
 ---
 
-> [!WARNING]
-> **The target API level is a hard blocker and it has a deadline.**
+> [!NOTE]
+> **The target API level is settled.** This was the hard blocker, and it is
+> done.
 >
-> `package.json` pins **Capacitor 6**, which generates an Android project
-> targeting **API 34**. Google's floor for a new app is already **API 35**, and
-> from **31 August 2026** every new app and every update must target **API 36**
-> (Android 16). An AAB below the floor is rejected at upload — you never get to
-> the review stage.
+> Google's floor for a new app is **API 35**, and from **31 August 2026** every
+> new app and every update must target **API 36** (Android 16). An AAB below
+> the floor is rejected at upload — you never get to the review stage.
 >
-> Fix it in step 0 below, *before* running `cap add android`. There is no
-> `android/` folder yet, so upgrading now costs one `npm install`; doing it
-> after means migrating a generated native project by hand.
+> `package.json` now pins **Capacitor 8**, `android/variables.gradle` reads
+> `minSdkVersion = 24` / `compileSdkVersion = 36` / `targetSdkVersion = 36`,
+> and a debug build was compiled from it and inspected: the packaged manifest
+> reports `targetSdkVersion:'36'`. Nothing further is needed here — just do
+> not regenerate `android/` from an older Capacitor.
 
 ---
 
@@ -78,11 +79,11 @@ folder — run `dir` and check you can see `package.json`.
 
 ## Step by step
 
-> **Where you are.** Steps **1–2, 4–10 and 13–17** are done. Still outstanding:
-> **3** (run the test suite), **11** (the Supabase plan decision — there is a
-> free route, see below), **12** (Site URL + redirect URL), and **18–27**
-> (Play Console, then the first release). Steps marked `[done]` need no
-> further action.
+> **Where you are.** Steps **1–17** are done. A signed release bundle exists
+> and has been verified against the keystore. Everything left is Play Console
+> work — **18–27** (create the app, listing, declarations, upload) and then
+> **28–39** (testers and the 14 days). Steps marked `[done]` need no further
+> action.
 
 
 ### 0. Raise the target API level (item 24)
@@ -99,7 +100,7 @@ folder — run `dir` and check you can see `package.json`.
    Capacitor 8 needs **JDK 21** and a recent Android Studio. If `npx cap` then
    complains about the Java version, install JDK 21 and point Android Studio at
    it (*Settings → Build Tools → Gradle → Gradle JDK*).
-3. **Run the test suite.** In a terminal in the project folder:
+3. `[done]` **Run the test suite.** In a terminal in the project folder:
 
    ```bash
    npm test
@@ -184,8 +185,11 @@ folder — run `dir` and check you can see `package.json`.
    ```
 
    This writes the launcher icons and splash screens into `android/`. It does
-   not reliably produce the separate 512×512 PNG the Console asks for, so make
-   that one yourself in step 19.
+   not produce the separate 512×512 PNG the Console asks for — that one is
+   already generated for you at `store-assets/icon-512.png`, flattened onto
+   `#0e0f10` because Play rejects a store icon with transparency and the
+   source art has transparent corners. Regenerate it if the source art
+   changes.
 8. `[done]` Set the version scheme in `android/app/build.gradle`:
 
    ```gradle
@@ -315,7 +319,7 @@ fix once real data exists.
     delete from public.level_scores where best_score = 1 and level_index = 0;
     ```
 
-11. **Deal with the free tier pausing (item 12).**
+11. `[done]` **Deal with the free tier pausing (item 12).**
 
     The problem: a free project **pauses itself after about 7 days with no
     requests**. A paused project does not refuse connections, it stops
@@ -361,7 +365,7 @@ fix once real data exists.
     > **If the project has already paused**, open the dashboard and click
     > **Restore project**. It takes a few minutes and loses nothing.
 
-12. **Add the reset-password redirect URL (item 15).**
+12. `[done]` **Add the reset-password redirect URL (item 15).**
 
     Go to
     <https://supabase.com/dashboard/project/miuxqxllxjvxddolpzno/auth/url-configuration>
@@ -390,6 +394,13 @@ fix once real data exists.
     exact string in `resetPassword()`, and a mismatch makes password recovery
     fail with an error page instead of working.
 
+    The page at the other end is live and working. It used to redirect to
+    itself forever: Cloudflare Pages 308-redirects any `.html` URL to its
+    extensionless form, so the explicit `_redirects` rewrite pointing
+    `/auth/reset` at `/auth/reset.html` bounced straight back. Those rules are
+    gone, and `/auth/reset` now serves the reset form. So if the end-to-end
+    test below fails, the cause is the allow-list entry above, not the site.
+
     **Then test it end to end**, because "it looks right" is not evidence:
     open the app, sign out, tap *Forgot password*, enter an address you can
     actually read email at, click the link in the email, set a new password,
@@ -412,46 +423,69 @@ fix once real data exists.
 
 ### 3. Create the signing key (item 21)
 
-**Where you are:** Android Studio, on your own machine.
+**Where you are:** a terminal in the project folder. This was done without
+Android Studio — `keytool` makes the key and Gradle builds the bundle, which
+avoids the wizard entirely and is repeatable.
 
-**Opening the project the right way.** From a terminal in the project folder:
+14. `[done]` **Create the upload keystore.** The command prompts for the
+    passwords, so they never appear in a command line or in shell history:
 
-```bash
-npx cap open android
-```
+    ```bat
+    "C:\Program Files\Android\Android Studio\jbrin\keytool.exe" -genkeypair -v -keystore "%USERPROFILE%unction-plane-upload.jks" -alias function-plane -keyalg RSA -keysize 2048 -validity 10000
+    ```
 
-That launches Android Studio pointed at the `android/` folder. If you would
-rather do it by hand: Android Studio → **File → Open** → select the `android`
-folder *inside* `Function-Plane` (not `Function-Plane` itself — opening the
-wrong folder is the most common way to get a project that will not build).
+    The result is a **PKCS12** keystore, which is the modern default. That
+    matters: PKCS12 **requires the key password and the store password to be
+    the same value**. If you are asked for a "key password" and press Enter,
+    it reuses the store password, which is the correct outcome.
 
-The first time, a progress bar at the bottom reads *Gradle sync* and can take
-several minutes on a cold cache. **Wait for it to finish** before touching any
-menu; most "the menu item is greyed out" problems are just an unfinished sync.
+15. `[done]` **Point Gradle at it.** `android/keystore.properties` holds four
+    lines — `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. The whole
+    `android/` folder is gitignored, and the `.jks` itself lives outside the
+    repository, so neither is committed.
 
-14. `[done]` **Build → Generate Signed App Bundle / APK** (older versions say *Generate
-    Signed Bundle / APK*). Choose **Android App Bundle**, then **Next**, then
-    **Create new…** under the key store field.
-15. `[done]` Fill in the keystore dialog: pick a path, set a password, set a key alias
-    and key password, fill in at least first/last name and country. Then save
-    **the keystore file and both passwords** somewhere permanent that is **not
-    this repository** — a password manager, plus one offline backup (a USB
-    stick or a printed copy in a drawer both count).
-16. `[done]` Opt into **Play App Signing** when the Console offers it on your first
+    `android/app/build.gradle` reads that file into a `signingConfigs.release`
+    block and attaches it to the release build type. Both are guarded on the
+    file existing, so a machine without the keystore can still build debug.
+
+    > **Back up the `.jks` and its password now** — password manager plus one
+    > offline copy. This is the only genuinely irreversible thing in this guide.
+    > Note also that `android/` is gitignored: regenerating it with `cap add
+    > android` wipes the signing block out of `build.gradle`, and it has to be
+    > added back.
+
+16. Opt into **Play App Signing** when the Console offers it on your first
     upload. It lets Google re-issue your app signing key if the upload key is
     ever lost. Without it, a lost keystore means the app **can never be updated
     again** — not by you, not by Google, not by anyone. There is no appeal
     process for this.
-17. `[done]` Finish the wizard, choose the **release** build variant, and click
-    **Create**. When it completes, Android Studio shows a notification with a
-    **locate** link; the file is at:
+
+17. `[done]` **Build the signed bundle.**
+
+    ```bash
+    npx cap sync android
+    cd android && gradlew bundleRelease
+    ```
+
+    The bundle lands at:
 
     ```
-    android/app/release/app-release.aab
+    android/app/build/outputs/bundle/release/app-release.aab
     ```
 
-    That `.aab` is what you upload. If you only see `.apk` files, you picked
-    APK instead of Android App Bundle — run the wizard again.
+    (Not `android/app/release/` — that is where the Android Studio wizard puts
+    it. Ignore `intermediary-bundle.aab` under `build/intermediates/`; it is an
+    unsigned build artefact, not the thing you upload.)
+
+    Confirm it really is signed before uploading:
+
+    ```bash
+    keytool -printcert -jarfile android/app/build/outputs/bundle/release/app-release.aab
+    ```
+
+    The SHA256 it prints must match the one `keytool -list -v` shows for the
+    keystore. For the current key that is
+    `A9:28:DA:F5:75:DB:8A:E1:...:7D:EF:42:C4`, valid until 2054.
 
 ### 4. Set up the Play Console listing (items 25, 26, 27, 28)
 
@@ -488,7 +522,7 @@ search box at the top of the Console finds pages by name.
 
     | Asset | Where it is | Notes |
     |---|---|---|
-    | App icon, 512×512 PNG | resize `assets/icon.png` to exactly 512×512 in any image editor | required; must be PNG, no transparency |
+    | App icon, 512×512 PNG | `store-assets/icon-512.png` | required; already the right size, PNG, and fully opaque |
     | Feature graphic, 1024×500 PNG | `store-assets/feature-graphic-1024x500.png` | required |
     | Phone screenshots | `store-assets/screenshots/` | minimum 2, upload 4–6 |
 
@@ -525,9 +559,11 @@ search box at the top of the Console finds pages by name.
     - Everything else — location, photos, contacts, advertising ID, crash logs
       — is **not collected**.
 
-    > **Deploy `legal/delete-account.html` to the website before you submit
-    > this form.** Google checks that the deletion URL resolves, and a 404 here
-    > is a rejection.
+    > **The deletion page is already deployed** —
+    > <https://functionplane.pages.dev/delete-account.html> serves the real
+    > page, so this form has nothing blocking it. (It used to fall through to
+    > the site's catch-all and return the homepage with a 200, which would have
+    > passed Google's automated check and failed a human one.)
 
 23. **The remaining declarations.** Still on **App content**, work down whatever
     the page still shows as incomplete: *Ads* (answer **No ads**), *Target
@@ -594,16 +630,23 @@ search box at the top of the Console finds pages by name.
 
 ### 7. During the 14 days
 
-31. Keep uploading. The loop each time:
+31. Keep uploading. Signing is wired into Gradle, so the whole loop is three
+    commands:
 
     ```bash
-    # 1. bump versionCode in android/app/build.gradle first
+    # 1. bump versionCode in android/app/build.gradle first (and versionName +
+    #    the two "v 1.0 · build 1" strings if the human version changed)
     npx cap sync android
+    cd android && gradlew bundleRelease
     ```
 
-    then Android Studio → *Build → Generate Signed App Bundle / APK* → choose
-    the **existing** keystore this time → upload the new `.aab` to the same
-    closed track. Testers update automatically.
+    Upload the new `android/app/build/outputs/bundle/release/app-release.aab`
+    to the same closed track. Testers update automatically.
+
+    **`versionCode` must be higher than every build you have ever uploaded**,
+    including ones you discarded — Play rejects a re-used integer. `npm test`
+    checks that the two on-screen version strings agree with each other, but
+    nothing checks them against `build.gradle`, so change all three together.
 
 32. Work through the rest of `RELEASE-CHECKLIST.md` — the content items (1–4)
     are the long pole and should get most of this window.

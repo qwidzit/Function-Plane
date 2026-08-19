@@ -23,3 +23,6 @@ Thumbs.db
 **/secrets.json
 .env
 .env.local
+
+# The website lives in its own repo (qwidzit/Function-Plane-Website), cloned here for convenience
+Function-Plane-Website/
