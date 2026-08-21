@@ -21,6 +21,11 @@ const TICK_DT = 1 / 60;
 // behind rather than freezing the UI trying to replay lost seconds.
 const MAX_TICKS = 5;
 const STAR_R = 0.55;
+// How big a star is *drawn*, in world units. Kept at the size the old fixed
+// 11px star had at the default scale of 40, so no authored level changes
+// appearance — it just holds that proportion at every zoom now. Smaller than
+// STAR_R, which is the collection radius, not the artwork.
+const STAR_DRAW_R = 11 / 40;
 const BALL_R = 0.22;
 // Stroke widths, named because the ball's drawn radius has to subtract them:
 // an SVG stroke straddles its path, so the curve covers EQ_STROKE/2 px either
@@ -330,6 +335,23 @@ function CoordPlane({
     scale: 40
   });
 
+  // The box the last auto-zoom was asked to frame, kept until the player takes
+  // manual control of the view. Non-null means "this fit is still mine to
+  // maintain".
+  const fitRef = useRL(null);
+  const applyFit = (box, w, h) => {
+    const padX = Math.max(2, (box.maxX - box.minX) * 0.3);
+    const padY = Math.max(2, (box.maxY - box.minY) * 0.4);
+    const bw = box.maxX - box.minX + padX * 2;
+    const bh = box.maxY - box.minY + padY * 2;
+    const scale = Math.max(8, Math.min(120, Math.min(w / bw, h / bh)));
+    setView({
+      cx: (box.minX + box.maxX) / 2,
+      cy: (box.minY + box.maxY) / 2,
+      scale
+    });
+  };
+
   // Auto-zoom: when Play is pressed (autoZoomTrigger increments), fit the
   // ball start position + all target stars into view.
   useEL(() => {
@@ -337,21 +359,24 @@ function CoordPlane({
     if (autoZoomTrigger == null) return;
     const xs = [startPos.x, ...levelStars.map(s => s.x)];
     const ys = [startPos.y, ...levelStars.map(s => s.y)];
-    const minX = Math.min(...xs),
-      maxX = Math.max(...xs);
-    const minY = Math.min(...ys),
-      maxY = Math.max(...ys);
-    const padX = Math.max(2, (maxX - minX) * 0.3);
-    const padY = Math.max(2, (maxY - minY) * 0.4);
-    const w = maxX - minX + padX * 2;
-    const h = maxY - minY + padY * 2;
-    const scale = Math.max(8, Math.min(120, Math.min(width / w, height / h)));
-    setView({
-      cx: (minX + maxX) / 2,
-      cy: (minY + maxY) / 2,
-      scale
-    });
+    const box = {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys)
+    };
+    fitRef.current = box;
+    applyFit(box, width, height);
   }, [autoZoomTrigger]);
+
+  // Pressing Play also closes the equation keyboard, so at the instant the fit
+  // above runs the plane is still the squeezed height it had underneath the
+  // panel — which fitted the level into a sliver and read as "zoomed way out".
+  // Re-fit as the plane grows back into the space the panel gave up.
+  useEL(() => {
+    if (!fitRef.current || width <= 0 || height <= 0) return;
+    applyFit(fitRef.current, width, height);
+  }, [width, height]);
   const svgRef = useRL(null);
   const ptrsRef = useRL({});
   const panRef = useRL(null); // { sx, sy, cx, cy }
@@ -463,6 +488,7 @@ function CoordPlane({
       } = panRef.current;
       const dx = e.clientX - sx,
         dy = e.clientY - sy;
+      fitRef.current = null;
       setView(v => ({
         ...v,
         cx: cx - dx / v.scale,
@@ -480,6 +506,7 @@ function CoordPlane({
       } = ps;
       const mx = ps.cx + (midPx - width / 2) / ps.scale;
       const my = ps.cy - (midPy - height / 2) / ps.scale;
+      fitRef.current = null;
       setView({
         cx: mx - (midPx - width / 2) / s,
         cy: my + (midPy - height / 2) / s,
@@ -511,6 +538,7 @@ function CoordPlane({
     const px = e.clientX - rect.left,
       py = e.clientY - rect.top;
     const f = Math.exp(-e.deltaY * 0.001);
+    fitRef.current = null;
     setView(v => {
       const s = Math.max(8, Math.min(400, v.scale * f));
       const mx = v.cx + (px - width / 2) / v.scale,
@@ -631,13 +659,22 @@ function CoordPlane({
       strokeLinejoin: "round"
     });
   });
+
+  // Stars are authored at an outer radius of 11 units in the path below, and
+  // STAR_DRAW_R is that radius expressed in *world* units, so a star zooms
+  // with the plane exactly as the ball and the curves do. Drawing them at a
+  // fixed pixel size made them balloon relative to everything else the moment
+  // Play framed the level. The floor keeps a star findable when zoomed right
+  // out; there is deliberately no ceiling, because "as big as the maths says"
+  // is the correct answer when zoomed in.
+  const starK = Math.max(5, STAR_DRAW_R * view.scale) / 11;
   const starsEl = simStars.map((s, i) => {
     if (s.collected) return null;
     const p = m2p(s.x, s.y);
     const isSel = selected === `star-${i}`;
     return /*#__PURE__*/React.createElement("g", {
       key: i,
-      transform: `translate(${p.x},${p.y})`
+      transform: `translate(${p.x},${p.y}) scale(${starK.toFixed(3)})`
     }, /*#__PURE__*/React.createElement("circle", {
       r: 14,
       fill: "var(--lv-bg)",
@@ -646,14 +683,14 @@ function CoordPlane({
       r: 19,
       fill: "none",
       stroke: "var(--lv-star)",
-      strokeWidth: 1.4,
+      strokeWidth: 1.4 / starK,
       opacity: 0.9
     }), /*#__PURE__*/React.createElement("path", {
       d: "M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z",
       fill: isSel ? 'var(--lv-star)' : 'none',
       fillOpacity: 0.25,
       stroke: "var(--lv-star)",
-      strokeWidth: 1.5,
+      strokeWidth: 1.5 / starK,
       strokeLinejoin: "round"
     }));
   });
@@ -797,31 +834,40 @@ function CoordPlane({
       borderRadius: 10
     }
   }, /*#__PURE__*/React.createElement(ZBtn, {
-    onClick: () => setView(v => ({
-      ...v,
-      scale: Math.min(400, v.scale * 1.4)
-    }))
+    onClick: () => {
+      fitRef.current = null;
+      setView(v => ({
+        ...v,
+        scale: Math.min(400, v.scale * 1.4)
+      }));
+    }
   }, "+"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
       background: 'var(--lv-line)'
     }
   }), /*#__PURE__*/React.createElement(ZBtn, {
-    onClick: () => setView(v => ({
-      ...v,
-      scale: Math.max(6, v.scale / 1.4)
-    }))
+    onClick: () => {
+      fitRef.current = null;
+      setView(v => ({
+        ...v,
+        scale: Math.max(6, v.scale / 1.4)
+      }));
+    }
   }, "\u2212"), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 1,
       background: 'var(--lv-line)'
     }
   }), /*#__PURE__*/React.createElement(ZBtn, {
-    onClick: () => setView({
-      cx: 0,
-      cy: 0,
-      scale: 40
-    }),
+    onClick: () => {
+      fitRef.current = null;
+      setView({
+        cx: 0,
+        cy: 0,
+        scale: 40
+      });
+    },
     sm: true
   }, /*#__PURE__*/React.createElement("svg", {
     width: 14,
@@ -1008,7 +1054,12 @@ function DomValBtn({
     }
   }, display);
 }
+
+// eqId scopes each segment's NumPad id. Without it two equations' first
+// segments both answer to "0-min", so opening one highlighted and echoed the
+// keypad value into every equation's matching field at once.
 function DomainEditor({
+  eqId,
   domain,
   onChange,
   domKb,
@@ -1059,20 +1110,20 @@ function DomainEditor({
       color: 'var(--fp-ink-3)'
     }
   }, "x \u2208"), /*#__PURE__*/React.createElement(DomValBtn, {
-    segId: `${i}-min`,
+    segId: `${eqId}-${i}-min`,
     val: seg.xMin,
     domKb: domKb,
-    onTap: () => onDomInput(`${i}-min`, seg.xMin, v => update(i, 'xMin', v))
+    onTap: () => onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i, 'xMin', v))
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       color: 'var(--fp-ink-3)'
     }
   }, "to"), /*#__PURE__*/React.createElement(DomValBtn, {
-    segId: `${i}-max`,
+    segId: `${eqId}-${i}-max`,
     val: seg.xMax,
     domKb: domKb,
-    onTap: () => onDomInput(`${i}-max`, seg.xMax, v => update(i, 'xMax', v))
+    onTap: () => onDomInput(`${eqId}-${i}-max`, seg.xMax, v => update(i, 'xMax', v))
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => remove(i),
     style: {
@@ -1100,12 +1151,20 @@ function NumPad({
   onChange,
   onDone
 }) {
+  const {
+    start: holdStart,
+    stop: holdStop
+  } = useKeyRepeat();
+  // Held backspace repeats, so it must read the *current* value each tick — a
+  // closure over `val` would delete the same character forever.
+  const valRef = useRL(val);
+  valRef.current = val;
   const ins = ch => {
     // only one leading minus allowed
     if (ch === '-' && val !== '') return;
     onChange(val + ch);
   };
-  const del = () => onChange(val.slice(0, -1));
+  const del = () => onChange(valRef.current.slice(0, -1));
   const clr = () => onChange('');
   const ROWS = [[{
     lbl: '7',
@@ -1184,7 +1243,8 @@ function NumPad({
       paddingBottom: 'max(5px, env(safe-area-inset-bottom, 0px))',
       userSelect: 'none',
       WebkitUserSelect: 'none',
-      touchAction: 'manipulation'
+      touchAction: 'manipulation',
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1219,8 +1279,11 @@ function NumPad({
     key: ki,
     onPointerDown: e => {
       e.preventDefault();
-      k.act();
+      if (k.t === 'del') holdStart(k.act);else k.act();
     },
+    onPointerUp: holdStop,
+    onPointerCancel: holdStop,
+    onPointerLeave: holdStop,
     style: {
       flex: 1,
       height: 38,
@@ -1432,6 +1495,7 @@ function EqRow({
     strokeWidth: 1.6,
     strokeLinecap: "round"
   })))), domOpen && /*#__PURE__*/React.createElement(DomainEditor, {
+    eqId: eq.id,
     domain: eq.domain,
     onChange: domain => onChange({
       domain: domain.length ? domain : null
@@ -1529,9 +1593,11 @@ function EquationsPanel({
       borderTop: '1px solid var(--lv-line)',
       display: 'flex',
       flexDirection: 'column',
-      // When any keyboard is open, remove the height cap so equations + keyboard
-      // are both fully visible (the plane above shrinks to accommodate).
-      maxHeight: anyKbOpen ? 'none' : expanded ? 300 : 188,
+      // When any keyboard is open the cap is raised so equations + keyboard are
+      // both visible (the plane above shrinks to accommodate) — but it stays a
+      // cap. Removing it entirely let the panel grow with every equation added
+      // until the keyboard had been pushed off the bottom of the screen.
+      maxHeight: anyKbOpen ? '80vh' : expanded ? 300 : 188,
       transition: anyKbOpen ? 'none' : 'max-height .2s ease'
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -1668,6 +1734,7 @@ function EquationsPanel({
     className: "fp-scroll",
     style: {
       flex: 1,
+      minHeight: 0,
       overflowY: 'auto',
       paddingBottom: 6
     }
@@ -1825,7 +1892,10 @@ function LevelScreen({
       cancelAnimationFrame(animRef.current);
       setRunning(false);
       resetSim();
-      setTrail(null);
+      // Keep the path, exactly as a run that ended on its own does. Stopping
+      // early is usually *because* the ball went somewhere unexpected, which
+      // is precisely when seeing where it went is worth most.
+      setTrail(physRef.current?.trail?.length > 1 ? physRef.current.trail : null);
       return;
     }
     if (classWarning) {

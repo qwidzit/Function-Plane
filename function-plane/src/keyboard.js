@@ -1,13 +1,55 @@
 // Function Plane — Custom math keyboard
 
 const {
-  useState: useKB
+  useState: useKB,
+  useRef: useRK,
+  useEffect: useEK
 } = React;
+
+// Hold-to-repeat, for keys that are safe to fire many times (backspace). A tap
+// fires once; holding starts repeating after HOLD_DELAY and then every
+// HOLD_RATE, the way a hardware key does. Shared with the domain NumPad in
+// level-screen.jsx, which loads after this file.
+const HOLD_DELAY = 420;
+const HOLD_RATE = 60;
+function useKeyRepeat() {
+  const timers = useRK({
+    delay: null,
+    rate: null
+  });
+  const stop = () => {
+    clearTimeout(timers.current.delay);
+    clearInterval(timers.current.rate);
+    timers.current = {
+      delay: null,
+      rate: null
+    };
+  };
+  // A pointer released outside the button never fires pointerup on it, so the
+  // interval has to be killed on unmount too or it repeats forever.
+  useEK(() => stop, []);
+  const start = act => {
+    stop();
+    act();
+    timers.current.delay = setTimeout(() => {
+      timers.current.rate = setInterval(act, HOLD_RATE);
+    }, HOLD_DELAY);
+  };
+  return {
+    start,
+    stop
+  };
+}
+window.useKeyRepeat = useKeyRepeat;
 function MathKeyboard({
   inputRef,
   onChange
 }) {
   const [page, setPage] = useKB('basic'); // 'basic' | 'advanced'
+  const {
+    start: holdStart,
+    stop: holdStop
+  } = useKeyRepeat();
   const ins = text => {
     const inp = inputRef?.current;
     if (!inp) return;
@@ -385,7 +427,8 @@ function MathKeyboard({
       paddingBottom: 'max(5px, env(safe-area-inset-bottom, 0px))',
       userSelect: 'none',
       WebkitUserSelect: 'none',
-      touchAction: 'manipulation'
+      touchAction: 'manipulation',
+      flexShrink: 0
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -405,8 +448,11 @@ function MathKeyboard({
     key: ki,
     onPointerDown: e => {
       e.preventDefault();
-      k.act();
+      if (k.t === 'del') holdStart(k.act);else k.act();
     },
+    onPointerUp: holdStop,
+    onPointerCancel: holdStop,
+    onPointerLeave: holdStop,
     style: {
       flex: 1,
       height: 38,

@@ -1,9 +1,39 @@
 // Function Plane — Custom math keyboard
 
-const { useState: useKB } = React;
+const { useState: useKB, useRef: useRK, useEffect: useEK } = React;
+
+// Hold-to-repeat, for keys that are safe to fire many times (backspace). A tap
+// fires once; holding starts repeating after HOLD_DELAY and then every
+// HOLD_RATE, the way a hardware key does. Shared with the domain NumPad in
+// level-screen.jsx, which loads after this file.
+const HOLD_DELAY = 420;
+const HOLD_RATE  = 60;
+
+function useKeyRepeat() {
+  const timers = useRK({ delay: null, rate: null });
+  const stop = () => {
+    clearTimeout(timers.current.delay);
+    clearInterval(timers.current.rate);
+    timers.current = { delay: null, rate: null };
+  };
+  // A pointer released outside the button never fires pointerup on it, so the
+  // interval has to be killed on unmount too or it repeats forever.
+  useEK(() => stop, []);
+  const start = act => {
+    stop();
+    act();
+    timers.current.delay = setTimeout(() => {
+      timers.current.rate = setInterval(act, HOLD_RATE);
+    }, HOLD_DELAY);
+  };
+  return { start, stop };
+}
+
+window.useKeyRepeat = useKeyRepeat;
 
 function MathKeyboard({ inputRef, onChange }) {
   const [page, setPage] = useKB('basic'); // 'basic' | 'advanced'
+  const { start: holdStart, stop: holdStop } = useKeyRepeat();
   const ins = text => {
     const inp = inputRef?.current;
     if (!inp) return;
@@ -184,6 +214,7 @@ function MathKeyboard({ inputRef, onChange }) {
       paddingBottom: 'max(5px, env(safe-area-inset-bottom, 0px))',
       userSelect: 'none', WebkitUserSelect: 'none',
       touchAction: 'manipulation',
+      flexShrink: 0,
     }}>
       <div style={{ display: 'flex', gap: 4, padding: '2px 2px 4px', justifyContent: 'center' }}>
         {tabBtn('basic',    'abc')}
@@ -193,7 +224,13 @@ function MathKeyboard({ inputRef, onChange }) {
         <div key={ri} style={{ display:'flex', gap:3, marginBottom: ri < ROWS.length-1 ? 3 : 0 }}>
           {row.map((k, ki) => (
             <button key={ki}
-              onPointerDown={e => { e.preventDefault(); k.act(); }}
+              onPointerDown={e => {
+                e.preventDefault();
+                if (k.t === 'del') holdStart(k.act); else k.act();
+              }}
+              onPointerUp={holdStop}
+              onPointerCancel={holdStop}
+              onPointerLeave={holdStop}
               style={{
                 flex: 1, height: 38, borderRadius: 7,
                 fontSize: k.lbl.length > 3 ? 10 : 12.5,

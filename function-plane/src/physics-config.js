@@ -18,13 +18,18 @@
 //   gliding forever, just not accelerating forever. It only comes to rest
 //   where the surface is flat enough that gravity has no tangential pull.
 //   0   = frictionless ice (the old behaviour)
-//   1.2 = a rolling ball; terminal speed ~7 units/s down a 45 degree slope
-//   4+  = sluggish, most momentum puzzles stop working
+//   0.6 = terminal speed ~14 units/s down a 45 degree slope
+//   1.2 = terminal ~7 units/s; reads as sluggish, slopes feel like mud
+//   4+  = most momentum puzzles stop working
+//
+//   Keep this low enough that a slope still feels like falling. The drag is
+//   linear in speed, so terminal speed scales as 1/traction: doubling this
+//   number halves how fast anything ever rolls.
 
 const PHYSICS_CONFIG = {
   energyRetention: 0.985,
   bounciness:      0.5,
-  traction:        1.2,
+  traction:        0.6,
 };
 
 window.PHYSICS_CONFIG = PHYSICS_CONFIG;
