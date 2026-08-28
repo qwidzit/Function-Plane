@@ -136,6 +136,33 @@ fully playable signed out:
 | App activity ▸ **Other actions** | level progress, stars, best scores, best times — Play files gameplay under this box, not App interactions | App functionality |
 | App activity ▸ **Other user-generated content** | the `equations` column on `level_scores` uploads the expression strings the player typed | App functionality |
 
+For each of the five, Play then asks whether the data is required and why it is
+collected:
+
+| Data type | Required or optional | Purposes |
+|---|---|---|
+| Name | Users can choose | App functionality, Account management |
+| Email address | Users can choose | Account management |
+| User IDs | Users can choose | App functionality, Account management |
+| Other actions | Users can choose | App functionality, Fraud prevention/security/compliance |
+| Other user-generated content | Users can choose | App functionality, Fraud prevention/security/compliance |
+
+Optional on all five because a signed-out player uploads nothing — progress
+stays in `localStorage` and no Supabase call is made. Every one of these types
+exists only because someone chose to make an account, and deleting it returns
+them to guest play.
+
+Fraud prevention is not padding on the two gameplay types: the database trigger
+rejects impossible scores and the admin audit re-scores the submitted equations
+with the real classifier to catch forged leaderboard entries
+(`admin-screen.js:199`). The equations also sync back inside the progress blob
+(`accounts.js:154`), which is the App functionality half.
+
+**Analytics stays unticked on every type** — no analytics SDK, no usage
+measurement, no crash reporter — as do Developer communications (password-reset
+mail is account management, and there are no push notifications), Advertising or
+marketing, and Personalization.
+
 Leave everything else unticked, and know why:
 
 - **App interactions** — no page-view, tap or session telemetry is sent.
