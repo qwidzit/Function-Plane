@@ -87,6 +87,34 @@ child-directed characters, mascots or themes.
 Full data-type table in [`LISTING.md`](./LISTING.md#data-safety-form-item-27).
 The screen's own questions:
 
+### Account creation
+
+**Username and password** — that one box, nothing else.
+
+`register()` in `function-plane/src/accounts.js` is the only sign-up path:
+display name, email, password (min 6), straight into Supabase `signUp`. There
+is no OAuth provider, no magic link or one-time password, no two-factor,
+no biometric and no SSO in the codebase. Password reset by email is account
+recovery, not a way to create one.
+
+### Account deletion
+
+URL: `https://functionplane.pages.dev/delete-account.html`
+
+The page documents both routes — in-app (account chip ▸ Delete account,
+immediate) and by email to `functionplane.support@gmail.com` within 30 days for
+users who can no longer sign in — and itemises what is deleted against what
+survives in backups. Deleting the account deletes all of its data; there is no
+partial-deletion path to declare.
+
+Worth confirming in Supabase before you rely on this answer: the in-app delete
+removes the `progress`, `level_scores` and `profiles` rows and trusts
+`profiles.id -> auth.users` to be `ON DELETE CASCADE` for the auth row itself.
+If that FK does not cascade, the email address outlives the deletion and this
+answer stops being true.
+
+### The rest of the screen
+
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
