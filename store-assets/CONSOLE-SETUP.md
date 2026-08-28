@@ -123,20 +123,42 @@ answer stops being true.
 | Is any of this data processed ephemerally? | No |
 | Is data collection required to use the app? | **No — optional**, on all three types. The game is fully playable signed out |
 
-Declare exactly three types, all *collected*, none *shared*, all *optional*:
+### Data types
 
-- **Personal info ▸ Name** — the chosen display name, shown publicly on
-  leaderboards. Purposes: App functionality, Account management.
-- **Personal info ▸ Email address** — sign-in and password reset. Purposes:
-  Account management.
-- **App activity ▸ Other in-app actions** — level progress, best scores, best
-  times. Purposes: App functionality.
+Tick exactly five, all *collected*, none *shared*, all *optional* — the game is
+fully playable signed out:
 
-Declare **not collected**: location, financial info, health and fitness,
-messages, photos and videos, audio, files and docs, calendar, contacts, search
-history, installed apps, crash logs, diagnostics, and **device or other IDs**
-including the advertising ID. (Revisit crash logs and diagnostics only if
-crash reporting ever ships.)
+| Box | What it is | Purposes |
+|---|---|---|
+| Personal info ▸ **Name** | the chosen display name, public on leaderboards | Account management |
+| Personal info ▸ **Email address** | sign-in credential | Account management |
+| Personal info ▸ **User IDs** | the Supabase account UUID keying every row | Account management, App functionality |
+| App activity ▸ **Other actions** | level progress, stars, best scores, best times — Play files gameplay under this box, not App interactions | App functionality |
+| App activity ▸ **Other user-generated content** | the `equations` column on `level_scores` uploads the expression strings the player typed | App functionality |
+
+Leave everything else unticked, and know why:
+
+- **App interactions** — no page-view, tap or session telemetry is sent.
+- **Crash logs, Diagnostics, Other app performance data** — no crash reporter
+  ships. Tick them in the same release that adds one (checklist item 30).
+- **Device or other IDs** — no advertising ID, no Device plugin; the app
+  declares `INTERNET` and nothing else.
+- **Approximate location** — no geolocation call and no location permission
+  anywhere in the app.
+- All of location, financial, health, messages, photos, video, audio, files,
+  calendar, contacts, search history, installed apps and web history.
+
+Two open points behind those answers:
+
+- `legal/privacy.html` section 1 claims the app collects "approximate region,
+  language, operating system, and version". Nothing in the code does — Supabase
+  request logs see an IP, which is exempt and is not a declared type. Google
+  cross-checks the policy against this form, so reword that sentence rather
+  than ticking Approximate location, and redeploy the page.
+- RLS is row-level, so the SELECT policy that lets the leaderboard read other
+  players' `level_scores` rows also exposes their `equations` column to any
+  authenticated caller, though no screen shows it. It does not change this form
+  (collected, not shared), but it belongs with checklist item 13.
 
 ## 7. Government apps
 
