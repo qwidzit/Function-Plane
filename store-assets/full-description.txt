@@ -1,0 +1,20 @@
+Function Plane is a puzzle game about functions.
+
+Every level gives you a ball, a set of stars, and an empty coordinate plane. Your job is to write the equations that build a track between them — then press Play and watch gravity do the rest.
+
+TYPE MATHS, NOT LEVELS
+y = sin(x) makes a wave. x² + y² = 25 makes a circle. y = 0.5x - 1 makes a ramp. Anything you can write, you can roll a ball down: polynomials, trigonometry, logarithms, exponentials, absolute values, sums, derivatives and integrals. Restrict a curve's domain to turn it into a platform.
+
+FEWER EQUATIONS, BETTER SCORE
+Clearing a level earns one star. Coming in under the score goal earns two. Solving it within the equation budget earns three. There is almost always a shorter answer than the one that worked — the game is really about finding it.
+
+A REAL PHYSICS SANDBOX UNDERNEATH
+The ball collides with the curve you actually drew, not an approximation of it — sharp corners, staircases from floor(x), high-frequency waves and asymptotes all behave the way they look. There is a free-play Sandbox mode with no goals, where you can move the ball and the stars anywhere and graph whatever you like.
+
+COMPETE, OR DON'T
+Per-level leaderboards for both lowest score and fastest time, and a global star ranking. Playing signed out is fully supported — progress is kept on your device.
+
+WHAT'S NOT IN IT
+No advertisements. No trackers or analytics. No advertising ID. Nothing is shared with third parties. The whole game is bundled in the app, so it plays offline and contacts nothing but its own account server.
+
+Made for anyone who liked graphing calculators more than they expected to.
