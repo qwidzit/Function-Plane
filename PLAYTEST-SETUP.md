@@ -431,7 +431,7 @@ avoids the wizard entirely and is repeatable.
     passwords, so they never appear in a command line or in shell history:
 
     ```bat
-    "C:\Program Files\Android\Android Studio\jbrin\keytool.exe" -genkeypair -v -keystore "%USERPROFILE%unction-plane-upload.jks" -alias function-plane -keyalg RSA -keysize 2048 -validity 10000
+    "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore "%USERPROFILE%\function-plane-upload.jks" -alias function-plane -keyalg RSA -keysize 2048 -validity 10000
     ```
 
     The result is a **PKCS12** keystore, which is the modern default. That
@@ -460,7 +460,8 @@ avoids the wizard entirely and is repeatable.
     again** — not by you, not by Google, not by anyone. There is no appeal
     process for this.
 
-17. `[done]` **Build the signed bundle.**
+17. **Build the signed bundle.** `[the first build is done, but it predates
+    the premium-card change — rebuild before uploading]`
 
     ```bash
     npx cap sync android
@@ -502,7 +503,7 @@ as explanation for the tasks on that list rather than as a replacement for it.
 Menu labels move between Console redesigns. If you cannot find something, the
 search box at the top of the Console finds pages by name.
 
-18. **Create the app.** *All apps → Create app*. Fill in:
+18. `[done]` **Create the app.** *All apps → Create app*. Fill in:
 
     | Field | Value |
     |---|---|
@@ -513,7 +514,7 @@ search box at the top of the Console finds pages by name.
 
     Tick the two declarations at the bottom and click **Create app**.
 
-19. **Fill in the store listing.** Left menu → **Grow** (or *Grow users*) →
+19. `[done]` **Fill in the store listing.** Left menu → **Grow** (or *Grow users*) →
     **Store presence → Main store listing**.
 
     All the text is written for you in
@@ -526,10 +527,16 @@ search box at the top of the Console finds pages by name.
     | Feature graphic, 1024×500 PNG | `store-assets/feature-graphic-1024x500.png` | required |
     | Phone screenshots | `store-assets/screenshots/` | minimum 2, upload 4–6 |
 
-    Suggested screenshot picks: `01-main`, `05-run`, `04-level`, `03-levels`,
-    `06-howtoplay`, `08-sandbox`. **Save** at the bottom.
+    Screenshot order, gameplay first: `04-level`, `05-run`, `03-levels`,
+    `06-howtoplay`, `01-main`. Skip `08-sandbox` until it can be re-shot with
+    curves on the plane — an empty plane reading `EQUATIONS 0` sells nothing.
+    **Save** at the bottom.
 
-20. **Add the privacy policy URL.** Left menu → **Policy** (some accounts show
+    The descriptions need plain text, so paste them from
+    `store-assets/short-description.txt` and
+    `store-assets/full-description.txt`, not from the markdown in `LISTING.md`.
+
+20. `[done]` **Add the privacy policy URL.** Left menu → **Policy** (some accounts show
     *Policy and programs*) → **App content** → *Privacy policy* → **Start**.
 
     ```
@@ -538,13 +545,13 @@ search box at the top of the Console finds pages by name.
 
     Google fetches this URL, so it must already be live. Save.
 
-21. **Content rating.** Same **App content** page → *Content rating* →
+21. `[done]` **Content rating.** Same **App content** page → *Content rating* →
     **Start**. Enter your email, choose category **Game**, then answer the
     questionnaire. Every substantive answer is **No** — the exact walkthrough,
     including the two questions that need care, is in `LISTING.md`. Submit at
     the end; the rating is issued immediately.
 
-22. **Data safety.** Same **App content** page → *Data safety* → **Start**.
+22. `[done]` **Data safety.** Same **App content** page → *Data safety* → **Start**.
 
     This is the longest form and the easiest to get wrong. `LISTING.md` has the
     complete per-field answers — work through it with that file open beside
@@ -554,10 +561,16 @@ search box at the top of the Console finds pages by name.
     - Data **is** encrypted in transit → *Yes*.
     - Users **can** request deletion → *Yes*, and the URL it asks for is
       `https://functionplane.pages.dev/delete-account.html`.
-    - Three data types are collected, none shared: **email address**, **user
-      IDs** (the display name), and **in-app actions** (level progress).
+    - Five data types are collected, none shared, all optional: **Name**,
+      **Email address**, **User IDs**, **Other actions** (progress, scores,
+      times) and **Other user-generated content** (the equations uploaded with
+      a score).
     - Everything else — location, photos, contacts, advertising ID, crash logs
       — is **not collected**.
+
+    Every answer, including the per-type purposes and the account-creation and
+    deletion questions, is written out in
+    [`store-assets/CONSOLE-SETUP.md`](./store-assets/CONSOLE-SETUP.md).
 
     > **The deletion page is already deployed** —
     > <https://functionplane.pages.dev/delete-account.html> serves the real
@@ -565,7 +578,7 @@ search box at the top of the Console finds pages by name.
     > the site's catch-all and return the homepage with a 200, which would have
     > passed Google's automated check and failed a human one.)
 
-23. **The remaining declarations.** Still on **App content**, work down whatever
+23. `[done]` **The remaining declarations.** Still on **App content**, work down whatever
     the page still shows as incomplete: *Ads* (answer **No ads**), *Target
     audience and content* (**13 and over** — do not tick any younger band, the
     privacy policy sets 13 as the floor), *News apps* (No), *Government apps*

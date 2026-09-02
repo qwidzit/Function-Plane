@@ -30,7 +30,7 @@ approved — and each one says so.
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 5 | Google Play Billing | The Play build must use Play Billing; Stripe is forbidden there for digital goods. | Both |
+| 5 | Google Play Billing | The Play build must use Play Billing; Stripe is forbidden there for digital goods. The premium card is hidden while `FP_PAY_CHANNEL` is `play` — remove that guard in `PremiumCard` in the same release that ships billing. | Both |
 | 6 | Restore purchases | A restore button is a Play requirement for any paid entitlement. | Claude |
 | 7 | Channel detection | **Done.** `FP_PAY_CHANNEL` in `src/store-config.js` resolves to `play` on any native build and `stripe` on web; the premium screen refuses to open a Stripe link unless the channel is `stripe`. A sideloaded build is treated as `play` — we can't tell it from a Play install without native code, and that's the safe way to be wrong. | Claude |
 | 8 | Entitlement webhook | A verified purchase has to flip `is_premium` server-side, not client-side. | Both |
@@ -52,7 +52,7 @@ approved — and each one says so.
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 17 | Publish the legal-text corrections | **Done.** `/privacy` and `/terms` on the live site are byte-identical to `legal/privacy.html` and `legal/terms.html`. | You |
+| 17 | Publish the legal-text corrections | **Re-opened.** `legal/privacy.html` and `legal/delete-account.html` were corrected for the Data safety filing (no location or device-info claim, equations disclosed, new effective date) and the live site still serves the old text. Hand `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` and both files to the website agent. | You |
 | 18 | Correct the level count and ad wording | **Done.** The site says 70 levels / 210 stars and carries no ad claims. The footer's reversed support address was fixed at the same time. | You |
 | 19 | Add a web account-deletion page | **Done and deployed** — `https://functionplane.pages.dev/delete-account.html` serves the real page. It previously fell through to the site's catch-all and returned the homepage with a 200. | Both |
 
@@ -65,10 +65,10 @@ approved — and each one says so.
 | 22 | Generate app icons and splash | **Done.** 87 launcher/splash assets, plus `store-assets/icon-512.png` (opaque, 512x512) for the Console. | You |
 | 23 | Set the version scheme | **Done** at `versionCode 1` / `versionName "1.0"`. It must increase on every single upload, forever. | You |
 | 24 | Confirm the target API level | **Done.** `package.json` pins Capacitor 8; `variables.gradle` reads min 24 / compile 36 / target 36, confirmed as `targetSdkVersion:'36'` in a compiled artifact. | You |
-| 25 | Store listing text | **Drafted** in `store-assets/LISTING.md` — title, short and full description, all within Google's limits, plus the exact Data safety and content-rating answers. Yours to approve or rewrite. | Both |
-| 26 | Screenshots and feature graphic | **Done, pending your approval.** Eight real 1080×1920 captures in `store-assets/screenshots/` and a `1024×500` feature graphic, both generated from the running app. Re-capture once the real levels exist — the current shots use placeholder levels. | Both |
-| 27 | Complete the Data safety form | Declares email + progress, no ads, no third-party sharing — all now literally true. | You |
-| 28 | Complete the content rating questionnaire | Short form; a puzzle game with no ads or user content rates trivially. | You |
+| 25 | Store listing text | **Done.** Pasted into the Console from `store-assets/short-description.txt` and `full-description.txt` (plain text; the Console fields take no markdown). Add a level count only once the levels exist. | Both |
+| 26 | Screenshots and feature graphic | **Uploaded**, in the order `04-level`, `05-run`, `03-levels`, `06-howtoplay`, `01-main`. Re-capture all of them once the real levels exist, and re-shoot the sandbox with curves on the plane before using it at all. | Both |
+| 27 | Complete the Data safety form | **Done.** Five types collected, none shared, all optional; answers recorded in `store-assets/CONSOLE-SETUP.md`. | You |
+| 28 | Complete the content rating questionnaire | **Done.** No to every substantive question, including all three digital-goods boxes; re-take it in the release that ships Play Billing. | You |
 
 ## App polish
 
