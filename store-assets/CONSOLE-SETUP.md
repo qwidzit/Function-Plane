@@ -62,8 +62,11 @@ Three that need a moment:
   display names and scores on a leaderboard, nothing else.
 - **Does the app share the user's location with other users?** No. Location is
   never collected.
-- **Does the app offer digital purchases?** No for this build — Play Billing is
-  not implemented yet. Flip it to Yes and re-take the questionnaire in the same
+- **Purchases, cash rewards, or transferable digital assets?** No to all three
+  boxes. Play Billing is not implemented, so nothing in the app can complete a
+  purchase; stars unlock later packs and cannot be traded, transferred or
+  cashed out; there is no crypto, token or NFT anywhere in the codebase. Tick
+  **Purchases of digital goods** and re-take the questionnaire in the same
   release that ships billing.
 
 Expected result: PEGI 3 / ESRB Everyone / USK 0 / IARC 3+.
