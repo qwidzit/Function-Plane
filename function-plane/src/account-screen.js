@@ -170,6 +170,9 @@ function StatusLine({
 function PremiumCard({
   onPremium
 }) {
+  // Nothing to sell inside the Play build until Play Billing ships, and a
+  // price list that cannot be bought reads as broken.
+  if ((window.FP_PAY_CHANNEL || 'stripe') !== 'stripe') return null;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       borderRadius: 18,
