@@ -52,9 +52,19 @@ cd ..
 Do this before every upload. An unsigned bundle is rejected at upload with a
 message that does not explain itself.
 
+**Run this from the project root.** Section A leaves you inside `android`, so
+`cd ..` first — otherwise the relative path resolves to `android\android\...`
+and keytool reports `NoSuchFileException`, which looks like a build failure and
+is not one.
+
 ```bat
 "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -printcert -jarfile android\app\build\outputs\bundle\release\app-release.aab
 ```
+
+From inside `android`, drop the leading `android\` from the path. Either way,
+`dir` the folder first if you are unsure the bundle exists at all — an empty or
+missing `app\build\outputs\bundle\release` means `gradlew bundleRelease`
+never finished with `BUILD SUCCESSFUL`.
 
 It prints a certificate with a SHA256 fingerprint. That fingerprint must match
 the one in your keystore, which you can print with:
@@ -197,6 +207,7 @@ Then rebuild exactly as in section A.
 | Message | What it means | Fix |
 |---|---|---|
 | `'gradlew' is not recognized` | You are not in the `android` folder | `cd android` first; the file is `android\gradlew.bat` |
+| `keytool error: NoSuchFileException` on the `.aab` | Wrong folder — the paths in section A run from `android`, the one in section B from the project root | `cd ..` before the keytool command, or drop the leading `android\` from the path |
 | `'npx' is not recognized` | Node.js is not installed or not on PATH | Install Node.js LTS, then reopen the terminal |
 | `JAVA_HOME is not set` / `Unsupported class file major version` | Gradle cannot find a JDK, or found the wrong one | `set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr` in that terminal, then rerun |
 | `SDK location not found` / `Define a valid SDK location` | `android\local.properties` is missing — it is machine-specific and gitignored, so it never arrives with the repo | From `android`, run `echo sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk> local.properties` (double every backslash; the path is in Android Studio → More Actions → SDK Manager) |
