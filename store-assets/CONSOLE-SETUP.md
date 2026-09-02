@@ -213,11 +213,22 @@ claims, no fitness or wellness tracking, no health research.
 | Field | Value |
 |---|---|
 | App category | **Puzzle** |
-| Tags | Puzzle, Brain games, Education, Casual (max 5) |
-| Email | `functionplane.support@gmail.com` |
+| Tags | up to 5, from the picker's fixed list: Physics, Brain games, Logic puzzle, Education, then Casual if a slot is spare |
+| Email | `functionplane.support@gmail.com` — the only mandatory field here |
 | Website | `https://functionplane.pages.dev` |
-| Phone | leave blank — optional, and it is shown publicly |
-| External marketing | opt out unless you want Google promoting the app |
+| Phone | leave blank — optional, publicly shown, and it gets scraped |
+| External marketing | leave opted in |
+
+Tags feed Play's recommendation placements, so a wrong one puts the game in
+front of people who bounce: four accurate tags beat five with a lie in them.
+Never tick Match 3, Word, Jigsaw, Trivia, Block puzzle, Hidden object, Escape
+room or Card & board. If Physics is not offered under Puzzle, do not switch
+category to chase it.
+
+External marketing lets Google promote the app outside the Play Store. It
+shares no user data, costs nothing, and is free reach for an unknown game; the
+reasons to opt out are brand-control reasons that need a marketing department.
+It has no effect at all during closed testing.
 
 ## 11. Store listing
 
