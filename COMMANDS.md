@@ -152,6 +152,22 @@ upload. It lets Google re-issue the app signing key if the upload key is ever
 lost, which turns a catastrophe into an inconvenience. It does not remove the
 need for these backups.
 
+## D2. If `android/` was ever regenerated
+
+`cap add android` rewrites `app\build.gradle` and wipes the signing block out
+of it, which produces an *unsigned* bundle that only fails at upload. A missing
+`local.properties` is often the first sign that the folder is not the one you
+originally set up. Check both:
+
+```bat
+dir keystore.properties
+findstr /i "signingConfigs keystore" app\build.gradle
+```
+
+`keystore.properties` must exist, and the `findstr` must print something. If
+either comes back empty, restore the signing config before building anything
+you intend to upload, and confirm with the `-printcert` check in section B.
+
 ## E. Every build after the first
 
 Play rejects any bundle whose `versionCode` it has seen before, **including
@@ -183,6 +199,7 @@ Then rebuild exactly as in section A.
 | `'gradlew' is not recognized` | You are not in the `android` folder | `cd android` first; the file is `android\gradlew.bat` |
 | `'npx' is not recognized` | Node.js is not installed or not on PATH | Install Node.js LTS, then reopen the terminal |
 | `JAVA_HOME is not set` / `Unsupported class file major version` | Gradle cannot find a JDK, or found the wrong one | `set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr` in that terminal, then rerun |
+| `SDK location not found` / `Define a valid SDK location` | `android\local.properties` is missing — it is machine-specific and gitignored, so it never arrives with the repo | From `android`, run `echo sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk> local.properties` (double every backslash; the path is in Android Studio → More Actions → SDK Manager) |
 | Build succeeds but the app looks unchanged | `npx cap sync android` was skipped | Run section A in full |
 | `-printcert` says the bundle is unsigned | `android\keystore.properties` is missing or wrong | Check its four lines: `storeFile`, `storePassword`, `keyAlias`, `keyPassword` |
 | `keytool` says "keystore password was incorrect" | PKCS12 keystores use one password for both store and key | Try the store password for both prompts |
