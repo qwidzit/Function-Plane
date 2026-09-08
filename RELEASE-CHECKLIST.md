@@ -52,11 +52,19 @@ approved — and each one says so.
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 17 | Publish the legal-text corrections | **Re-opened.** `legal/privacy.html` and `legal/delete-account.html` were corrected for the Data safety filing (no location or device-info claim, equations disclosed, new effective date) and the live site still serves the old text. Hand `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` and both files to the website agent. | You |
+| 17 | Publish the legal-text corrections | **Handed off, not yet verified live.** `legal/privacy.html` and `legal/delete-account.html` were corrected for the Data safety filing (no location or device-info claim, equations disclosed, new effective date) and the live site still serves the old text. The prompt and both files went to the website agent; fetch `/privacy.html` and `/delete-account.html` and compare the served HTML against `legal/` before trusting it. | You |
 | 18 | Correct the level count and ad wording | **Done.** The site says 70 levels / 210 stars and carries no ad claims. The footer's reversed support address was fixed at the same time. | You |
 | 19 | Add a web account-deletion page | **Done and deployed** — `https://functionplane.pages.dev/delete-account.html` serves the real page. It previously fell through to the site's catch-all and returned the homepage with a 200. | Both |
 
 ## Store submission
+
+> **Status: build 1 (`versionCode 1`) is in review on the closed testing
+> track.** The whole *Set up your app* task list is ticked, all declarations
+> are filed, and the release was sent for review from *Publishing overview*.
+> Nothing here moves until Google answers — a first submission from a new
+> account commonly takes several days, not the ~24 hours an update takes.
+> When it goes live: copy the opt-in link from the track's Testers tab, send
+> it to the list, and chase the opted-in count to 12+.
 
 | # | Item | Description | Who |
 |---|---|---|---|
@@ -66,7 +74,7 @@ approved — and each one says so.
 | 23 | Set the version scheme | **Done** at `versionCode 1` / `versionName "1.0"`. It must increase on every single upload, forever. | You |
 | 24 | Confirm the target API level | **Done.** `package.json` pins Capacitor 8; `variables.gradle` reads min 24 / compile 36 / target 36, confirmed as `targetSdkVersion:'36'` in a compiled artifact. | You |
 | 25 | Store listing text | **Done.** Pasted into the Console from `store-assets/short-description.txt` and `full-description.txt` (plain text; the Console fields take no markdown). Add a level count only once the levels exist. | Both |
-| 26 | Screenshots and feature graphic | **Uploaded**, in the order `04-level`, `05-run`, `03-levels`, `06-howtoplay`, `01-main`. Re-capture all of them once the real levels exist, and re-shoot the sandbox with curves on the plane before using it at all. | Both |
+| 26 | Screenshots and feature graphic | **Uploaded and submitted**, in the order `04-level`, `05-run`, `03-levels`, `06-howtoplay`, `01-main`. Re-capture all of them once the real levels exist, and re-shoot the sandbox with curves on the plane before using it at all. | Both |
 | 27 | Complete the Data safety form | **Done.** Five types collected, none shared, all optional; answers recorded in `store-assets/CONSOLE-SETUP.md`. | You |
 | 28 | Complete the content rating questionnaire | **Done.** No to every substantive question, including all three digital-goods boxes; re-take it in the release that ships Play Billing. | You |
 

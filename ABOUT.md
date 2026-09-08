@@ -586,12 +586,15 @@ the two channels require different, mutually exclusive payment systems:
       `account-screen.jsx`'s `PremiumView`. Allowed everywhere **except**
       inside the Play Store build. A Stripe webhook (Supabase Edge Function)
       sets `is_premium`.
-- [ ] **Environment detection** — the app must show the correct buy button
-      per channel: **Play Billing inside the Play build**, **Stripe on
-      web/sideload**. Never show Stripe links inside the Play Store build
-      (Google anti-steering). Detect via Capacitor platform + Play Billing
-      availability. Both paths converge on the same `is_premium` write, so
-      screen logic downstream is unchanged.
+- [x] **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
+      resolves to `play` on any native build and `stripe` on web. Never show
+      Stripe links inside the Play Store build (Google anti-steering).
+      Until Play Billing ships, `PremiumCard` in `account-screen.jsx` renders
+      nothing at all when the channel is `play`, so the native build has no
+      premium entry point; `PremiumView` keeps its own channel guard as the
+      check on the purchase button. **Remove that `PremiumCard` guard in the
+      release that adds billing.** Both paths converge on the same
+      `is_premium` write, so screen logic downstream is unchanged.
 - [ ] iOS equivalent uses StoreKit (RevenueCat covers it in the same
       integration).
 

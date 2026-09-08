@@ -8,6 +8,12 @@ Store listing copy, the Data safety table and the content-rating detail live in
 [`LISTING.md`](./LISTING.md) — this file is the click-through order and the
 answers to the screens that file does not cover.
 
+> **Status: all of this is filed, and build 1 was sent for review on the closed
+> testing track.** Two things are easy to miss on the way there: publishing the
+> release is not the same as submitting it — *Publishing overview* → **Send
+> changes for review** is what actually queues everything — and the App access
+> declaration below blocks that button until it carries a login.
+
 ---
 
 ## 1. Privacy policy URL
@@ -23,7 +29,27 @@ below declares.
 
 ## 2. App access ("Is any part of your app restricted?")
 
-**All functionality is available without special access.**
+**Answered Yes, with a reviewer login.**
+
+The instinctive answer is No — sign-in is optional, every level and the
+sandbox work signed out, nothing sits behind a paywall. But the Yes criteria
+are about what the app *includes*, not what it gates ("account sign in
+details, such as an email address, username"), and answering No leaves the
+pre-review check failing with *Missing sign in details*, which blocks sending
+for review at all. Filed as:
+
+| Field | Value |
+|---|---|
+| Name | `Optional account sign-in` |
+| Username / password | a throwaway account made through the app's own sign-up |
+| Other instructions | An account is optional. All 70 levels, the sandbox and settings work signed out — tap the account chip at the top right of the main screen to sign in and see cross-device sync and the leaderboards. |
+
+Never hand over the `Test Account` credentials: that display name is the admin
+gate in both the client and the Supabase policies. Keep the reviewer account
+alive and its password unchanged — a dead login is a rejection reason on later
+updates, not just this one.
+
+The old reasoning, kept because it is still what the app does:
 
 Every level, the sandbox, settings and the leaderboards work signed out;
 progress is kept on the device. An account is optional and unlocks only
@@ -37,13 +63,18 @@ Reviewers do not need it to see the whole game. If you would rather declare it
 anyway, add one restricted item named "Admin panel" with those credentials and
 the instruction "Account ▸ Admin".
 
-## 3. Ads
+## 3. Ads and advertising ID
 
-**No, my app does not contain ads.**
+**No ads**, and **No** to "Does your app use advertising ID?" — which hides
+the purpose checkboxes that follow it.
 
-There is no ad SDK, no advertising ID, and no ad network in the bundle. The
-game ships all its own code, fonts and images and contacts nothing but
-Supabase.
+There is no ad SDK, no ad network and no advertising ID in the bundle — the
+only native dependencies are `@capacitor/core`, `@capacitor/app`,
+`@capacitor/android` and `@capacitor/ios`. Any library using the advertising ID
+would have to declare the `AD_ID` permission, so
+`findstr /s /i "AD_ID" app\build\intermediates\*.xml` from `android` proves
+it. This also has to be No for consistency with Data safety, where the
+advertising ID is declared not collected.
 
 ## 4. Content rating
 

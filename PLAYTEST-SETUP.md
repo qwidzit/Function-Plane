@@ -460,8 +460,8 @@ avoids the wizard entirely and is repeatable.
     again** — not by you, not by Google, not by anyone. There is no appeal
     process for this.
 
-17. **Build the signed bundle.** `[the first build is done, but it predates
-    the premium-card change — rebuild before uploading]`
+17. `[done]` **Build the signed bundle.** Rebuilt after the premium-card
+    change and signature-verified.
 
     ```bash
     npx cap sync android
@@ -591,7 +591,7 @@ search box at the top of the Console finds pages by name.
 
 ### 5. Release to closed testing
 
-24. **Open the closed testing track.** Left menu → **Test and release** →
+24. `[done]` **Open the closed testing track.** Left menu → **Test and release** →
     **Testing → Closed testing**.
 
     There is usually already a track there called **Alpha**. Use it — click
@@ -599,7 +599,7 @@ search box at the top of the Console finds pages by name.
     first release. (If the list is empty, click **Create track** and name it
     anything.)
 
-25. **Add your testers.** Inside the track, open the **Testers** tab →
+25. `[done]` **Add your testers.** Inside the track, open the **Testers** tab →
     **Create email list**. Give it a name, paste in all ~15 tester email
     addresses (one per line, or comma-separated), and save. Tick the list so it
     is attached to this track.
@@ -608,7 +608,7 @@ search box at the top of the Console finds pages by name.
     phones. A work address that is not a Google account will silently never
     receive access.
 
-26. **Upload the build.** Back on the track, click **Create new release**.
+26. `[done]` **Upload the build.** Back on the track, click **Create new release**.
 
     - If prompted about **Play App Signing**, accept it (see step 16).
     - Drag `android/app/release/app-release.aab` into the upload box, or click
@@ -622,11 +622,31 @@ search box at the top of the Console finds pages by name.
     Then **Next** → review the warnings page → **Save and publish** (labelled
     *Start rollout to Closed testing* on some accounts). Confirm.
 
-    Google reviews closed-testing releases too, usually within about 24 hours.
-    The track shows *In review* until then; this is normal and nothing is
-    wrong.
+    **Publishing the release is not submitting it.** Afterwards, open
+    **Publishing overview** in the left menu: if it lists changes under
+    *Changes ready to send for review*, click **Send changes for review**.
+    Until that is clicked everything sits in draft. The submission carries the
+    release, the store listing and every App content declaration together.
 
-27. **Send out the opt-in link.** Once the release is live, go to the
+    Two blockers surfaced there on the first attempt:
+
+    - *Missing sign in details.* The App access declaration has to carry a
+      reviewer login even though nothing in the game is gated — see
+      [`store-assets/CONSOLE-SETUP.md`](./store-assets/CONSOLE-SETUP.md).
+    - *Advertising ID.* A separate App content item from the Ads one. Answer
+      **No**.
+
+    The deobfuscation-file warning on the bundle is informational: Capacitor
+    does not enable R8, so there is no mapping file to upload. Publish through
+    it.
+
+    Google reviews closed-testing releases too. An update on an established
+    account is often about 24 hours, but **a first submission from a new
+    developer account commonly takes several days** — Google allows up to seven
+    or more. The track shows *In review* until then; this is normal.
+
+27. **Send out the opt-in link.** *(Waiting on review — the link errors for
+    testers until the release is actually live on the track.)* Once the release is live, go to the
     **Testers** tab and copy the link under **How testers join your test** (it
     looks like `https://play.google.com/apps/testing/app.functionplane`).
     Send that to all ~15 testers.
