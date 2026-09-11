@@ -208,11 +208,15 @@ function auditRow(row) {
       reason: 'No equations submitted'
     };
   }
+  // Parameter definitions ("a=3.4") are submitted alongside the equations so
+  // the score recomputes against the same sliders. They are declarations, not
+  // curves: they carry no fn, cost nothing, and don't count toward eqsUsed.
   const parsed = exprs.map(expr => ({
     expr,
     ...parseEquation(expr)
   }));
-  const broken = parsed.filter(e => !e.fn);
+  const curves = parsed.filter(e => !e.param);
+  const broken = curves.filter(e => !e.fn);
   if (broken.length) {
     return {
       level: 'bad',
@@ -228,7 +232,7 @@ function auditRow(row) {
   }
   const allowed = getPack(row.pack_id)?.allowedClass;
   if (allowed) {
-    const wrong = parsed.filter(e => !classMatches(allowed, detectClass(e.expr)));
+    const wrong = curves.filter(e => !classMatches(allowed, detectClass(e.expr, window.FP_PARAMS)));
     if (wrong.length) {
       return {
         level: 'bad',
@@ -237,7 +241,7 @@ function auditRow(row) {
     }
   }
   const data = getLevelData(row.pack_id, row.level_index);
-  const expected = starRating(parsed.length, score, data.eqGoal, data.scoreGoal);
+  const expected = starRating(curves.length, score, data.eqGoal, data.scoreGoal);
   if (row.stars > expected) {
     // Not proof: a row holds a personal best, and a 3-star run with more
     // equations can score worse than a 2-star run with fewer, in which case

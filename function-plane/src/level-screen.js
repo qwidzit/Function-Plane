@@ -51,12 +51,14 @@ function classMatches(allowed, detected) {
   if (allowed === detected) return true;
   if (allowed === 'exp' && (detected === 'exp' || detected === 'log')) return true;
   if (allowed === 'trig' && (detected === 'trig' || detected === 'inverseTrig')) return true;
+  // A constant is a horizontal or vertical line — still a line.
+  if (allowed === 'linear' && detected === 'const') return true;
   return false;
 }
 function computeScore(equations) {
   const active = equations.filter(e => e.fn);
   if (active.length === 0) return 0;
-  const complexity = active.reduce((s, e) => s + classifyEquation(e.expr), 0);
+  const complexity = active.reduce((s, e) => s + classifyEquation(e.expr, window.FP_PARAMS), 0);
   return complexity + active.length * 20;
 }
 function starRating(eqsUsed, score, eqGoal, scoreGoal) {
@@ -66,21 +68,85 @@ function starRating(eqsUsed, score, eqGoal, scoreGoal) {
 }
 
 // ─── Equation parser — explicit y=f(x) or implicit F(x,y)=G(x,y) ────
+// Single letters other than x, y and the sum's n are slider parameters. They
+// resolve out of FP_PARAMS at call time, not compile time, so dragging a
+// slider redraws the curve without recompiling anything.
+const PARAM_LETTERS = 'abcdfghijklmopqrstuvwz';
+window.FP_PARAMS = window.FP_PARAMS || {};
+
+// Letter runs that are one identifier; every other run is a product of single
+// letters, so "ax" is a·x the way it reads on paper. Each "name(" is swapped
+// for a private-use character before the splitting happens, so a function
+// name can never be torn into variables.
+const FN_CALLS = {
+  sin: 'Math.sin',
+  cos: 'Math.cos',
+  tan: 'Math.tan',
+  asin: 'Math.asin',
+  acos: 'Math.acos',
+  atan: 'Math.atan',
+  arcsin: 'Math.asin',
+  arccos: 'Math.acos',
+  arctan: 'Math.atan',
+  sqrt: 'Math.sqrt',
+  abs: 'Math.abs',
+  log: 'Math.log',
+  ln: 'Math.log',
+  exp: 'Math.exp',
+  floor: 'Math.floor',
+  ceil: 'Math.ceil',
+  round: 'Math.round',
+  max: 'Math.max',
+  min: 'Math.min',
+  pow: 'Math.pow',
+  sgn: 'Math.sign',
+  sum: 'sum',
+  deriv: 'deriv',
+  integ: 'integ'
+};
+const FN_NAMES = Object.keys(FN_CALLS).sort((a, b) => b.length - a.length);
+const PH_BASE = 0xE000;
+const isPH = ch => ch >= '\uE000' && ch <= '\uE0FF';
+
+// Juxtaposition is multiplication: 2x, x(x+1), (x+1)(x-1), 3sin(x).
+function implicitMul(s) {
+  let out = '';
+  for (const c of s) {
+    const p = out[out.length - 1];
+    if (p !== undefined && !isPH(p) && /[a-zA-Z0-9.π)]/.test(p) && (isPH(c) || /[a-zA-Zπ(]/.test(c) || p === ')' && /[0-9.]/.test(c))) out += '*';
+    out += c;
+  }
+  return out;
+}
+
+// Single letters left in compiled code that aren't x, y or a loop variable.
+function freeParams(code) {
+  const found = {};
+  code.replace(/(^|[^A-Za-z0-9_.])([a-z])(?![A-Za-z0-9_])/g, (m, _pre, ch) => {
+    if (PARAM_LETTERS.indexOf(ch) >= 0) found[ch] = 1;
+    return m;
+  });
+  return Object.keys(found);
+}
+
+// Returns { code, params } — the JS source and the parameters it reads.
 function normExpr(s) {
   s = s.replace(/\s+/g, '');
-  // Aliases — accept full inverse-trig names that match how players write them.
-  s = s.replace(/\barcsin\(/g, 'asin(');
-  s = s.replace(/\barccos\(/g, 'acos(');
-  s = s.replace(/\barctan\(/g, 'atan(');
+  s = s.replace(/\bpi\b/g, 'π');
+  // A function name is the *tail* of a letter run that "(" follows: "asin(" is
+  // one name, "xsin(" is x times sin. A \b can't tell those apart — there is
+  // no word boundary between two letters — so match the longest known tail.
+  const calls = [];
+  s = s.replace(/([a-zA-Z]+)\(/g, (m, run) => {
+    const fn = FN_NAMES.find(f => run.endsWith(f));
+    if (!fn) return m;
+    return run.slice(0, run.length - fn.length) + String.fromCharCode(PH_BASE + calls.push(fn) - 1);
+  });
+  s = s.replace(/[a-zA-Z]{2,}/g, run => run.split('').join('*'));
+  s = implicitMul(s);
   s = s.replace(/π/g, '(Math.PI)');
   s = s.replace(/\^/g, '**');
-  s = s.replace(/(\d)([a-zA-Z(])/g, '$1*$2');
-  s = s.replace(/\)([a-zA-Z(0-9])/g, ')*$1');
-  const fns = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'abs', 'log', 'exp', 'floor', 'ceil', 'round', 'max', 'min', 'pow'];
-  fns.forEach(f => {
-    s = s.replace(new RegExp(`\\b${f}\\(`, 'g'), `Math.${f}(`);
-  });
-  s = s.replace(/\bln\(/g, 'Math.log(');
+  s = s.replace(/[\uE000-\uE0FF]/g, ch => FN_CALLS[calls[ch.charCodeAt(0) - PH_BASE]] + '(');
   s = s.replace(/\be\b/g, '(Math.E)');
   // JS forbids unary minus directly before ** ("-x**2" is a SyntaxError).
   // Maths convention is that -x^2 means -(x^2), so rewrite the offending
@@ -99,8 +165,12 @@ function normExpr(s) {
   // user-supplied identifiers): the body is wrapped inside a closure that
   // exposes only `n` (sum loop var) or `x` (the integration / derivative
   // variable), and the JS evaluator's strict scope handles the rest.
+  const params = freeParams(s);
   s = expandSpecialOps(s);
-  return s;
+  return {
+    code: s,
+    params
+  };
 }
 
 // Find the first call to `name(args)` in s (with balanced parens) and rewrite
@@ -160,59 +230,93 @@ function expandSpecialOps(s) {
   } while (s !== prev && --safety > 0);
   return s;
 }
+const PARAM_DEF_RE = new RegExp(`^([${PARAM_LETTERS}])=(-?\\d+(?:\\.\\d+)?)$`);
+
+// Only the parameters an expression actually reads are pulled in, so the
+// hot path stays two property reads rather than twenty-two.
+function compileFn(args, params, body) {
+  const decl = params.length ? `const{${params.join(',')}}=window.FP_PARAMS||{};` : '';
+  return new Function(...args, `${decl}try{return(${body});}catch(e){return NaN;}`);
+}
 function parseEquation(raw) {
-  if (!raw || !raw.trim()) return {
+  const none = {
     fn: null,
-    isImplicit: false
+    isImplicit: false,
+    param: null
   };
+  if (!raw || !raw.trim()) return none;
   const eq = raw.trim();
+
+  // "a=3.4" declares a slider parameter instead of a curve. It lands in
+  // FP_PARAMS synchronously, so the render this edit triggers already sees
+  // the new value through every curve that reads it.
+  const pd = PARAM_DEF_RE.exec(eq.replace(/\s+/g, ''));
+  if (pd) {
+    const value = parseFloat(pd[2]);
+    window.FP_PARAMS[pd[1]] = value;
+    return {
+      fn: null,
+      isImplicit: false,
+      param: {
+        name: pd[1],
+        value
+      }
+    };
+  }
   const eqIdx = eq.indexOf('=');
   if (eqIdx < 0) {
     try {
-      const fn = new Function('x', `try{return(${normExpr(eq)});}catch(e){return NaN;}`);
+      const n = normExpr(eq);
+      const fn = compileFn(['x'], n.params, n.code);
       fn(0);
       return {
         fn,
-        isImplicit: false
+        isImplicit: false,
+        param: null
       };
     } catch {
-      return {
-        fn: null,
-        isImplicit: false
-      };
+      return none;
     }
   }
   const lhs = eq.slice(0, eqIdx).trim();
   const rhs = eq.slice(eqIdx + 1).trim();
   if (lhs === 'y') {
     try {
-      const fn = new Function('x', `try{return(${normExpr(rhs)});}catch(e){return NaN;}`);
+      const n = normExpr(rhs);
+      const fn = compileFn(['x'], n.params, n.code);
       fn(0);
       return {
         fn,
-        isImplicit: false
+        isImplicit: false,
+        param: null
       };
     } catch {
-      return {
-        fn: null,
-        isImplicit: false
-      };
+      return none;
     }
   }
   const nL = normExpr(lhs),
     nR = normExpr(rhs);
   try {
-    const fn = new Function('x', 'y', `try{return(${nL})-(${nR});}catch(e){return NaN;}`);
+    const fn = compileFn(['x', 'y'], [...new Set([...nL.params, ...nR.params])], `(${nL.code})-(${nR.code})`);
     fn(0, 0);
     return {
       fn,
-      isImplicit: true
+      isImplicit: true,
+      param: null
     };
   } catch {
-    return {
-      fn: null,
-      isImplicit: false
-    };
+    return none;
+  }
+}
+
+// The parameters an expression reads but nothing has declared yet — what the
+// "add slider" prompt offers.
+function undeclaredParams(raw) {
+  if (!raw || !raw.trim()) return [];
+  try {
+    return normExpr(raw).params.filter(p => !(p in window.FP_PARAMS));
+  } catch {
+    return [];
   }
 }
 
@@ -1331,6 +1435,355 @@ function prettifyExpr(s) {
 }
 window.prettifyExpr = prettifyExpr;
 
+// ─── Typeset math (display only) ──────────────────────────────
+// prettifyExpr can only ever produce a line of text, so a quotient stayed
+// "a/b". This lays the expression out the way it is written on paper:
+// stacked fractions, raised powers, a radical with its overbar. It never
+// feeds the parser — eq.expr keeps the exact text the player typed.
+const MATH_FNS = ['arcsin', 'arccos', 'arctan', 'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sqrt', 'abs', 'log', 'ln', 'exp', 'floor', 'ceil', 'round', 'max', 'min', 'pow', 'sgn', 'sum', 'deriv', 'integ'];
+const FN_LABEL = {
+  asin: 'sin⁻¹',
+  acos: 'cos⁻¹',
+  atan: 'tan⁻¹',
+  arcsin: 'sin⁻¹',
+  arccos: 'cos⁻¹',
+  arctan: 'tan⁻¹',
+  ln: 'ln',
+  deriv: 'd/dx'
+};
+const FN_FENCE = {
+  abs: ['|', '|'],
+  floor: ['⌊', '⌋'],
+  ceil: ['⌈', '⌉']
+};
+function mathTokens(src) {
+  const out = [];
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (/\s/.test(c)) {
+      i++;
+      continue;
+    }
+    if (/[0-9.]/.test(c)) {
+      let j = i;
+      while (j < src.length && /[0-9.]/.test(src[j])) j++;
+      out.push({
+        t: 'num',
+        v: src.slice(i, j)
+      });
+      i = j;
+      continue;
+    }
+    if (/[a-zA-Z]/.test(c)) {
+      let j = i;
+      while (j < src.length && /[a-zA-Z]/.test(src[j])) j++;
+      const run = src.slice(i, j);
+      // A function name is the tail of a run that a "(" follows; whatever
+      // precedes it is a product of single letters, as the parser reads it.
+      const fn = src[j] === '(' ? MATH_FNS.find(f => run.endsWith(f)) : null;
+      const head = fn ? run.slice(0, run.length - fn.length) : run;
+      if (head === 'pi') out.push({
+        t: 'name',
+        v: 'π'
+      });else for (const ch of head) out.push({
+        t: 'name',
+        v: ch
+      });
+      if (fn) out.push({
+        t: 'fn',
+        v: fn
+      });
+      i = j;
+      continue;
+    }
+    if ((c === '<' || c === '>') && src[i + 1] === '=') {
+      out.push({
+        t: 'op',
+        v: c === '<' ? '≤' : '≥'
+      });
+      i += 2;
+      continue;
+    }
+    if (c === 'π') {
+      out.push({
+        t: 'name',
+        v: 'π'
+      });
+      i++;
+      continue;
+    }
+    if (c === '(' || c === ')' || c === ',') {
+      out.push({
+        t: c
+      });
+      i++;
+      continue;
+    }
+    if ('+-*/^=<>'.indexOf(c) >= 0) {
+      out.push({
+        t: 'op',
+        v: c
+      });
+      i++;
+      continue;
+    }
+    throw new Error('bad char');
+  }
+  return out;
+}
+const mathFrac = (num, den) => /*#__PURE__*/React.createElement("span", {
+  style: {
+    display: 'inline-flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 2px',
+    fontSize: '0.85em',
+    lineHeight: 1.12
+  }
+}, /*#__PURE__*/React.createElement("span", {
+  style: {
+    padding: '0 3px 1px'
+  }
+}, num), /*#__PURE__*/React.createElement("span", {
+  style: {
+    padding: '1px 3px 0',
+    borderTop: '1px solid currentColor',
+    width: '100%',
+    textAlign: 'center'
+  }
+}, den));
+function buildMath(toks) {
+  let i = 0;
+  const peek = () => toks[i];
+  const opIs = v => peek() && peek().t === 'op' && peek().v === v;
+  const atomNext = () => {
+    const t = peek();
+    return !!t && (t.t === 'num' || t.t === 'name' || t.t === 'fn' || t.t === '(');
+  };
+  const seq = parts => parts.length === 1 && React.isValidElement(parts[0]) ? parts[0] : /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center'
+    }
+  }, parts.map((p, k) => /*#__PURE__*/React.createElement("span", {
+    key: k,
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center'
+    }
+  }, p)));
+  function rel() {
+    const parts = [add()];
+    while (peek() && peek().t === 'op' && '=<>≤≥'.indexOf(peek().v) >= 0) {
+      parts.push(/*#__PURE__*/React.createElement("span", {
+        style: {
+          padding: '0 4px'
+        }
+      }, peek().v));
+      i++;
+      parts.push(add());
+    }
+    return seq(parts);
+  }
+  function add() {
+    const parts = [mul().el];
+    while (opIs('+') || opIs('-')) {
+      parts.push(/*#__PURE__*/React.createElement("span", {
+        style: {
+          padding: '0 3px'
+        }
+      }, peek().v === '-' ? '−' : '+'));
+      i++;
+      parts.push(mul().el);
+    }
+    return seq(parts);
+  }
+
+  // { el, bare } — bare is the element with one layer of parentheses peeled
+  // off, which is what belongs above and below a fraction bar.
+  function mul() {
+    let cur = unary();
+    for (;;) {
+      if (opIs('*')) {
+        i++;
+        const r = unary();
+        cur = {
+          el: seq([cur.el, /*#__PURE__*/React.createElement("span", {
+            style: {
+              padding: '0 1px'
+            }
+          }, "\xB7"), r.el]),
+          bare: null
+        };
+      } else if (opIs('/')) {
+        i++;
+        const r = unary();
+        cur = {
+          el: mathFrac(cur.bare || cur.el, r.bare || r.el),
+          bare: null
+        };
+      } else if (atomNext()) {
+        const r = unary();
+        cur = {
+          el: seq([cur.el, r.el]),
+          bare: null
+        };
+      } else return cur;
+    }
+  }
+  function unary() {
+    if (opIs('-')) {
+      i++;
+      const a = unary();
+      return {
+        el: seq([/*#__PURE__*/React.createElement("span", null, "\u2212"), a.el]),
+        bare: null
+      };
+    }
+    if (opIs('+')) {
+      i++;
+      return unary();
+    }
+    return power();
+  }
+  function power() {
+    const base = atom();
+    if (opIs('^')) {
+      i++;
+      const ex = unary();
+      // Its own flex-start row: an alignSelf on a seq() child would only
+      // align against that child's own wrapper, which hugs it, and the
+      // exponent would sit on the baseline.
+      return {
+        el: /*#__PURE__*/React.createElement("span", {
+          style: {
+            display: 'inline-flex',
+            alignItems: 'flex-start'
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            display: 'inline-flex',
+            alignItems: 'center'
+          }
+        }, base.el), /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: '0.66em',
+            lineHeight: 1.15
+          }
+        }, ex.bare || ex.el)),
+        bare: null
+      };
+    }
+    return base;
+  }
+  function args() {
+    if (!peek() || peek().t !== '(') throw new Error('expected (');
+    i++;
+    const list = [rel()];
+    while (peek() && peek().t === ',') {
+      i++;
+      list.push(rel());
+    }
+    if (!peek() || peek().t !== ')') throw new Error('unbalanced');
+    i++;
+    return list;
+  }
+  function atom() {
+    const t = peek();
+    if (!t) throw new Error('unexpected end');
+    if (t.t === 'num') {
+      i++;
+      return {
+        el: /*#__PURE__*/React.createElement("span", null, t.v),
+        bare: null
+      };
+    }
+    if (t.t === 'name') {
+      i++;
+      return {
+        el: /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontStyle: 'italic'
+          }
+        }, t.v),
+        bare: null
+      };
+    }
+    if (t.t === '(') {
+      i++;
+      const inner = rel();
+      if (!peek() || peek().t !== ')') throw new Error('unbalanced');
+      i++;
+      return {
+        el: seq([/*#__PURE__*/React.createElement("span", null, "("), inner, /*#__PURE__*/React.createElement("span", null, ")")]),
+        bare: inner
+      };
+    }
+    if (t.t === 'fn') {
+      const name = t.v;
+      i++;
+      const list = args();
+      if (name === 'sqrt' && list.length === 1) {
+        return {
+          el: seq([/*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: '1.1em'
+            }
+          }, "\u221A"), /*#__PURE__*/React.createElement("span", {
+            style: {
+              borderTop: '1px solid currentColor',
+              padding: '1px 2px 0',
+              marginTop: 1
+            }
+          }, list[0])]),
+          bare: null
+        };
+      }
+      const fence = FN_FENCE[name];
+      if (fence && list.length === 1) {
+        return {
+          el: seq([/*#__PURE__*/React.createElement("span", null, fence[0]), list[0], /*#__PURE__*/React.createElement("span", null, fence[1])]),
+          bare: null
+        };
+      }
+      const parts = [/*#__PURE__*/React.createElement("span", null, FN_LABEL[name] || name), /*#__PURE__*/React.createElement("span", null, "(")];
+      list.forEach((a, k) => {
+        if (k) parts.push(/*#__PURE__*/React.createElement("span", {
+          style: {
+            padding: '0 2px 0 0'
+          }
+        }, ","));
+        parts.push(a);
+      });
+      parts.push(/*#__PURE__*/React.createElement("span", null, ")"));
+      return {
+        el: seq(parts),
+        bare: null
+      };
+    }
+    throw new Error('unexpected token');
+  }
+  const out = rel();
+  if (i !== toks.length) throw new Error('trailing tokens');
+  return out;
+}
+
+// Falls back to the one-line prettify whenever the expression is mid-edit and
+// doesn't parse — a half-typed "y=sin(" must still show what has been typed.
+function MathExpr({
+  src
+}) {
+  if (!src) return null;
+  try {
+    return buildMath(mathTokens(src));
+  } catch {
+    return /*#__PURE__*/React.createElement("span", null, prettifyExpr(src));
+  }
+}
+window.MathExpr = MathExpr;
+
 // ─── Equation row ─────────────────────────────────────────────
 function EqRow({
   idx,
@@ -1341,14 +1794,17 @@ function EqRow({
   onActivate,
   notation,
   domKb,
-  onDomInput
+  onDomInput,
+  missing,
+  onAddSliders
 }) {
   const inputRef = useRL(null);
   const [domOpen, setDomOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
-  const valid = !eq.expr.trim() || eq.fn != null;
+  const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
   const showPretty = notation === 'pretty' && !focused && eq.expr;
   const locked = !!eq.preplaced;
+  const slots = missing || [];
   return /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: '1px solid var(--lv-line)',
@@ -1362,7 +1818,7 @@ function EqRow({
   }, /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
-      !disabled && onChange({
+      !disabled && !eq.param && onChange({
         visible: !eq.visible
       });
     },
@@ -1378,41 +1834,39 @@ function EqRow({
       width: 20,
       height: 20,
       borderRadius: '50%',
-      background: eq.visible ? eq.color : 'transparent',
-      border: `1.5px solid ${eq.color}`,
+      background: eq.param ? 'transparent' : eq.visible ? eq.color : 'transparent',
+      border: `1.5px solid ${eq.param ? 'var(--fp-ink-4)' : eq.color}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 10,
       fontWeight: 600,
       fontFamily: 'ui-monospace,monospace',
-      color: eq.visible ? '#fff' : eq.color
+      fontStyle: eq.param ? 'italic' : 'normal',
+      color: eq.param ? 'var(--fp-ink-3)' : eq.visible ? '#fff' : eq.color
     }
-  }, idx + 1)), /*#__PURE__*/React.createElement("div", {
+  }, eq.param ? eq.param.name : idx + 1)), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0,
-      position: 'relative'
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: 38
     }
   }, showPretty && /*#__PURE__*/React.createElement("div", {
     style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      display: 'flex',
-      alignItems: 'center',
+      padding: '8px 0',
+      maxWidth: '100%',
       fontFamily: "'Geist Mono','ui-monospace',monospace",
       fontSize: 14,
       color: valid ? 'var(--fp-ink)' : '#c74440',
       overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      textOverflow: 'ellipsis',
-      pointerEvents: 'none',
-      zIndex: 0
+      whiteSpace: 'nowrap'
     }
-  }, prettifyExpr(eq.expr)), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement(MathExpr, {
+    src: eq.expr
+  })), /*#__PURE__*/React.createElement("input", {
     ref: inputRef,
     value: eq.expr,
     onChange: e => !locked && onChange({
@@ -1437,11 +1891,17 @@ function EqRow({
       fontSize: 14,
       color: showPretty ? 'transparent' : locked ? 'var(--fp-ink-2)' : valid ? 'var(--fp-ink)' : '#c74440',
       caretColor: 'var(--fp-ink)',
-      padding: '10px 0',
-      position: 'relative',
+      // While the typeset copy is showing it sets the row height and
+      // the input lies over it, invisible but still the thing you type
+      // into — one element throughout, so focus survives the swap.
+      position: showPretty ? 'absolute' : 'static',
+      left: 0,
+      top: 0,
+      height: showPretty ? '100%' : 'auto',
+      padding: showPretty ? 0 : '10px 0',
       zIndex: 1
     }
-  })), !locked && /*#__PURE__*/React.createElement("button", {
+  })), !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
       setDomOpen(o => !o);
@@ -1494,7 +1954,88 @@ function EqRow({
     stroke: "currentColor",
     strokeWidth: 1.6,
     strokeLinecap: "round"
-  })))), domOpen && /*#__PURE__*/React.createElement(DomainEditor, {
+  })))), eq.param && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '0 12px 9px 36px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      fontSize: 10.5,
+      color: 'var(--fp-ink-4)'
+    }
+  }, "\u221210"), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: -10,
+    max: 10,
+    step: 0.1,
+    value: eq.param.value,
+    disabled: disabled,
+    onChange: e => onChange({
+      expr: `${eq.param.name}=${(+e.target.value).toFixed(1)}`
+    }),
+    style: {
+      flex: 1,
+      minWidth: 0,
+      height: 20,
+      accentColor: 'var(--fp-accent)'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      fontSize: 10.5,
+      color: 'var(--fp-ink-4)'
+    }
+  }, "10")), !eq.param && slots.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+      padding: '0 12px 9px 36px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--fp-ink-3)'
+    }
+  }, "add slider:"), slots.map(nm => /*#__PURE__*/React.createElement("button", {
+    key: nm,
+    onPointerDown: e => {
+      e.preventDefault();
+      onAddSliders([nm]);
+    },
+    style: {
+      minWidth: 26,
+      height: 24,
+      padding: '0 8px',
+      borderRadius: 6,
+      border: '1px solid var(--lv-line)',
+      background: 'var(--fp-surface)',
+      color: 'var(--fp-ink)',
+      fontSize: 12.5,
+      fontStyle: 'italic',
+      fontFamily: "'Geist Mono','ui-monospace',monospace"
+    }
+  }, nm)), slots.length > 1 && /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      onAddSliders(slots);
+    },
+    style: {
+      height: 24,
+      padding: '0 10px',
+      borderRadius: 6,
+      border: 0,
+      background: 'var(--fp-accent)',
+      color: 'var(--fp-accent-ink)',
+      fontSize: 11.5,
+      fontWeight: 500
+    }
+  }, "all")), domOpen && /*#__PURE__*/React.createElement(DomainEditor, {
     eqId: eq.id,
     domain: eq.domain,
     onChange: domain => onChange({
@@ -1583,10 +2124,39 @@ function EquationsPanel({
       ...e,
       ...patch
     };
-    if ('expr' in patch) Object.assign(merged, parseEquation(patch.expr));
+    if ('expr' in patch) {
+      Object.assign(merged, parseEquation(patch.expr));
+      // Editing "a=3" into something else retires the parameter, or every
+      // curve reading `a` would keep the value of a row that is gone.
+      if (e.param && merged.param?.name !== e.param.name) delete window.FP_PARAMS[e.param.name];
+    }
     return merged;
   }));
-  const remove = id => setEquations(eqs => eqs.filter(e => e.id !== id || e.preplaced));
+
+  // Slider rows land directly under the equation that asked for them, the
+  // way Desmos does it.
+  const addSliders = (afterId, names) => setEquations(eqs => {
+    let id = Math.max(0, ...eqs.map(e => e.id));
+    const rows = names.map(nm => {
+      const expr = `${nm}=1`;
+      return {
+        id: ++id,
+        expr,
+        ...parseEquation(expr),
+        color: EQ_COLORS[0],
+        visible: true,
+        domain: null,
+        preplaced: false
+      };
+    });
+    const at = eqs.findIndex(e => e.id === afterId);
+    return at < 0 ? [...eqs, ...rows] : [...eqs.slice(0, at + 1), ...rows, ...eqs.slice(at + 1)];
+  });
+  const remove = id => setEquations(eqs => eqs.filter(e => {
+    if (e.id !== id || e.preplaced) return true;
+    if (e.param) delete window.FP_PARAMS[e.param.name];
+    return false;
+  }));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--lv-surface)',
@@ -1636,7 +2206,7 @@ function EquationsPanel({
       color: 'var(--fp-ink-4)',
       marginLeft: 4
     }
-  }, equations.filter(e => e.expr.trim()).length)), /*#__PURE__*/React.createElement("div", {
+  }, equations.filter(e => e.expr.trim() && !e.param).length)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -1692,25 +2262,31 @@ function EquationsPanel({
       !disabled && addRow();
     },
     disabled: disabled,
+    title: "Add equation",
+    "aria-label": "Add equation",
     style: {
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
-      gap: 4,
-      padding: '4px 9px 4px 7px',
-      borderRadius: 999,
-      background: 'var(--fp-surface-2)',
-      color: 'var(--fp-ink)',
-      fontSize: 11.5,
-      fontWeight: 500,
-      opacity: disabled ? 0.5 : 1
+      justifyContent: 'center',
+      background: 'var(--fp-accent)',
+      color: 'var(--fp-accent-ink)',
+      opacity: disabled ? 0.45 : 1,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.18)'
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      lineHeight: 1,
-      marginTop: -1
-    }
-  }, "+"), " Add"))), allowedClass && classWarning && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 15,
+    height: 15,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 5v14M5 12h14",
+    stroke: "currentColor",
+    strokeWidth: 2.4,
+    strokeLinecap: "round"
+  }))))), allowedClass && classWarning && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '8px 14px',
       fontSize: 11.5,
@@ -1747,6 +2323,8 @@ function EquationsPanel({
     onChange: p => update(e.id, p),
     onRemove: () => remove(e.id),
     onActivate: ref => activate(e.id, ref),
+    missing: undeclaredParams(e.expr),
+    onAddSliders: nms => addSliders(e.id, nms),
     domKb: domKb,
     onDomInput: onDomInput
   })), equations.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -1755,11 +2333,12 @@ function EquationsPanel({
       fontSize: 12,
       color: 'var(--fp-ink-3)'
     }
-  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "Add"), " to enter an equation, e.g. ", /*#__PURE__*/React.createElement("span", {
+  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " to enter an equation, e.g. ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
   }, "y=sin(x)"))), kbOpen && !domKb && /*#__PURE__*/React.createElement(MathKeyboard, {
     inputRef: activeInputRef,
-    onChange: handleKbChange
+    onChange: handleKbChange,
+    onDone: dismiss
   }), domKb && /*#__PURE__*/React.createElement(NumPad, {
     val: domKb.val,
     onChange: handleNumPadChange,
@@ -1791,6 +2370,7 @@ function LevelScreen({
   // Pre-placed equations come from the level data (admin-authored). They are
   // shown first, can't be removed, and are excluded from score / eqsUsed.
   const [equations, setEquations] = useSL(() => {
+    window.FP_PARAMS = {}; // sliders belong to the level being played
     const pre = (levelData.preplaced || []).map((expr, i) => {
       const parsed = parseEquation(expr);
       return {
@@ -1880,7 +2460,7 @@ function LevelScreen({
     if (!packAllowedClass) return null;
     const offenders = equations.filter(e => e.fn && !e.preplaced).map(e => ({
       expr: e.expr,
-      cls: detectClass(e.expr)
+      cls: detectClass(e.expr, window.FP_PARAMS)
     })).filter(({
       cls
     }) => !classMatches(packAllowedClass, cls));
@@ -2009,8 +2589,12 @@ function LevelScreen({
           return;
         }
         const userEqs = equationsRef.current.filter(e => !e.preplaced);
-        const exprs = userEqs.filter(e => e.fn).map(e => e.expr);
-        const eqsN = exprs.length;
+        const curves = userEqs.filter(e => e.fn);
+        const eqsN = curves.length;
+        // Slider definitions ride along, first, so reloading the run — or
+        // auditing it — resolves the parameters the player actually graphed
+        // with. They are not equations and don't count toward eqsN.
+        const exprs = [...userEqs.filter(e => e.param).map(e => e.expr), ...curves.map(e => e.expr)];
         const sc = computeScore(userEqs);
         const finishT = +ph.wonAtS.toFixed(2);
         const rating = starRating(eqsN, sc, eqGoal, scoreGoal);

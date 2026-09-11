@@ -93,6 +93,19 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   should allow) → the classifier is AST-based; check `detectClass()` in
   `equation-classifier.js` directly against the expression before assuming
   the pack-gating logic (`classMatches`) is at fault.
+- Changed what an equation *costs* → the leaderboard's SQL trigger has the
+  same numbers baked in (`supabase/migrations/`). If the cheapest winning run
+  gets cheaper and the guard isn't migrated with it, every run at the new
+  price is rejected on sync and the player silently loses the record.
+- A slider parameter doesn't move the curve, or moves it a frame late →
+  `parseEquation` writes `window.FP_PARAMS` synchronously on purpose, and
+  compiled curves read it at call time. Don't move either into an effect, and
+  don't bake values in at compile time.
+- A new function name doesn't parse, or parses as a product of letters →
+  `normExpr` matches the *longest known name that ends the letter run before
+  a `(`*, because `\b` can't separate `3sin(` from `asin(`. Add the name to
+  `FN_CALLS` (runtime), `KNOWN_NAMES` (classifier) and `MATH_FNS` (the
+  typeset display) or all three disagree.
 - The ball looks like it sinks into the curve → that's rendering, not
   physics: both strokes straddle their paths (see *Ball rendering* in
   `ABOUT.md`). Measure the resting distance before touching the engine.

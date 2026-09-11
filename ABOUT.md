@@ -96,7 +96,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
     sandbox-screen.jsx     # free play — same plane/panel/physics, no goals
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
-    keyboard.jsx           # custom math keyboard (basic/advanced pages)
+    keyboard.jsx           # custom math keyboard (Desmos layout: main/abc/fn pages)
     app.jsx                # root component, routing, mount() guard
     ...                    # per-screen components
 scripts/
@@ -135,9 +135,11 @@ for not running it before a commit.
 - **Classifier** — parity table (same class *and* score as before the AST
   rewrite, since level goals were tuned against those numbers) plus the
   loophole set (implicit conics, disguised exponentials, roots, products,
-  piecewise, rationals must not read as `linear`). Also extracts
-  `classMatches` straight out of the shipped `level-screen.js` so pack gating
-  is tested as shipped, not as a copy.
+  piecewise, rationals must not read as `linear`), the `const` prices (`y=c`
+  is 0 complexity, anything with an x in it still 10), and juxtaposed letters
+  as a product (`ax` is a·x; `y=ax+b` is linear once a and b are declared).
+  Also extracts `classMatches` straight out of the shipped `level-screen.js`
+  so pack gating is tested as shipped, not as a copy.
 - **Physics** — free fall, resting height, no sink-through, energy loss on a
   real bounce, determinism, and the slope roll that dies instantly if the
   "`energyRetention` only when `-vn > 1.5`" gate is broken.
@@ -236,7 +238,7 @@ Current design:
 
 ## Equation classifier (equation-classifier.js)
 
-`classifyEquation()` (complexity score) and `detectClass()` (linear /
+`classifyEquation()` (complexity score) and `detectClass()` (const / linear /
 quadratic / cubic / trig / inverseTrig / log / exp / piecewise / rational /
 advanced / unknown) are **AST-based**, not regex-based. A regex scan over the
 raw string only ever saw `x^N` and missed almost everything else: `x+y^2=1`
@@ -260,10 +262,55 @@ right — level goals and past records tuned against those numbers stay
 meaningful. Unparseable input classifies as `'unknown'` (blocked by
 `classMatches` in any themed pack) and scores conservatively high, never low.
 
+**`const` — the one deliberate score change.** A constant line (`y=c`, `x=c`,
+or a bare constant, which is `y=c`) classifies as `'const'` and costs **0**
+complexity, so a run using one costs 20 against a sloped line's 30. It is the
+only expression in the game that scores below a linear, and the only place the
+AST rewrite's "same numbers as before" rule was broken on purpose. Three
+things had to move with it: the test table, `classMatches` (a `linear` themed
+pack still accepts a `const`, because a horizontal line *is* a line), and the
+database guard's floor — see *Leaderboard integrity*. `sgn()` joins the
+piecewise family (`abs`/`floor`/`ceil`/`round`/`min`/`max`) and so costs the
+same 20 as `floor()`.
+
+**Parameters.** Both entry points take an optional second argument — the
+declared slider parameters, as `['a','b']` or the live `FP_PARAMS` map. A
+declared name analyses as a constant of unknown value, so `y=ax+b` is
+`linear`, `y=ax^2` is `quadratic`, and `y=a` is `const`. An *undeclared* name
+still reads `unknown`, which is right: nothing is drawn until a slider exists.
+The tokenizer also splits a letter run that isn't a known name into single
+letters with implicit multiplication, exactly as `normExpr` does, so `ax` is
+a·x and `xy=1` is the hyperbola it draws rather than one unknown identifier.
+
 If you touch this file, re-run it against both a parity check (same score/
 class as before on ordinary expressions) and a loophole check (implicit
 conics, disguised exponentials, roots, products, piecewise, rationals must
-NOT read as linear) before trusting a change.
+NOT read as linear) before trusting a change. Both live in `npm test`.
+
+## Slider parameters (`FP_PARAMS`)
+
+A row whose text is `a=3.4` — one letter that isn't `x`, `y`, `e` or the sum's
+`n`, an `=`, a number — is a **parameter declaration**, not a curve. It parses
+to `{ param: { name, value } }` with `fn: null`, so it draws nothing, scores
+nothing and never counts as an equation. `EqRow` renders it as a −10…10
+slider, Desmos-style.
+
+- `window.FP_PARAMS` is the live map. `parseEquation` writes into it
+  **synchronously** while parsing, so the render that edit triggers already
+  sees the new value. Do not move that into a `useEffect` — the curve would
+  draw one frame behind the slider.
+- Compiled curves read their parameters out of `FP_PARAMS` at *call* time via
+  a `const {a,b} = window.FP_PARAMS` prelude, so dragging a slider redraws
+  without recompiling anything. Only the letters an expression actually uses
+  are destructured — the prelude sits in the physics/render hot path.
+- `undeclaredParams()` drives the **add slider: a b all** prompt under a row
+  that references parameters nothing has declared (the `⚠` state in Desmos).
+- `LevelScreen` and the sandbox reset `FP_PARAMS` when their equation list is
+  created, so sliders never leak between levels.
+- A run's slider definitions are submitted **first** in the `equations` array
+  and reloaded from history the same way, so a parameterised run recomputes to
+  the same score in the admin audit. Both the audit and the SQL guard filter
+  them out of the equation *count*.
 
 ## Level data: baked snapshot + versioned sync
 
@@ -362,8 +409,22 @@ Cleared when the next run starts.
 
 - Native mobile keyboard is suppressed via `inputMode="none"` on equation
   inputs.
-- `MathKeyboard` (`keyboard.jsx`) has two pages: `basic` (sin/cos/log/digits)
-  and `advanced` (arcsin, Σ, d/dx, ∫, the `n` loop variable).
+- `MathKeyboard` (`keyboard.jsx`) follows the Desmos mobile layout: three
+  blocks side by side — a left variable/notation block (`x`, `y`, `a²`, `aᵇ`,
+  parens, `|a|`, `,`, the `a/b` fraction key, `⌊a⌋`, `⌈a⌉`, `sgn`, `ABC`, `e`,
+  `√`, `π`), a 4×4 numeric keypad (`7 8 9 ÷` … `0 . = +`), and a right control
+  column (`functions`, `← →`, `⌫`, and the accent `↵` that closes the
+  keyboard). Three pages: `main`, `abc` (a QWERTY row set, for typing
+  parameter letters) and `fn` (trig, inverse trig, `ln`/`log`, `eˣ`, `√`,
+  `⌊a⌋`/`⌈a⌉`/`sgn`/`|a|`, `Σ`, `d/dx`, `∫`, `min`/`max`).
+- Two Desmos keys have no counterpart here: the audio-trace button, and the
+  `< > ≤ ≥` inequalities, which the parser doesn't graph as regions. Those
+  five slots carry game-relevant keys instead; every Desmos key the app *does*
+  support sits where Desmos puts it.
+- Key faces that are typeset (`a²`, the fraction key) are built by plain
+  functions, never by components declared inside `MathKeyboard` — a component
+  declared in a render body is a new type every render, so React would tear
+  down and rebuild every key on each keystroke.
 - Domain-restriction inputs use a separate `NumPad` (in `level-screen.jsx`)
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
@@ -442,8 +503,8 @@ physics server-side; short of that, two layers do the useful work.
 **The database refuses the impossible.** `supabase/migrations/` holds
 `20260816_leaderboard_integrity.sql`, which adds a `before insert or update`
 trigger rejecting a `level_index` outside 0–9, stars outside 1–3, a score
-under 30 (the cheapest winning run is one linear equation: complexity 10 plus
-20 per equation), a score under `30 × equation count`, and a time outside
+under the cheapest winning run, a score under `floor × equation count`, and a
+time outside
 0.05–30 s (`TIME_LIMIT` is 28). It also makes the **server** decide what
 "best" means — `least`/`greatest` against the stored row — so a client cannot
 walk a record backwards and a stale offline sync cannot clobber a better
@@ -452,6 +513,14 @@ rather than rejected, because rejecting would make retuning a level's goals
 lock every existing record holder out of syncing. RLS restricts writes to
 `auth.uid() = user_id`, keeps reads public (the leaderboard is public by
 design), and lets the `Test Account` delete anyone's row.
+
+`20260911_const_class_and_sliders.sql` replaces that guard function when the
+`const` class shipped. The floor is **20**, not 30 — the cheapest winning run
+is one constant line (complexity 0 plus the flat 20 per equation) — and the
+per-equation floor is `20 × n_eqs`, where `n_eqs` skips slider definitions
+(`a=3.4`), which are submitted alongside the equations but draw nothing.
+**Both migrations must be applied for the game to sync scores**: against the
+old guard, every run solved with a horizontal line is rejected outright.
 
 **The app catches the plausible-but-false.** Scoring runs through the
 classifier, which SQL has no access to, so each row also carries the

@@ -8,7 +8,7 @@ const SETTING_HELP = {
   volume:       'Master volume for sound effects.',
   gridLabels:   'Show numeric labels along the X and Y axes of the level plane.',
   autoZoom:     'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.',
-  notation:     'Display style for equations on the level plane. Standard uses x^2 / sqrt(); Pretty uses x² / √.',
+  notation:     'Display style for equations on the level plane. Standard shows the text you typed; Pretty typesets it — x², √ with an overbar, and a/b as a stacked fraction.',
 };
 
 function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortable', onLegal }) {

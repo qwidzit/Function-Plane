@@ -33,8 +33,25 @@
   const FN_TRIG    = { sin: 1, cos: 1, tan: 1 };
   const FN_INVTRIG = { asin: 1, acos: 1, atan: 1 };
   const FN_LOG     = { log: 1, ln: 1 };
-  const FN_PIECE   = { abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1 };
+  const FN_PIECE   = { abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1, sgn: 1 };
   const CONSTS     = { e: Math.E, pi: Math.PI };
+  // Letter runs that are one identifier. Anything else is a product of
+  // single-letter variables, mirroring normExpr: "ax" is a*x, so a slider
+  // parameter can be written next to x the way it is on paper.
+  const KNOWN_NAMES = {
+    sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, log: 1, ln: 1, exp: 1,
+    sqrt: 1, abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1, pow: 1,
+    sgn: 1, sum: 1, deriv: 1, integ: 1, pi: 1,
+  };
+
+  // Accepts either ['a','b'] or { a: 3, b: -1 } — the live slider map.
+  function paramSet(params) {
+    const set = {};
+    if (!params) return set;
+    const names = Array.isArray(params) ? params : Object.keys(params);
+    for (const n of names) set[String(n).toLowerCase()] = 1;
+    return set;
+  }
 
   function preprocess(raw) {
     return raw.toLowerCase().replace(/\s+/g, '')
@@ -59,7 +76,9 @@
       if ((c >= 'a' && c <= 'z') || c === '_') {
         let j = i;
         while (j < s.length && (((s[j] >= 'a' && s[j] <= 'z')) || (s[j] >= '0' && s[j] <= '9') || s[j] === '_')) j++;
-        toks.push({ t: 'name', v: s.slice(i, j) });
+        const run = s.slice(i, j);
+        if (run.length === 1 || KNOWN_NAMES[run] || !/^[a-z]+$/.test(run)) toks.push({ t: 'name', v: run });
+        else for (const ch of run) toks.push({ t: 'name', v: ch });
         i = j; continue;
       }
       if ('+-*/^(),='.indexOf(c) >= 0) { toks.push({ t: c }); i++; continue; }
@@ -71,8 +90,9 @@
     for (const tk of toks) {
       const prev = out[out.length - 1];
       if (prev && (
-        (prev.t === 'num' && (tk.t === 'name' || tk.t === '(')) ||
-        (prev.t === ')'   && (tk.t === 'name' || tk.t === 'num' || tk.t === '('))
+        (prev.t === 'num'  && (tk.t === 'name' || tk.t === '(')) ||
+        (prev.t === 'name' && tk.t === 'name') ||
+        (prev.t === ')'    && (tk.t === 'name' || tk.t === 'num' || tk.t === '('))
       )) out.push({ t: '*' });
       out.push(tk);
     }
@@ -85,13 +105,14 @@
   //   val  — numeric value when the subtree is a foldable constant
   //   frac — true when a fractional power (root) contributed to deg
   // Feature counts accumulate in ctx.
-  function analyze(expr) {
+  function analyze(expr, params) {
     const ctx = {
       trig: 0, invTrig: 0, log: 0, expFn: 0, varExp: 0,
       sum: 0, deriv: 0, integ: 0, piecewise: 0,
       rational: false, unknown: false, frac: false,
-      maxDeg: 0,
+      constLine: false, maxDeg: 0,
     };
+    const declared = paramSet(params);
     const toks = tokenize(preprocess(expr));
     let pos = 0;
     const bound = {};       // bound loop variables (sum's n)
@@ -245,10 +266,11 @@
             ctx.frac = true;
             return NONPOLY();
           }
-          if (name === 'abs' || name === 'floor' || name === 'ceil' || name === 'round') {
+          if (FN_PIECE[name] && name !== 'min' && name !== 'max') {
             const [a] = parseArgs(1);
             if (isConstNode(a) && a.val != null) {
-              const f = { abs: Math.abs, floor: Math.floor, ceil: Math.ceil, round: Math.round }[name];
+              const f = { abs: Math.abs, floor: Math.floor, ceil: Math.ceil,
+                          round: Math.round, sgn: Math.sign }[name];
               return CONST(f(a.val));
             }
             ctx.piecewise++;
@@ -290,6 +312,7 @@
         if (name === 'x' || name === 'y') { bumpDeg(1); return { deg: 1, val: undefined, frac: false }; }
         if (name in CONSTS) return CONST(CONSTS[name]);
         if (bound[name]) return { deg: 0, val: undefined, frac: false };   // sum's n
+        if (declared[name]) return { deg: 0, val: undefined, frac: false }; // slider parameter
         ctx.unknown = true;
         return NONPOLY();
       }
@@ -298,12 +321,21 @@
 
     // equation := expr ('=' expr)?
     const lhs = parseExpr();
+    const lhsEnd = pos;
     let deg = lhs.deg, frac = lhs.frac;
+    const bareAxis = i => toks[i] && toks[i].t === 'name' && (toks[i].v === 'x' || toks[i].v === 'y');
     if (peek() && peek().t === '=') {
       pos++;
+      const rhsStart = pos;
       const rhs = parseExpr();
       deg = (deg != null && rhs.deg != null) ? Math.max(deg, rhs.deg) : null;
       frac = frac || rhs.frac;
+      // One side is nothing but x or y, the other folds to a number: a
+      // horizontal or vertical line, cheaper than a sloped one.
+      ctx.constLine = (lhsEnd === 1 && bareAxis(0) && rhs.deg === 0)
+                   || (pos === rhsStart + 1 && bareAxis(rhsStart) && lhs.deg === 0);
+    } else {
+      ctx.constLine = lhs.deg === 0;   // "3" is y=3
     }
     if (peek()) throw new Error('trailing tokens');
 
@@ -322,12 +354,13 @@
   }
 
   // ── Public: detectClass ─────────────────────────────────────────────────
-  // 'linear' | 'quadratic' | 'cubic' | 'trig' | 'exp' | 'inverseTrig' |
-  // 'log' | 'advanced' | 'piecewise' | 'rational' | 'unknown' | null
-  function detectClass(expr) {
+  // 'const' | 'linear' | 'quadratic' | 'cubic' | 'trig' | 'exp' |
+  // 'inverseTrig' | 'log' | 'advanced' | 'piecewise' | 'rational' |
+  // 'unknown' | null
+  function detectClass(expr, params) {
     if (!expr || !expr.trim()) return null;
     let ctx;
-    try { ctx = analyze(expr); }
+    try { ctx = analyze(expr, params); }
     catch { return 'unknown'; }
 
     if (ctx.sum || ctx.deriv || ctx.integ) return 'advanced';
@@ -338,6 +371,7 @@
     if (ctx.piecewise)                     return 'piecewise';
     if (ctx.rational)                      return 'rational';
     if (ctx.unknown)                       return 'unknown';
+    if (ctx.constLine)                     return 'const';
 
     const d = effectiveDeg(ctx);
     if (d >= 3) return 'cubic';
@@ -350,10 +384,10 @@
   // base score from the dominant feature, +60% of base per extra
   // transcendental, ×1.3 when mixing transcendentals with degree ≥ 2
   // polynomials, +5 per degree above 3.
-  function classifyEquation(expr) {
+  function classifyEquation(expr, params) {
     if (!expr || !expr.trim()) return 0;
     let ctx;
-    try { ctx = analyze(expr); }
+    try { ctx = analyze(expr, params); }
     catch { return 60; }   // unparseable — score high, never underscore
 
     const d = effectiveDeg(ctx);
@@ -370,6 +404,7 @@
     else if (ctx.rational)    score = 30;  // 1/x-style curves
     else if (ctx.piecewise)   score = 20;  // abs / floor / ceil / round / min / max
     else if (ctx.unknown)     score = 10;  // unresolvable identifier — curve is inert
+    else if (ctx.constLine)   score = 0;   // y=c / x=c — 20 a run, against a line's 30
     else                      score = Math.max(1, d) * 10;
 
     // Composition cost — each additional transcendental beyond the first

@@ -46,7 +46,10 @@ function SandboxScreen({
     ...s
   })));
   const [selected, setSelected] = useSB(null); // 'ball' | `star-${i}` | null
-  const [equations, setEquations] = useSB([]);
+  const [equations, setEquations] = useSB(() => {
+    window.FP_PARAMS = {};
+    return [];
+  });
   const [running, setRunning] = useSB(false);
   const [ballPos, setBallPos] = useSB({
     ...SB_START

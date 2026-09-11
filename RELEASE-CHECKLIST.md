@@ -42,6 +42,7 @@ approved — and each one says so.
 | # | Item | Description | Who |
 |---|---|---|---|
 | 11 | Confirm the leaderboard migration is applied | `supabase/migrations/20260816_leaderboard_integrity.sql` — verify the trigger, columns and policies exist. | You |
+| 11b | **Apply the const/slider guard migration** | `supabase/migrations/20260911_const_class_and_sliders.sql`. **Blocking for the next build.** `y=c` now costs 20, under the old guard's hard floor of 30, so until this runs every score posted from a run solved with a horizontal line is rejected and the player silently loses the record. It also stops slider definitions (`a=3.4`) counting toward the per-equation floor. Replaces the guard function only; safe to re-run. | You |
 | 12 | Stop the Supabase project auto-pausing | **Done, without paying.** `.github/workflows/supabase-keepalive.yml` is enabled and has run green (HTTP 200 from the project). Paying for Pro remains the alternative, not the requirement. | Both |
 | 13 | Verify RLS on every table | Confirm players can only write their own rows and only the admin account can write override tables. | You |
 | 14 | Decide the email-confirmation setting | Signup has no "check your inbox" state, so confirmations being on is confusing today. | You |

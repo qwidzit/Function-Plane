@@ -24,7 +24,7 @@ function SandboxScreen({ onBack, density = 'comfortable', settings }) {
   const [ball,      setBall]      = useSB({ ...SB_START });
   const [stars,     setStars]     = useSB(SB_STARS.map(s => ({ ...s })));
   const [selected,  setSelected]  = useSB(null);   // 'ball' | `star-${i}` | null
-  const [equations, setEquations] = useSB([]);
+  const [equations, setEquations] = useSB(() => { window.FP_PARAMS = {}; return []; });
   const [running,   setRunning]   = useSB(false);
   const [ballPos,   setBallPos]   = useSB({ ...SB_START });
   const [simStars,  setSimStars]  = useSB(SB_STARS.map(s => ({ ...s, collected: false })));

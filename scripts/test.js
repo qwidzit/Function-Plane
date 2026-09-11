@@ -86,8 +86,9 @@ const CLASSIFIER_TABLE = [
   ['2x+3',           'linear',      10],
   ['y=0.5x-1',       'linear',      10],
   ['x/2+1',          'linear',      10],
-  ['3',              'linear',      10],
-  ['y=3',            'linear',      10],
+  ['3',              'const',        0],
+  ['y=3',            'const',        0],
+  ['x=-2',           'const',        0],
   ['x^2-3',          'quadratic',   20],
   ['y=x^2',          'quadratic',   20],
   ['(x+1)(x-1)',     'quadratic',   20],
@@ -102,6 +103,8 @@ const CLASSIFIER_TABLE = [
   ['ln(x)',          'log',         30],
   ['e^x',            'exp',         35],
   ['abs(x)',         'piecewise',   20],
+  ['sgn(x)',         'piecewise',   20],
+  ['floor(x)',       'piecewise',   20],
   ['1/x',            'rational',    30],
 ];
 
@@ -141,7 +144,33 @@ it('never reads a disguised equation as linear', () => {
 
 it('folds constant subtrees instead of counting them as structure', () => {
   eq(detectClass('sin(1)*x'), 'linear', 'sin(1)*x is a constant times x');
-  eq(detectClass('e^2'), 'linear', 'e^2 is just a number');
+  eq(detectClass('e^2'), 'const', 'e^2 is just a number, so y=e^2 is a flat line');
+});
+
+// A horizontal or vertical line is the cheapest curve in the game: 20 for a
+// run against a sloped line's 30. Level goals were authored against those
+// numbers, so both halves have to hold.
+it('prices a constant line below a linear one', () => {
+  for (const e of ['y=3', 'x=-2', '3', 'y=pi', 'y=0.5']) {
+    eq(detectClass(e), 'const', `detectClass(${e})`);
+    eq(classifyEquation(e), 0, `classifyEquation(${e})`);
+  }
+  // ...but anything with x in it still slopes.
+  for (const e of ['y=0.5x', 'y=x+3', 'x+y=1']) {
+    eq(detectClass(e), 'linear', `detectClass(${e})`);
+    eq(classifyEquation(e), 10, `classifyEquation(${e})`);
+  }
+});
+
+// Letters next to each other multiply, the way they are written on paper.
+// Without this "ax" is one unknown identifier and "y=ax+b" scores as inert.
+it('reads juxtaposed letters as a product', () => {
+  eq(detectClass('x*y=1'), detectClass('xy=1'), 'xy is x*y');
+  eq(detectClass('y=ax+b'), 'unknown', 'undeclared parameters stay unknown');
+  eq(detectClass('y=ax+b', ['a', 'b']), 'linear', 'declared parameters are constants');
+  eq(classifyEquation('y=ax+b', { a: 3.4, b: -5.7 }), 10, 'and score like the line they draw');
+  eq(detectClass('y=ax^2', ['a']), 'quadratic', 'a parameter never hides the degree');
+  eq(detectClass('y=a', ['a']), 'const', 'y=a is a flat line');
 });
 
 it('scores unparseable input high, never low', () => {
@@ -166,6 +195,7 @@ it('gates themed packs on the grouped classes', () => {
   ok(!classMatches('linear', detectClass('2^x')),     'linear pack rejects an exponential');
   ok(!classMatches('linear', detectClass('abs(x)')),  'linear pack rejects piecewise');
   ok(!classMatches('linear', detectClass('!!bad((')), 'linear pack rejects unparseable input');
+  ok(classMatches('linear', detectClass('y=3')), 'linear pack allows a horizontal line');
 });
 
 // ── 1b. Scoring & the leaderboard audit ────────────────────────────────────
@@ -191,10 +221,21 @@ const scoring = (() => {
 const parse = exprs => exprs.map(expr => ({ expr, ...scoring.parseEquation(expr) }));
 
 it('scores a run as sum(complexity) + 20 per equation', () => {
-  // The leaderboard guard's floor of 30 per equation depends on this shape.
+  // The leaderboard guard's floor per equation depends on this shape.
   eq(scoring.computeScore(parse(['y=-x'])), 30, 'one linear');
   eq(scoring.computeScore(parse(['x', 'x+1', 'x+2'])), 90, 'three linears');
+  eq(scoring.computeScore(parse(['y=4'])), 20, 'one constant');
   ok(scoring.computeScore(parse(['sin(x)'])) >= 30, 'no run can score under 30');
+});
+
+// Slider rows are declarations submitted alongside the equations. They carry
+// no fn, so they cost nothing and never count as an equation — the audit and
+// the DB guard both lean on that.
+it('leaves slider definitions out of the score and the equation count', () => {
+  const rows = parse(['a=2', 'y=ax']);
+  eq(rows.filter(r => r.param).length, 1, 'a=2 is a parameter, not a curve');
+  eq(rows.filter(r => r.fn).length, 1, 'only y=ax draws');
+  eq(scoring.computeScore(rows), 30, 'a parameterised line costs exactly one line');
 });
 
 it('rates stars by equation count first, then score', () => {

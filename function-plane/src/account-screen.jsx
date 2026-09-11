@@ -49,12 +49,12 @@ function ScreenFrame({ title, onBack, padX, children }) {
   );
 }
 
-function AuthField({ label, type, value, onChange, placeholder, autoFocus }) {
+function AuthField({ label, type, value, onChange, placeholder, autoFocus, error }) {
   return (
     <div style={{ marginBottom:14 }}>
       <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', marginBottom:6, letterSpacing:'0.03em', textTransform:'uppercase' }}>{label}</div>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
-        style={{ width:'100%', height:48, borderRadius:12, boxSizing:'border-box', padding:'0 14px', fontSize:15, background:'var(--fp-surface)', border:'1px solid var(--fp-line)', color:'var(--fp-ink)', outline:'none' }}/>
+        style={{ width:'100%', height:48, borderRadius:12, boxSizing:'border-box', padding:'0 14px', fontSize:15, background:'var(--fp-surface)', border:`1px solid ${error ? '#e34' : 'var(--fp-line)'}`, color:'var(--fp-ink)', outline:'none' }}/>
     </div>
   );
 }
@@ -301,6 +301,7 @@ function RegisterView({ onBack, padX, onSuccess }) {
   const [name,  setName]  = useACS('');
   const [email, setEmail] = useACS('');
   const [pass,  setPass]  = useACS('');
+  const [pass2, setPass2] = useACS('');
   const [msg,   setMsg]   = useACS({ text:'', ok:false });
   const [busy,  setBusy]  = useACS(false);
 
@@ -323,7 +324,9 @@ function RegisterView({ onBack, padX, onSuccess }) {
     return () => clearTimeout(id);
   }, [name]);
 
-  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 6;
+  const mismatch  = pass2.length > 0 && pass2 !== pass;
+  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@')
+                 && pass.length >= 6 && pass2 === pass;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -365,6 +368,11 @@ function RegisterView({ onBack, padX, onSuccess }) {
 
         <AuthField label="Email"    type="email"    value={email} onChange={setEmail} placeholder="you@example.com"/>
         <AuthField label="Password" type="password" value={pass}  onChange={setPass}  placeholder="At least 6 characters"/>
+        <AuthField label="Confirm password" type="password" value={pass2} onChange={setPass2}
+          placeholder="Repeat your password" error={mismatch}/>
+        <div style={{ minHeight:16, marginTop:-8, marginBottom:8, fontSize:11.5, color:'#e34' }}>
+          {mismatch && 'Passwords do not match'}
+        </div>
 
         <button onClick={submit} disabled={!canSubmit} style={{
           width:'100%', height:52, borderRadius:15, marginTop:4,

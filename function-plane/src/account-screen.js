@@ -114,7 +114,8 @@ function AuthField({
   value,
   onChange,
   placeholder,
-  autoFocus
+  autoFocus,
+  error
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -142,7 +143,7 @@ function AuthField({
       padding: '0 14px',
       fontSize: 15,
       background: 'var(--fp-surface)',
-      border: '1px solid var(--fp-line)',
+      border: `1px solid ${error ? '#e34' : 'var(--fp-line)'}`,
       color: 'var(--fp-ink)',
       outline: 'none'
     }
@@ -768,6 +769,7 @@ function RegisterView({
   const [name, setName] = useACS('');
   const [email, setEmail] = useACS('');
   const [pass, setPass] = useACS('');
+  const [pass2, setPass2] = useACS('');
   const [msg, setMsg] = useACS({
     text: '',
     ok: false
@@ -813,7 +815,8 @@ function RegisterView({
     }, 350);
     return () => clearTimeout(id);
   }, [name]);
-  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 6;
+  const mismatch = pass2.length > 0 && pass2 !== pass;
+  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 6 && pass2 === pass;
   const submit = async () => {
     if (!canSubmit) return;
     setMsg({
@@ -897,7 +900,22 @@ function RegisterView({
     value: pass,
     onChange: setPass,
     placeholder: "At least 6 characters"
-  }), /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement(AuthField, {
+    label: "Confirm password",
+    type: "password",
+    value: pass2,
+    onChange: setPass2,
+    placeholder: "Repeat your password",
+    error: mismatch
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: 16,
+      marginTop: -8,
+      marginBottom: 8,
+      fontSize: 11.5,
+      color: '#e34'
+    }
+  }, mismatch && 'Passwords do not match'), /*#__PURE__*/React.createElement("button", {
     onClick: submit,
     disabled: !canSubmit,
     style: {
