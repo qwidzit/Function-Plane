@@ -369,7 +369,8 @@ function MiniGraph({
     'lin': 'M2 30 L54 6',
     'qua': 'M2 30 Q28 -8 54 30',
     'trig': 'M2 18 Q10 4 18 18 T34 18 T50 18 L54 18',
-    'exp': 'M2 32 C30 32 38 30 44 22 C50 12 52 6 54 4'
+    'exp': 'M2 32 C30 32 38 30 44 22 C50 12 52 6 54 4',
+    'flip': 'M2 8 L18 28 L34 8 L50 28 L54 22'
   };
   return /*#__PURE__*/React.createElement("svg", {
     width: w,

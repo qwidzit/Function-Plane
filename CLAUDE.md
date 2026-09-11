@@ -106,6 +106,21 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   a `(`*, because `\b` can't separate `3sin(` from `asin(`. Add the name to
   `FN_CALLS` (runtime), `KNOWN_NAMES` (classifier) and `MATH_FNS` (the
   typeset display) or all three disagree.
+- Adding a kind of level object → it is one entry in `KINDS` (and `FORCE` /
+  `INSIDE` if it acts) in `level-objects.jsx`. The engine, the plane, the
+  studio's Objects tab and `getLevelData` are generic; if you find yourself
+  editing them for a new kind, the registry is the wrong shape.
+- An object that reads `performance.now()`, `Date.now()` or `Math.random()`
+  → the leaderboard is comparing hardware again (see *Sim timing*). Objects
+  are pure functions of ball position; animation belongs in the drawing.
+- Gravity flips too often, or not at all → flipping is per *tick* in
+  `drainTicks` and counts `ph.bounces` (real bounces only), never the
+  per-frame `ph.bounced` flag. And a flipped ball needs the ceiling in
+  `outOfWorld`, or it rises until the clock runs out.
+- A curve material or field seems to have no effect → the studio and the
+  level both pass `material` into `makeColliders` and `field` into
+  `physicsStep`'s `world`; a run loop that builds its own colliders/cfg
+  silently drops both. There is one tick loop — `drainTicks` — use it.
 - The ball looks like it sinks into the curve → that's rendering, not
   physics: both strokes straddle their paths (see *Ball rendering* in
   `ABOUT.md`). Measure the resting distance before touching the engine.

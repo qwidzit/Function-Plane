@@ -94,7 +94,8 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
-    sandbox-screen.jsx     # free play — same plane/panel/physics, no goals
+    level-objects.jsx      # FP_OBJECTS — fans, antigravity, wells, hazards: physics + drawing
+    level-studio.jsx       # sandbox AND the admin level editor — same plane/panel/physics
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
     keyboard.jsx           # custom math keyboard (Desmos layout: main/abc/fn pages)
     app.jsx                # root component, routing, mount() guard
@@ -232,6 +233,21 @@ Current design:
   bounces / slope rolls).
 - Colliders (`FP_PHYSICS.makeColliders`) are built **once per run**, not per
   frame — equations are locked while the sim is running.
+- **Fields.** `cfg.field(x, y) → { ax, ay, gMul }` is sampled every substep
+  before gravity: `ax/ay` add to the acceleration, `gMul` scales gravity. It
+  comes from `FP_OBJECTS.makeField(objects)` and is `null` for a level with
+  nothing on it, so the old path costs nothing extra. The function reuses one
+  result object — it runs 160 times a tick.
+- **Materials.** A collider def may carry `material: 'dead' | 'rubber'`.
+  `resolve` reads `bounciness`/`energyRetention` off `col.mat` first and the
+  level's `cfg` second: `dead` is `{ bounciness: 0 }` (the ball lands and
+  rolls), `rubber` is `{ bounciness: 1, energyRetention: 1 }` (it keeps
+  everything). Nothing else changes — traction, the bounce threshold and the
+  energy gate are the level's. The shipped `PHYSICS_CONFIG` stays what it is;
+  a material is a per-curve exception, never a new default.
+- **`ph.bounces`** counts real bounces (the same `-vn > threshold` test that
+  gates `energyRetention`), on top of the per-frame `ph.bounced` flag. The
+  gravity-flip rule needs a count, not a flag: a frame can drain several ticks.
 - Level ends **0.5 s after the last star is collected** (`wonAtS` timestamp),
   not when the ball falls off. Recorded finish time is `wonAtS`, not the
   wind-down endpoint.
@@ -358,30 +374,107 @@ the app does **not** trust the network for them:
   / trig / exp); enforcement runs in `level-screen.jsx`'s `classWarning` via
   `classMatches()`, which groups related classes (e.g. `exp` pack allows both
   `exp` and `log`; `trig` pack allows both `trig` and `inverseTrig`).
+- A pack can also carry a **`modifier`** — a rule the whole pack plays under.
+  The `Inversion` pack (`s-flip`, unlocks at 120 stars) has
+  `modifier: 'gravityFlip'`; `pack_overrides.modifier` overrides it like
+  `allowed_class` does. `getLevelData` additionally returns **`objects`**
+  (the level's fans/zones/wells/hazards, unknown kinds dropped) and
+  **`materials`** (whether players may set a curve's bounce — off unless the
+  admin turns it on for that level). Both default to nothing, so every row
+  from before the columns existed still reads.
 
-## Sandbox (sandbox-screen.jsx)
+## Level studio (level-studio.jsx) — the sandbox and the admin editor
 
-Free play: graph anything, run the ball, no goals and nothing recorded. It
-reuses `PlaneFiller`, `EquationsPanel` and `physicsStep` exported from
-`level-screen.js` rather than reimplementing them, so the ball behaves exactly
-as it does in a level — a lookalike would drift the first time physics
-changed.
+One screen, two modes. `mode="sandbox"` is free play: graph anything, place
+objects, run the ball, no goals and nothing recorded. `mode="admin"` is the
+same screen with a level loaded into it plus a **Level** tab (name, goals,
+the *players can set bounce* switch, Save) — a level is authored by playing
+it, not by typing coordinates into a form. Both reuse `PlaneFiller`,
+`EquationsPanel`, `freshPh`, `drainTicks` and `outOfWorld` exported from
+`level-screen.js` rather than reimplementing them, so a test run in the
+studio is the run a player gets — a lookalike would drift the first time
+physics changed.
 
-Stars and the spawn are **fixed objects you move**, not things you scatter by
-tapping: select one from the chip row or grab it on the plane, then drag it or
-type coordinates. Dragging snaps to a quarter unit so a drag lands on a round
-number. Tapping empty space still pans, so editing never fights navigation —
-`CoordPlane` hit-tests in *pixels* (26px), which keeps a star grabbable when
-zoomed far out. Editing is disabled while a run is in flight.
+The spawn, the stars and every placed object are **things you select and
+move**, not things you scatter by tapping: pick one from the chip row or the
+Objects tab, or grab it on the plane, then drag it or edit its numbers.
+Dragging snaps to a quarter unit so a drag lands on a round number. Tapping
+empty space still pans, so editing never fights navigation. `CoordPlane`
+hit-tests the spawn and stars in *pixels* (26px), so they stay grabbable
+zoomed far out, and objects by region in world units, last, so a star sitting
+inside a zone is still the thing you pick up. `viewRef` hands the plane's
+current view back out, which is how "add a fan" puts it at the centre of
+whatever you are looking at.
 
 The view frames the objects once on entry and never again: re-framing on Play
-would discard a view the player deliberately composed. The run ends when the
-ball leaves the world or a 30s clock expires; collecting every star just makes
-the noise.
+would discard a view the player deliberately composed. A free run ends when
+the ball leaves the world, dies on a hazard, or a 30s clock expires;
+collecting every star just makes the noise. In admin mode the run also ends
+half a second after the last star, the way a level does.
 
-Reached from the main screen, directly under the Play card — the second thing
-you can do sits under the first, outlined rather than filled so it reads as
-subordinate to Play instead of competing with it.
+In admin mode every row on the Equations tab is saved as **pre-placed** —
+players see it, can't change it, and aren't charged for it — and the test run
+uses the pack's `modifier`, so an Inversion level flips during authoring too.
+Saving goes through `FP_AUTH.saveLevelOverride` with `objects` and
+`materials` alongside the fields the old form wrote, so RLS still decides who
+may write; the studio only changes how the row is composed.
+
+The sandbox is reached from the main screen, directly under the Play card —
+the second thing you can do sits under the first, outlined rather than filled
+so it reads as subordinate to Play instead of competing with it.
+
+## Level objects (level-objects.jsx, window.FP_OBJECTS)
+
+Fans, antigravity zones, gravity wells and hazards. One registry, `KINDS`,
+holds everything a kind is — its `defaults`, the `fields` an editor may
+change (with the range each is clamped to), its colour, and its picture — and
+`FORCE`/`INSIDE` hold what it does. Adding a kind is adding an entry here; the
+engine, the plane, the studio's Objects tab and `getLevelData` learn nothing.
+
+- **Fan** — a rectangle standing on its base at `(x, y)`, reaching `len`
+  along `angle` (0° is +x, 90° is +y — so a sideways fan is `angle: 0` or
+  `180`) and `w` wide. Constant acceleration `strength` along the angle while
+  the ball is inside. Drawn as a tinted, dashed box with a housing bar at the
+  base, an arrowhead at the mouth, and wind streaks sliding downwind — the
+  streaks are SMIL `animateTransform`, seeded per fan so they don't
+  reshuffle on re-render, drawn over two lengths and slid by exactly one so
+  the loop is seamless, and quicker for a stronger fan.
+- **Antigravity** — an axis-aligned box; inside it gravity is *reversed*
+  (`gMul = -1`, and two overlapping zones cancel).
+- **Gravity well** — constant pull `strength` toward the centre within radius
+  `r`. Constant, not inverse-square: predictable enough to aim with, and no
+  singularity for the integrator to blow up on at the centre.
+- **Hazard** — an axis-aligned box the ball must not touch; the run fails
+  ("The ball hit a hazard") the substep the ball's *edge* meets it.
+
+Every fill sits under 10% opacity and every outline is dashed, so a zone
+reads as a region rather than a wall and the grid, curves and ball stay
+legible through it. Each kind has one hue — teal, purple, indigo, red — and
+one glyph, so they tell apart at a glance and stay quiet otherwise.
+
+**The one rule**: what an object does to the ball is a pure function of the
+ball's position. Never the wall clock, never `Math.random()`. Recorded times
+are tick-counted precisely so the leaderboard compares play rather than
+hardware (see *Sim timing*); the wind animation is the *drawing*, the force
+is the same every tick, and `npm test` runs the same field twice to prove it.
+
+**Materials** are not objects — they belong to the curve. On a level with
+`materials` on (and always in the sandbox) every row gets a three-state
+bounce toggle: normal, **dead** (the ball lands and rolls) and **rubber**
+(perfectly elastic). Dead curves draw heavier, rubber ones dashed like a
+spring, so the material reads from the plane and not only from the row. Run
+history stores each curve's material so *Load these equations* restores it.
+Scores don't depend on materials, so the audit needs nothing new.
+
+**Gravity flip** (`modifier: 'gravityFlip'`) lives in `drainTicks`: after a
+tick's substeps, if `ph.bounces` grew, `ph.gSign` flips — once per *tick*,
+never per frame (a frame can drain several ticks) and never per collider (two
+curves hit in one corner would flip twice into a no-op). Only *real* bounces
+count, which is what keeps a ball resting on a curve from flipping sixty
+times a second. `outOfWorld` mirrors `FALL_LIMIT` into a ceiling while
+gravity points up — without it a flipped ball rises until the clock runs
+out and nothing ever fails it. The HUD shows a `g ↓/↑` chip and the ball
+wears a chevron pointing the way it currently falls, only in packs that flip.
 
 ## Ball rendering vs the drawn curve
 
@@ -432,6 +525,12 @@ Cleared when the next run starts.
 - When any keyboard is open, `EquationsPanel` sets `maxHeight: 'none'` so
   both the equation rows and the keyboard fit; the graph area shrinks to
   accommodate.
+- Given `objects`/`setObjects` (the studio), the panel grows an **Objects**
+  tab — a row per placed object with every registry field opening the
+  `NumPad` — and, given `extraTab`, one more tab of arbitrary content (the
+  admin's Level tab). Switching away from Equations dismisses the math
+  keyboard; a level being *played* never passes these, so players see the
+  panel exactly as before.
 
 ## Splash screen (index.html)
 
@@ -521,6 +620,9 @@ per-equation floor is `20 × n_eqs`, where `n_eqs` skips slider definitions
 (`a=3.4`), which are submitted alongside the equations but draw nothing.
 **Both migrations must be applied for the game to sync scores**: against the
 old guard, every run solved with a horizontal line is rejected outright.
+`20260912_level_objects.sql` (applied) adds `level_overrides.objects`,
+`level_overrides.materials` and `pack_overrides.modifier` — additive, with
+defaults, so rows from before it still read.
 
 **The app catches the plausible-but-false.** Scoring runs through the
 classifier, which SQL has no access to, so each row also carries the
@@ -737,6 +839,13 @@ the two channels require different, mutually exclusive payment systems:
   password-reset redirect pointed at the website page.
 
 ### Level variety — objects, rules and what each one costs
+
+**Built:** fans, antigravity zones, gravity wells, hazards, dead/rubber curve
+materials (player-set, per level, off by default), the Inversion pack
+(gravity flips on every real bounce), the studio that places all of it, and
+the admin editor built on the studio. See *Level objects* above. The rules
+below were considered and declined for now — the design wants no locks on
+the player. What follows is the original analysis, kept for the reasoning.
 
 Fifty unauthored levels that differ only in where the stars sit is the real
 content problem. Two separable answers, and the cheap one is not the objects.

@@ -1,9 +1,9 @@
 // Function Plane — Admin panel
 // Visible only to the user with display name "Test Account". Lets them edit
-// pack metadata (name, allowed equation class) and per-level data
-// (level name, ball position, stars, score & equation goals). Writes go to the
-// pack_overrides / level_overrides Supabase tables; on save the parent app
-// re-fetches overrides and the change becomes live for everyone.
+// pack metadata (name, allowed equation class, pack rule) and open any level
+// in the studio (level-studio.jsx) to author it by playing it. Writes go to
+// the pack_overrides / level_overrides Supabase tables; on save the parent
+// app re-fetches overrides and the change becomes live for everyone.
 
 const {
   useState: useAS,
@@ -28,10 +28,18 @@ const FUNCTION_CLASSES = [{
   id: 'cubic',
   label: 'Cubic only'
 }];
+const PACK_MODIFIERS = [{
+  id: '',
+  label: 'None'
+}, {
+  id: 'gravityFlip',
+  label: 'Gravity flips on every bounce'
+}];
 function AdminScreen({
   onBack,
   density = 'comfortable',
-  onChanged
+  onChanged,
+  settings
 }) {
   const padX = density === 'compact' ? 18 : 22;
   const [view, setView] = useAS('list'); // 'list' | 'pack' | 'level' | 'users' | 'achievements' | 'achievement'
@@ -49,12 +57,14 @@ function AdminScreen({
       setView('level');
     }
   });
-  if (view === 'level' && pack) return /*#__PURE__*/React.createElement(LevelEditor, {
+  if (view === 'level' && pack) return /*#__PURE__*/React.createElement(LevelStudio, {
+    mode: "admin",
     pack: pack,
     levelIndex: levelIndex,
-    padX: padX,
+    density: density,
+    settings: settings,
     onBack: () => setView('pack'),
-    onChanged: onChanged
+    onSaved: onChanged
   });
   if (view === 'users') return /*#__PURE__*/React.createElement(UsersAdmin, {
     padX: padX,
@@ -626,6 +636,7 @@ function PackEditor({
   const initialHidden = !!window.FP_PACK_OVERRIDES?.[pack.id]?.is_hidden;
   const [name, setName] = useAS(pack.name || '');
   const [cls, setCls] = useAS(pack.allowedClass || '');
+  const [modifier, setModifier] = useAS(getPack(pack.id)?.modifier || '');
   const [hidden, setHidden] = useAS(initialHidden);
   const [busy, setBusy] = useAS(false);
   const [msg, setMsg] = useAS('');
@@ -636,6 +647,7 @@ function PackEditor({
       await FP_AUTH.savePackOverride(pack.id, {
         name: name.trim() || null,
         allowed_class: cls || null,
+        modifier: modifier || null,
         is_hidden: hidden
       });
       setMsg('Saved');
@@ -663,6 +675,11 @@ function PackEditor({
     value: cls,
     onChange: setCls,
     options: FUNCTION_CLASSES
+  }), /*#__PURE__*/React.createElement(FieldSelect, {
+    label: "Pack rule",
+    value: modifier,
+    onChange: setModifier,
+    options: PACK_MODIFIERS
   }), /*#__PURE__*/React.createElement("label", {
     style: {
       display: 'flex',
@@ -764,248 +781,6 @@ function PackEditor({
     size: 13,
     c: "var(--fp-ink-3)"
   })))));
-}
-
-// ─── Level editor ──────────────────────────────────────────────────────────
-
-function LevelEditor({
-  pack,
-  levelIndex,
-  padX,
-  onBack,
-  onChanged
-}) {
-  const data = getLevelData(pack.id, levelIndex);
-  const ov = window.FP_LEVEL_OVERRIDES?.[`${pack.id}-${levelIndex}`] || {};
-  const [name, setName] = useAS(ov.name || LEVEL_NAMES[levelIndex] || '');
-  const [ballX, setBallX] = useAS(String(data.ball.x));
-  const [ballY, setBallY] = useAS(String(data.ball.y));
-  const [scoreGoal, setScoreGoal] = useAS(String(data.scoreGoal));
-  const [eqGoal, setEqGoal] = useAS(String(data.eqGoal));
-  const [stars, setStars] = useAS(data.stars.map(s => ({
-    x: String(s.x),
-    y: String(s.y)
-  })));
-  const [preplaced, setPreplaced] = useAS(Array.isArray(ov.preplaced) ? [...ov.preplaced] : []);
-  const [busy, setBusy] = useAS(false);
-  const [msg, setMsg] = useAS('');
-  const setStar = (i, k, v) => setStars(arr => arr.map((s, idx) => idx === i ? {
-    ...s,
-    [k]: v
-  } : s));
-  const addStar = () => setStars(arr => [...arr, {
-    x: '0',
-    y: '0'
-  }]);
-  const removeStar = i => setStars(arr => arr.filter((_, idx) => idx !== i));
-  const setPre = (i, v) => setPreplaced(arr => arr.map((s, idx) => idx === i ? v : s));
-  const addPre = () => setPreplaced(arr => [...arr, '']);
-  const removePre = i => setPreplaced(arr => arr.filter((_, idx) => idx !== i));
-  const save = async () => {
-    setBusy(true);
-    setMsg('');
-    try {
-      const patch = {
-        name: name.trim() || null,
-        ball_x: numOrNull(ballX),
-        ball_y: numOrNull(ballY),
-        stars: stars.map(s => ({
-          x: Number(s.x),
-          y: Number(s.y)
-        })).filter(s => isFinite(s.x) && isFinite(s.y)),
-        score_goal: intOrNull(scoreGoal),
-        eq_goal: intOrNull(eqGoal),
-        preplaced: preplaced.map(s => (s || '').trim()).filter(Boolean)
-      };
-      if (!patch.stars.length) throw new Error('At least one star is required');
-      if (patch.ball_x == null || patch.ball_y == null) throw new Error('Ball position is required');
-      if (patch.score_goal == null || patch.eq_goal == null) throw new Error('Both star goals are required');
-      await FP_AUTH.saveLevelOverride(pack.id, levelIndex, patch);
-      setMsg('Saved');
-      onChanged && (await onChanged());
-    } catch (e) {
-      setMsg(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return /*#__PURE__*/React.createElement(ScreenFrameAS, {
-    title: `${pack.id} · Level ${levelIndex + 1}`,
-    onBack: onBack,
-    padX: padX
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '18px 0 24px'
-    }
-  }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Level name",
-    value: name,
-    onChange: setName,
-    placeholder: LEVEL_NAMES[levelIndex]
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Ball x",
-    value: ballX,
-    onChange: setBallX
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Ball y",
-    value: ballY,
-    onChange: setBallY
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Score goal (\u2264 for 2\u2605)",
-    value: scoreGoal,
-    onChange: setScoreGoal
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement(FieldText, {
-    label: "Equation goal (\u2264 for 3\u2605)",
-    value: eqGoal,
-    onChange: setEqGoal
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 12,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: 'var(--fp-ink-3)',
-      letterSpacing: '0.03em',
-      textTransform: 'uppercase',
-      marginBottom: 8
-    }
-  }, "Stars to collect"), stars.map((s, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      fontSize: 11.5,
-      color: 'var(--fp-ink-4)',
-      fontFamily: "'Geist Mono', monospace"
-    }
-  }, i + 1), /*#__PURE__*/React.createElement("input", {
-    value: s.x,
-    onChange: e => setStar(i, 'x', e.target.value),
-    placeholder: "x",
-    style: miniInput()
-  }), /*#__PURE__*/React.createElement("input", {
-    value: s.y,
-    onChange: e => setStar(i, 'y', e.target.value),
-    placeholder: "y",
-    style: miniInput()
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeStar(i),
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: 7,
-      color: 'var(--fp-ink-4)',
-      fontSize: 16
-    }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: addStar,
-    style: {
-      marginTop: 4,
-      fontSize: 12,
-      color: 'var(--fp-ink-3)'
-    }
-  }, "+ add star")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 18,
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: 'var(--fp-ink-3)',
-      letterSpacing: '0.03em',
-      textTransform: 'uppercase',
-      marginBottom: 6
-    }
-  }, "Pre-placed equations"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: 'var(--fp-ink-4)',
-      lineHeight: 1.5,
-      marginBottom: 8
-    }
-  }, "Visible to players but locked \u2014 they can't edit or remove them, and they don't count toward score or equation budget."), preplaced.map((expr, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 18,
-      fontSize: 11.5,
-      color: 'var(--fp-ink-4)',
-      fontFamily: "'Geist Mono', monospace"
-    }
-  }, i + 1), /*#__PURE__*/React.createElement("input", {
-    value: expr,
-    onChange: e => setPre(i, e.target.value),
-    placeholder: "y = sin(x)",
-    style: miniInput()
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removePre(i),
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: 7,
-      color: 'var(--fp-ink-4)',
-      fontSize: 16
-    }
-  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
-    onClick: addPre,
-    style: {
-      marginTop: 4,
-      fontSize: 12,
-      color: 'var(--fp-ink-3)'
-    }
-  }, "+ add pre-placed equation")), /*#__PURE__*/React.createElement("button", {
-    onClick: save,
-    disabled: busy,
-    style: primaryBtn(busy)
-  }, busy ? 'Saving…' : 'Save level'), msg && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10,
-      fontSize: 12,
-      textAlign: 'center',
-      color: msg === 'Saved' ? 'var(--fp-accent)' : '#e34'
-    }
-  }, msg)));
 }
 
 // ─── Achievements admin ────────────────────────────────────────────────────
@@ -1534,10 +1309,6 @@ function primaryBtn(disabled) {
     marginTop: 8
   };
 }
-const numOrNull = s => {
-  const n = Number(s);
-  return isFinite(n) ? n : null;
-};
 const intOrNull = s => {
   const n = parseInt(s, 10);
   return isFinite(n) ? n : null;

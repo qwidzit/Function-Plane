@@ -1,9 +1,9 @@
 // Function Plane — Admin panel
 // Visible only to the user with display name "Test Account". Lets them edit
-// pack metadata (name, allowed equation class) and per-level data
-// (level name, ball position, stars, score & equation goals). Writes go to the
-// pack_overrides / level_overrides Supabase tables; on save the parent app
-// re-fetches overrides and the change becomes live for everyone.
+// pack metadata (name, allowed equation class, pack rule) and open any level
+// in the studio (level-studio.jsx) to author it by playing it. Writes go to
+// the pack_overrides / level_overrides Supabase tables; on save the parent
+// app re-fetches overrides and the change becomes live for everyone.
 
 const { useState: useAS, useEffect: useASE } = React;
 
@@ -16,7 +16,12 @@ const FUNCTION_CLASSES = [
   { id: 'cubic',     label: 'Cubic only' },
 ];
 
-function AdminScreen({ onBack, density = 'comfortable', onChanged }) {
+const PACK_MODIFIERS = [
+  { id: '',            label: 'None' },
+  { id: 'gravityFlip', label: 'Gravity flips on every bounce' },
+];
+
+function AdminScreen({ onBack, density = 'comfortable', onChanged, settings }) {
   const padX = density === 'compact' ? 18 : 22;
   const [view, setView]   = useAS('list');           // 'list' | 'pack' | 'level' | 'users' | 'achievements' | 'achievement'
   const [pack, setPack]   = useAS(null);
@@ -30,9 +35,9 @@ function AdminScreen({ onBack, density = 'comfortable', onChanged }) {
       onPickLevel={(idx) => { setLI(idx); setView('level'); }}/>;
 
   if (view === 'level' && pack)
-    return <LevelEditor pack={pack} levelIndex={levelIndex} padX={padX}
+    return <LevelStudio mode="admin" pack={pack} levelIndex={levelIndex} density={density} settings={settings}
       onBack={() => setView('pack')}
-      onChanged={onChanged}/>;
+      onSaved={onChanged}/>;
 
   if (view === 'users')
     return <UsersAdmin padX={padX} onBack={() => setView('list')}/>;
@@ -356,6 +361,7 @@ function PackEditor({ pack, padX, onBack, onPickLevel, onChanged }) {
   const initialHidden = !!window.FP_PACK_OVERRIDES?.[pack.id]?.is_hidden;
   const [name, setName] = useAS(pack.name || '');
   const [cls,  setCls]  = useAS(pack.allowedClass || '');
+  const [modifier, setModifier] = useAS(getPack(pack.id)?.modifier || '');
   const [hidden, setHidden] = useAS(initialHidden);
   const [busy, setBusy] = useAS(false);
   const [msg,  setMsg]  = useAS('');
@@ -366,6 +372,7 @@ function PackEditor({ pack, padX, onBack, onPickLevel, onChanged }) {
       await FP_AUTH.savePackOverride(pack.id, {
         name: name.trim() || null,
         allowed_class: cls || null,
+        modifier: modifier || null,
         is_hidden: hidden,
       });
       setMsg('Saved');
@@ -379,6 +386,7 @@ function PackEditor({ pack, padX, onBack, onPickLevel, onChanged }) {
       <div style={{ padding: '18px 0 24px' }}>
         <FieldText label="Pack name" value={name} onChange={setName}/>
         <FieldSelect label="Allowed equation class" value={cls} onChange={setCls} options={FUNCTION_CLASSES}/>
+        <FieldSelect label="Pack rule" value={modifier} onChange={setModifier} options={PACK_MODIFIERS}/>
 
         <label style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -425,109 +433,6 @@ function PackEditor({ pack, padX, onBack, onPickLevel, onChanged }) {
             <Icon.Chevron dir="right" size={13} c="var(--fp-ink-3)"/>
           </button>
         ))}
-      </div>
-    </ScreenFrameAS>
-  );
-}
-
-// ─── Level editor ──────────────────────────────────────────────────────────
-
-function LevelEditor({ pack, levelIndex, padX, onBack, onChanged }) {
-  const data = getLevelData(pack.id, levelIndex);
-  const ov   = window.FP_LEVEL_OVERRIDES?.[`${pack.id}-${levelIndex}`] || {};
-
-  const [name,      setName]      = useAS(ov.name || LEVEL_NAMES[levelIndex] || '');
-  const [ballX,     setBallX]     = useAS(String(data.ball.x));
-  const [ballY,     setBallY]     = useAS(String(data.ball.y));
-  const [scoreGoal, setScoreGoal] = useAS(String(data.scoreGoal));
-  const [eqGoal,    setEqGoal]    = useAS(String(data.eqGoal));
-  const [stars,     setStars]     = useAS(data.stars.map(s => ({ x: String(s.x), y: String(s.y) })));
-  const [preplaced, setPreplaced] = useAS(Array.isArray(ov.preplaced) ? [...ov.preplaced] : []);
-  const [busy, setBusy] = useAS(false);
-  const [msg,  setMsg]  = useAS('');
-
-  const setStar = (i, k, v) => setStars(arr => arr.map((s, idx) => idx === i ? { ...s, [k]: v } : s));
-  const addStar = () => setStars(arr => [...arr, { x: '0', y: '0' }]);
-  const removeStar = (i) => setStars(arr => arr.filter((_, idx) => idx !== i));
-
-  const setPre = (i, v) => setPreplaced(arr => arr.map((s, idx) => idx === i ? v : s));
-  const addPre = () => setPreplaced(arr => [...arr, '']);
-  const removePre = (i) => setPreplaced(arr => arr.filter((_, idx) => idx !== i));
-
-  const save = async () => {
-    setBusy(true); setMsg('');
-    try {
-      const patch = {
-        name: name.trim() || null,
-        ball_x: numOrNull(ballX),
-        ball_y: numOrNull(ballY),
-        stars: stars.map(s => ({ x: Number(s.x), y: Number(s.y) }))
-                    .filter(s => isFinite(s.x) && isFinite(s.y)),
-        score_goal: intOrNull(scoreGoal),
-        eq_goal:    intOrNull(eqGoal),
-        preplaced:  preplaced.map(s => (s || '').trim()).filter(Boolean),
-      };
-      if (!patch.stars.length) throw new Error('At least one star is required');
-      if (patch.ball_x == null || patch.ball_y == null) throw new Error('Ball position is required');
-      if (patch.score_goal == null || patch.eq_goal == null) throw new Error('Both star goals are required');
-      await FP_AUTH.saveLevelOverride(pack.id, levelIndex, patch);
-      setMsg('Saved');
-      onChanged && await onChanged();
-    } catch (e) { setMsg(e.message); }
-    finally    { setBusy(false); }
-  };
-
-  return (
-    <ScreenFrameAS title={`${pack.id} · Level ${levelIndex+1}`} onBack={onBack} padX={padX}>
-      <div style={{ padding: '18px 0 24px' }}>
-        <FieldText label="Level name" value={name} onChange={setName} placeholder={LEVEL_NAMES[levelIndex]}/>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><FieldText label="Ball x" value={ballX} onChange={setBallX}/></div>
-          <div style={{ flex: 1 }}><FieldText label="Ball y" value={ballY} onChange={setBallY}/></div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><FieldText label="Score goal (≤ for 2★)" value={scoreGoal} onChange={setScoreGoal}/></div>
-          <div style={{ flex: 1 }}><FieldText label="Equation goal (≤ for 3★)" value={eqGoal} onChange={setEqGoal}/></div>
-        </div>
-
-        <div style={{ marginTop: 12, marginBottom: 8 }}>
-          <div style={{ fontSize: 11.5, color: 'var(--fp-ink-3)', letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 8 }}>
-            Stars to collect
-          </div>
-          {stars.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ width: 18, fontSize: 11.5, color: 'var(--fp-ink-4)', fontFamily: "'Geist Mono', monospace" }}>{i+1}</span>
-              <input value={s.x} onChange={e => setStar(i, 'x', e.target.value)} placeholder="x" style={miniInput()}/>
-              <input value={s.y} onChange={e => setStar(i, 'y', e.target.value)} placeholder="y" style={miniInput()}/>
-              <button onClick={() => removeStar(i)} style={{ width: 28, height: 28, borderRadius: 7, color: 'var(--fp-ink-4)', fontSize: 16 }}>×</button>
-            </div>
-          ))}
-          <button onClick={addStar} style={{ marginTop: 4, fontSize: 12, color: 'var(--fp-ink-3)' }}>+ add star</button>
-        </div>
-
-        <div style={{ marginTop: 18, marginBottom: 8 }}>
-          <div style={{ fontSize: 11.5, color: 'var(--fp-ink-3)', letterSpacing: '0.03em', textTransform: 'uppercase', marginBottom: 6 }}>
-            Pre-placed equations
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5, marginBottom: 8 }}>
-            Visible to players but locked — they can't edit or remove them, and they don't count toward score or equation budget.
-          </div>
-          {preplaced.map((expr, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span style={{ width: 18, fontSize: 11.5, color: 'var(--fp-ink-4)', fontFamily: "'Geist Mono', monospace" }}>{i+1}</span>
-              <input value={expr} onChange={e => setPre(i, e.target.value)} placeholder="y = sin(x)" style={miniInput()}/>
-              <button onClick={() => removePre(i)} style={{ width: 28, height: 28, borderRadius: 7, color: 'var(--fp-ink-4)', fontSize: 16 }}>×</button>
-            </div>
-          ))}
-          <button onClick={addPre} style={{ marginTop: 4, fontSize: 12, color: 'var(--fp-ink-3)' }}>+ add pre-placed equation</button>
-        </div>
-
-        <button onClick={save} disabled={busy} style={primaryBtn(busy)}>
-          {busy ? 'Saving…' : 'Save level'}
-        </button>
-        {msg && <div style={{ marginTop: 10, fontSize: 12, textAlign: 'center', color: msg === 'Saved' ? 'var(--fp-accent)' : '#e34' }}>{msg}</div>}
       </div>
     </ScreenFrameAS>
   );
@@ -815,7 +720,6 @@ function primaryBtn(disabled) {
     color:'var(--fp-accent-ink)', fontSize:14, fontWeight:500, opacity: disabled ? 0.6 : 1, marginTop: 8 };
 }
 
-const numOrNull = s => { const n = Number(s); return isFinite(n) ? n : null; };
 const intOrNull = s => { const n = parseInt(s, 10); return isFinite(n) ? n : null; };
 
 window.AdminScreen = AdminScreen;

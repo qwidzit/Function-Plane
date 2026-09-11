@@ -141,6 +141,7 @@ function MiniGraph({ kind = 'I', w = 56, h = 36, c = 'var(--fp-ink)', dim = 'var
     'qua': 'M2 30 Q28 -8 54 30',
     'trig':'M2 18 Q10 4 18 18 T34 18 T50 18 L54 18',
     'exp': 'M2 32 C30 32 38 30 44 22 C50 12 52 6 54 4',
+    'flip':'M2 8 L18 28 L34 8 L50 28 L54 22',
   };
   return (
     <svg width={w} height={h} viewBox={`0 0 56 36`} fill="none" style={{ display: 'block' }}>

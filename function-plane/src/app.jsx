@@ -306,7 +306,7 @@ function App() {
     }
 
     if (route === 'sandbox') {
-      return <SandboxScreen onBack={() => navigateBack('main')} density={settings.density} settings={settings}/>;
+      return <LevelStudio mode="sandbox" onBack={() => navigateBack('main')} density={settings.density} settings={settings}/>;
     }
 
     if (route === 'how-to-play') {
@@ -322,7 +322,7 @@ function App() {
     }
 
     if (route === 'admin') {
-      return <AdminScreen onBack={() => navigateBack('account')} density={settings.density} onChanged={() => reloadOverrides({ force: true })}/>;
+      return <AdminScreen onBack={() => navigateBack('account')} density={settings.density} settings={settings} onChanged={() => reloadOverrides({ force: true })}/>;
     }
 
     return (
@@ -545,7 +545,8 @@ function mount() {
     typeof AchievementsScreen === 'undefined' ||
     typeof AccountScreen === 'undefined' ||
     typeof AdminScreen === 'undefined' ||
-    typeof SandboxScreen === 'undefined' ||
+    typeof LevelStudio === 'undefined' ||
+    typeof FP_OBJECTS === 'undefined' ||
     typeof LegalScreen === 'undefined' ||
     typeof MathKeyboard === 'undefined' ||
     typeof freshProgress === 'undefined' ||

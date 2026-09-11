@@ -481,6 +481,109 @@ it('is deterministic', () => {
   eq(a.vx, b.vx, 'vx'); eq(a.vy, b.vy, 'vy');
 });
 
+// ── 2b. Level objects & materials ──────────────────────────────────────────
+
+describe('Level objects & materials');
+
+const objs = loadBrowserModules(['level-objects.js']).FP_OBJECTS;
+
+const simWorld = (defs, start, seconds, field) => {
+  const colliders = FP_PHYSICS.makeColliders(defs, BALL_R);
+  const ph = { ...start, bounces: 0 };
+  const steps = Math.round(seconds / STEP_DT);
+  for (let i = 0; i < steps; i++) FP_PHYSICS.stepBall(ph, colliders, STEP_DT, { ...CFG, field });
+  return ph;
+};
+
+it('lets a sideways fan push the ball across', () => {
+  const fan = objs.makeObject('fan', { x: -5, y: 0, angle: 0, len: 10, w: 40, strength: 10 });
+  const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 0.5, objs.makeField([fan]));
+  near(ph.vx, 5, 1e-9, 'a 10 u/s² fan for half a second is 5 u/s sideways');
+  near(ph.vy, -GRAVITY * 0.5, 1e-9, 'and gravity is untouched');
+});
+
+it('reverses gravity inside an antigravity zone', () => {
+  const zone = objs.makeObject('antigrav', { x: 0, y: 0, w: 40, h: 40 });
+  const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 1, objs.makeField([zone]));
+  near(ph.vy, GRAVITY, 1e-9, 'falls upward at gravity');
+});
+
+it('pulls the ball toward a gravity well', () => {
+  const well = objs.makeObject('well', { x: -3, y: 0, r: 10, strength: 20 });
+  const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 0.5, objs.makeField([well]));
+  ok(ph.vx < -5, `pulled left, vx=${ph.vx}`);
+});
+
+it('is a pure function of position — the same field twice gives the same run', () => {
+  const field = objs.makeField([
+    objs.makeObject('fan',  { x: -2, y: 1, angle: 45, len: 6, w: 3, strength: 12 }),
+    objs.makeObject('well', { x: 3, y: -1, r: 4, strength: 9 }),
+  ]);
+  const a = simWorld([], { x: 0, y: 2, vx: 1, vy: 0 }, 2, field);
+  const b = simWorld([], { x: 0, y: 2, vx: 1, vy: 0 }, 2, field);
+  eq(a.x, b.x, 'x'); eq(a.y, b.y, 'y'); eq(a.vx, b.vx, 'vx'); eq(a.vy, b.vy, 'vy');
+});
+
+it('has no field at all when nothing pushes', () => {
+  eq(objs.makeField([]), null, 'no objects');
+  eq(objs.makeField([objs.makeObject('hazard')]), null, 'a hazard is not a force');
+});
+
+it('kills the ball on a hazard, by the ball edge, not its centre', () => {
+  const hz = [objs.makeObject('hazard', { x: 0, y: 0, w: 2, h: 1 })];
+  ok(objs.hazardHit(hz, 0, 0, BALL_R), 'inside');
+  ok(objs.hazardHit(hz, 1 + BALL_R * 0.9, 0, BALL_R), 'edge grazes the box');
+  ok(!objs.hazardHit(hz, 1 + BALL_R * 1.1, 0, BALL_R), 'a ball-radius clear of it');
+});
+
+it('clamps object edits to the range the registry declares', () => {
+  const fan = objs.makeObject('fan');
+  eq(objs.setField(fan, 'len', 500).len, 30, 'reach capped');
+  eq(objs.setField(fan, 'strength', -3).strength, 1, 'force floored');
+  eq(objs.setField(fan, 'x', NaN), fan, 'garbage ignored');
+});
+
+it('lands and rolls on a dead curve instead of bouncing', () => {
+  const dead = [{ fn: () => 0, domain: null, isImplicit: false, material: 'dead' }];
+  const ph = simWorld(dead, { x: 0, y: 3, vx: 0, vy: 0 }, 2, null);
+  near(ph.y, BALL_R, 0.02, 'resting on the line');
+  ok(Math.abs(ph.vy) < 0.05, `no vertical motion left, vy=${ph.vy}`);
+});
+
+it('returns the whole drop from a perfectly elastic curve', () => {
+  const rubber = [{ fn: () => 0, domain: null, isImplicit: false, material: 'rubber' }];
+  const colliders = FP_PHYSICS.makeColliders(rubber, BALL_R);
+  const ph = { x: 0, y: 4, vx: 0, vy: 0 };
+  let peak = 0, seenGround = false;
+  for (let i = 0; i < Math.round(3 / STEP_DT); i++) {
+    FP_PHYSICS.stepBall(ph, colliders, STEP_DT, CFG);
+    if (ph.y < BALL_R + 0.05) seenGround = true;
+    if (seenGround && ph.vy > 0) peak = Math.max(peak, ph.y);
+  }
+  ok(seenGround, 'it did reach the curve');
+  ok(peak > 3.6, `came back up to ${peak.toFixed(2)} of 4 — should keep its energy`);
+  // ...and the shipped default does not, or the material means nothing.
+  const cfgDefault = FP_PHYSICS.makeColliders([{ fn: () => 0, domain: null, isImplicit: false }], BALL_R);
+  const p2 = { x: 0, y: 4, vx: 0, vy: 0 };
+  let peak2 = 0, ground2 = false;
+  for (let i = 0; i < Math.round(3 / STEP_DT); i++) {
+    FP_PHYSICS.stepBall(p2, cfgDefault, STEP_DT, CFG);
+    if (p2.y < BALL_R + 0.05) ground2 = true;
+    if (ground2 && p2.vy > 0) peak2 = Math.max(peak2, p2.y);
+  }
+  ok(peak2 < 2, `the default surface gives back ${peak2.toFixed(2)} — well under half`);
+});
+
+it('counts real bounces and not rolling contact', () => {
+  const drop = simWorld(flatGround(0), { x: 0, y: 3, vx: 0, vy: 0 }, 0.9, null);
+  eq(drop.bounces, 1, 'one drop, one bounce');
+  // Rolling down a slope is continuous contact — the gravity-flip pack must
+  // not flip sixty times a second while the ball rests on a curve.
+  const roll = simWorld([{ fn: x => -0.4 * x, domain: null, isImplicit: false }],
+    { x: 0, y: BALL_R * Math.sqrt(1.16), vx: 0, vy: 0 }, 1.5, null);
+  eq(roll.bounces, 0, 'a roll is not a bounce');
+});
+
 // ── 3. Sim clock ───────────────────────────────────────────────────────────
 
 describe('Sim clock');
@@ -696,6 +799,31 @@ it('explains an empty leaderboard rather than implying there are no scores', () 
 describe('Level data');
 
 const snapshot = loadBrowserModules(['overrides-snapshot.js']).FP_OVERRIDES_SNAPSHOT;
+
+it('reads objects and materials off a level, ignoring kinds it does not know', () => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w; global.React = w.React; global.document = { createElement: () => ({}) };
+  for (const f of ['level-objects.js', 'data.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  w.FP_LEVEL_OVERRIDES = { 'r-I-0': {
+    ball_x: 0, ball_y: 1, stars: [{ x: 1, y: 1 }], score_goal: 40, eq_goal: 1,
+    objects: [{ kind: 'fan', x: 0, y: 0, angle: 0, len: 2, w: 1, strength: 5 }, { kind: 'portal', x: 0, y: 0 }],
+    materials: true,
+  } };
+  const d = w.getLevelData('r-I', 0);
+  eq(d.objects.length, 1, 'unknown kind dropped');
+  eq(d.objects[0].kind, 'fan');
+  eq(d.materials, true);
+  const bare = w.getLevelData('r-I', 1);
+  eq(bare.objects.length, 0, 'no objects by default');
+  eq(bare.materials, false, 'bounce editing is off by default');
+  const flip = w.SPECIAL_PACKS.find(p => p.id === 's-flip');
+  ok(flip && flip.modifier === 'gravityFlip', 'the Inversion pack flips gravity');
+  for (const p of w.SPECIAL_PACKS) ok(p.id in w.SPECIAL_UNLOCK_STARS, `${p.id} has an unlock threshold`);
+});
 
 it('ships a parseable override snapshot', () => {
   ok(snapshot && snapshot.data, 'snapshot missing');

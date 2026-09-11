@@ -19,10 +19,13 @@ const SPECIAL_PACKS = [
   { id: 's-qua',  numeral: 'ƒ', name: 'Quadratic',    kind: 'qua',  type: 'special', tag: 'ax² + bx + c',   allowedClass: 'quadratic' },
   { id: 's-trig', numeral: 'ƒ', name: 'Trigonometry', kind: 'trig', type: 'special', tag: 'sin · cos · tan', allowedClass: 'trig' },
   { id: 's-exp',  numeral: 'ƒ', name: 'Exponential',  kind: 'exp',  type: 'special', tag: 'aᵇˣ · log',      allowedClass: 'exp' },
+  // modifier: a rule the whole pack plays under. 'gravityFlip' turns gravity
+  // over on every real bounce.
+  { id: 's-flip', numeral: '↕', name: 'Inversion',    kind: 'flip', type: 'special', tag: 'gravity flips',   modifier: 'gravityFlip' },
 ];
 
 // Stars needed to unlock each special pack
-const SPECIAL_UNLOCK_STARS = { 's-lin': 0, 's-qua': 50, 's-trig': 100, 's-exp': 150 };
+const SPECIAL_UNLOCK_STARS = { 's-lin': 0, 's-qua': 50, 's-trig': 100, 's-exp': 150, 's-flip': 120 };
 
 // ─── Level data ──────────────────────────────────────────────
 // Every shipped level is authored in Supabase and baked into
@@ -40,7 +43,7 @@ const LEVELS = {
 function getLevelData(packId, levelIndex) {
   const base = LEVELS[`${packId}-${levelIndex}`] || LEVELS._default;
   const ov   = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];
-  if (!ov) return { ...base, preplaced: [] };
+  if (!ov) return { ...base, preplaced: [], objects: [], materials: false };
   return {
     ball:      (ov.ball_x != null && ov.ball_y != null) ? { x: ov.ball_x, y: ov.ball_y } : base.ball,
     stars:     Array.isArray(ov.stars) ? ov.stars : base.stars,
@@ -49,6 +52,10 @@ function getLevelData(packId, levelIndex) {
     // Pre-placed equations: visible to the player but locked. They don't
     // count toward eqsUsed or score. Stored as a JSON array of strings.
     preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.filter(s => typeof s === 'string' && s.trim()) : [],
+    // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
+    objects:   Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
+    // Whether players may set a curve's bounce (dead / perfectly elastic).
+    materials: !!ov.materials,
   };
 }
 
@@ -66,6 +73,7 @@ function getPack(packId) {
     ...base,
     name:         ov.name          || base.name,
     allowedClass: ov.allowed_class || base.allowedClass,
+    modifier:     ov.modifier      || base.modifier || null,
     isHidden:     !!ov.is_hidden,
   };
 }
@@ -97,6 +105,7 @@ function applyOverrides({ packs = [], levels = [], achievements = [] }) {
     if (!ov) return;
     if (ov.name)          p.name = ov.name;
     if (ov.allowed_class) p.allowedClass = ov.allowed_class;
+    if (ov.modifier)      p.modifier = ov.modifier;
   });
 }
 
@@ -135,6 +144,7 @@ function buildProgress(state) {
     out['s-qua'].best   = [200,280,310,null,null,null,null,null,null,null];
     out['s-trig'].stars = Array(10).fill(null);
     out['s-exp'].stars  = Array(10).fill(null);
+    out['s-flip'].stars = Array(10).fill(null);
   }
   return out;
 }
@@ -201,7 +211,7 @@ const LEVEL_NAMES = [
   'Warm-up', 'First slope', 'Through the gate', 'Twin peaks', 'Reflections',
   'The valley', 'Crosswinds', 'Threshold', 'Loop & catch', 'The summit',
 ];
-const LEVEL_GRAPH = ['I','II','III','IV','V','VI','VII','VIII','IX','X','lin','qua','trig','exp'];
+const LEVEL_GRAPH = ['I','II','III','IV','V','VI','VII','VIII','IX','X','lin','qua','trig','exp','flip'];
 
 Object.assign(window, {
   ROMAN_PACKS, SPECIAL_PACKS, LEVELS,

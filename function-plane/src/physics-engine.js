@@ -293,9 +293,21 @@
     };
   }
 
+  // ── Surface materials ─────────────────────────────────────────────────
+  // A curve can override the response tuning: `dead` swallows the normal
+  // velocity so the ball lands and rolls, `rubber` returns all of it. Only
+  // the keys a material names change; everything else stays the level's cfg.
+  const MATERIALS = {
+    dead:   { bounciness: 0 },
+    rubber: { bounciness: 1, energyRetention: 1 },
+  };
+
   // ── Contact resolution — identical response law to the old engine ────
   function resolve(ph, col, cfg, h) {
     const R = cfg.ballR;
+    const mat = col.mat;
+    const bounciness      = mat && mat.bounciness      != null ? mat.bounciness      : cfg.bounciness;
+    const energyRetention = mat && mat.energyRetention != null ? mat.energyRetention : cfg.energyRetention;
     const hit = col.query(ph.x, ph.y);
     if (!hit) return;
     const d = Math.sqrt(hit.d2);
@@ -319,12 +331,15 @@
     // momentum, that's the traction feel.
     const vn = ph.vx * nx + ph.vy * ny;
     if (vn < 0) {
-      ph.vx -= (1 + cfg.bounciness) * vn * nx;
-      ph.vy -= (1 + cfg.bounciness) * vn * ny;
+      ph.vx -= (1 + bounciness) * vn * nx;
+      ph.vy -= (1 + bounciness) * vn * ny;
       if (-vn > cfg.bounceThreshold) {
-        ph.vx *= cfg.energyRetention;
-        ph.vy *= cfg.energyRetention;
+        ph.vx *= energyRetention;
+        ph.vy *= energyRetention;
         ph.bounced = true;
+        // Counted, not just flagged: a frame can drain several ticks and the
+        // gravity-flip rule needs to know how many real bounces each tick saw.
+        ph.bounces = (ph.bounces || 0) + 1;
       }
     }
 
@@ -348,16 +363,23 @@
   }
 
   // ── Public API ───────────────────────────────────────────────────────
-  // makeColliders(defs, ballR): defs = [{ fn, domain, isImplicit }] — one
-  //   collider per equation, with its own geometry cache. Build once per
-  //   run (equations are locked while the sim is running).
+  // makeColliders(defs, ballR): defs = [{ fn, domain, isImplicit, material }]
+  //   — one collider per equation, with its own geometry cache. Build once
+  //   per run (equations are locked while the sim is running).
   // stepBall(ph, colliders, dt, cfg): one integration substep. cfg =
-  //   { gravity, ballR, bounciness, energyRetention, bounceThreshold }.
+  //   { gravity, ballR, bounciness, energyRetention, traction,
+  //     bounceThreshold, field }. `field(x, y)` → { ax, ay, gMul } is the
+  //   level's objects (fans, wells, antigravity) sampled at the ball; null
+  //   when there are none.
   window.FP_PHYSICS = {
+    MATERIALS,
     makeColliders(defs, ballR) {
-      return defs.map(d =>
-        d.isImplicit ? makeImplicitCollider(d, ballR)
-                     : makeExplicitCollider(d, ballR));
+      return defs.map(d => {
+        const col = d.isImplicit ? makeImplicitCollider(d, ballR)
+                                 : makeExplicitCollider(d, ballR);
+        col.mat = MATERIALS[d.material] || null;
+        return col;
+      });
     },
 
     stepBall(ph, colliders, dt, cfg) {
@@ -372,7 +394,13 @@
       if (n > 8) n = 8;
       const h = dt / n;
       for (let k = 0; k < n; k++) {
-        ph.vy -= cfg.gravity * h;
+        if (cfg.field) {
+          const f = cfg.field(ph.x, ph.y);
+          ph.vx += f.ax * h;
+          ph.vy += (f.ay - cfg.gravity * f.gMul) * h;
+        } else {
+          ph.vy -= cfg.gravity * h;
+        }
         ph.x  += ph.vx * h;
         ph.y  += ph.vy * h;
         for (let c = 0; c < colliders.length; c++) {

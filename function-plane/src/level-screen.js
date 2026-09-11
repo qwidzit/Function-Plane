@@ -1,3 +1,4 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // Function Plane — Level Screen
 
 const {
@@ -393,14 +394,17 @@ function inDomain(x, domain) {
 // gradient approximations to blow up. The response tuning (GRAVITY,
 // bounciness, energyRetention, real-bounce threshold) is unchanged, so
 // the ball feels exactly as before on curves that already worked.
-function physicsStep(ph, colliders, dt) {
+// world = { field, hazards, gravityFlip } — what the level puts on the plane
+// besides curves. Built once per run from the level's objects.
+function physicsStep(ph, colliders, dt, world) {
   FP_PHYSICS.stepBall(ph, colliders, dt, {
-    gravity: GRAVITY,
+    gravity: GRAVITY * (ph.gSign || 1),
     ballR: BALL_R,
     bounciness: PHYSICS_CONFIG.bounciness,
     energyRetention: PHYSICS_CONFIG.energyRetention,
     traction: PHYSICS_CONFIG.traction,
-    bounceThreshold: 1.5
+    bounceThreshold: 1.5,
+    field: world?.field || null
   });
 
   // ── Star collection ────────────────────────────────────────────────────
@@ -413,6 +417,70 @@ function physicsStep(ph, colliders, dt) {
       ph.justCollected = true;
     }
   }
+  if (world?.hazards?.length && FP_OBJECTS.hazardHit(world.hazards, ph.x, ph.y, BALL_R)) ph.dead = true;
+}
+
+// Left the world: below the floor, or — with gravity pointing up — above the
+// mirror-image ceiling, without which a flipped ball just rises until the
+// clock runs out.
+function outOfWorld(ph) {
+  return ph.y < FALL_LIMIT || ph.gSign < 0 && ph.y > -FALL_LIMIT;
+}
+
+// Drains one frame's elapsed time into whole ticks. Shared by the level and
+// the studio so a run behaves identically in both.
+function drainTicks(ph, colliders, world, ts) {
+  if (ph.lastTs == null) ph.lastTs = ts;
+  ph.acc += Math.min((ts - ph.lastTs) / 1000, MAX_TICKS * TICK_DT);
+  ph.lastTs = ts;
+  ph.bounced = false;
+  ph.justCollected = false;
+  const dt = TICK_DT / SUB_STEPS;
+  while (ph.acc >= TICK_DT) {
+    ph.acc -= TICK_DT;
+    const bounces = ph.bounces;
+    for (let s = 0; s < SUB_STEPS; s++) physicsStep(ph, colliders, dt, world);
+    // Flipped once per *tick* that saw a real bounce, never per frame: a frame
+    // can drain several ticks, and two curves hit in one corner would
+    // otherwise flip twice into a no-op.
+    if (world?.gravityFlip && ph.bounces !== bounces) ph.gSign = -ph.gSign;
+    ph.simS += TICK_DT;
+    // Sampled every third tick (20/s): dense enough that a bounce reads as
+    // a corner, sparse enough that a full 28s run stays under 200 points.
+    if (ph.tick++ % 3 === 0) ph.trail.push({
+      x: ph.x,
+      y: ph.y
+    });
+    // Checked per tick, not per frame, so the recorded finish time has
+    // the same resolution however many ticks a frame happens to drain.
+    if (ph.wonAtS == null && ph.stars.every(s => s.collected)) ph.wonAtS = ph.simS;
+  }
+}
+function freshPh(ball, stars) {
+  return {
+    x: ball.x,
+    y: ball.y,
+    vx: 0,
+    vy: 0,
+    stars: stars.map(s => ({
+      ...s,
+      collected: false
+    })),
+    lastTs: null,
+    acc: 0,
+    simS: 0,
+    tick: 0,
+    bounced: false,
+    bounces: 0,
+    justCollected: false,
+    gSign: 1,
+    dead: false,
+    wonAtS: null,
+    trail: [{
+      x: ball.x,
+      y: ball.y
+    }]
+  };
 }
 
 // ─── Coordinate plane ─────────────────────────────────────────
@@ -431,13 +499,19 @@ function CoordPlane({
   selected,
   onSelect,
   onMove,
-  gridLabels = true
+  gridLabels = true,
+  objects = [],
+  gravityDir = null,
+  viewRef = null
 }) {
   const [view, setView] = useSL({
     cx: 0,
     cy: 0,
     scale: 40
   });
+  // The studio places a new object at the centre of whatever the player is
+  // looking at, which only the plane knows.
+  if (viewRef) viewRef.current = view;
 
   // The box the last auto-zoom was asked to frame, kept until the player takes
   // manual control of the view. Non-null means "this fit is still mine to
@@ -463,6 +537,11 @@ function CoordPlane({
     if (autoZoomTrigger == null) return;
     const xs = [startPos.x, ...levelStars.map(s => s.x)];
     const ys = [startPos.y, ...levelStars.map(s => s.y)];
+    for (const o of objects) {
+      const b = FP_OBJECTS.bounds(o);
+      xs.push(b.minX, b.maxX);
+      ys.push(b.minY, b.maxY);
+    }
     const box = {
       minX: Math.min(...xs),
       maxX: Math.max(...xs),
@@ -517,7 +596,15 @@ function CoordPlane({
     for (let i = 0; i < (levelStars?.length ?? 0); i++) {
       if (near(levelStars[i].x, levelStars[i].y)) return `star-${i}`;
     }
-    return near(startPos.x, startPos.y) ? 'ball' : null;
+    if (near(startPos.x, startPos.y)) return 'ball';
+    // Objects are regions, so they're grabbed anywhere inside — in world
+    // units, and last, so a star sitting inside a zone stays grabbable.
+    const mx = view.cx + (px - width / 2) / view.scale;
+    const my = view.cy - (py - height / 2) / view.scale;
+    for (let i = objects.length - 1; i >= 0; i--) {
+      if (FP_OBJECTS.hitTest(objects[i], mx, my)) return `obj-${i}`;
+    }
+    return null;
   };
   const onPointerDown = e => {
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -718,19 +805,26 @@ function CoordPlane({
       }, gridStep >= 1 ? Math.round(y) : y.toFixed(1)));
     }
   }
+
+  // A dead curve is drawn heavy, a rubber one dashed like a spring, so the
+  // material reads from the plane and not only from the row's toggle.
+  const strokeFor = eq => ({
+    strokeWidth: eq.material === 'dead' ? EQ_STROKE + 1.4 : EQ_STROKE,
+    strokeDasharray: eq.material === 'rubber' ? '7 4' : undefined
+  });
   const eqPaths = equations.filter(eq => eq.fn && eq.visible).map(eq => {
     if (eq.isImplicit) {
       const implFn = eq.domain ? (x, y) => inDomain(x, eq.domain) ? eq.fn(x, y) : NaN : eq.fn;
       const d = marchingSquares(implFn, range.xMin, range.xMax, range.yMin, range.yMax, 60, m2p);
-      return /*#__PURE__*/React.createElement("path", {
+      return /*#__PURE__*/React.createElement("path", _extends({
         key: eq.id,
         d: d,
-        stroke: eq.color,
-        strokeWidth: EQ_STROKE,
+        stroke: eq.color
+      }, strokeFor(eq), {
         fill: "none",
         strokeLinecap: "round",
         strokeLinejoin: "round"
-      });
+      }));
     }
     let d = '',
       pen = false,
@@ -753,16 +847,24 @@ function CoordPlane({
       pen = true;
       prevY = y;
     }
-    return /*#__PURE__*/React.createElement("path", {
+    return /*#__PURE__*/React.createElement("path", _extends({
       key: eq.id,
       d: d,
-      stroke: eq.color,
-      strokeWidth: EQ_STROKE,
+      stroke: eq.color
+    }, strokeFor(eq), {
       fill: "none",
       strokeLinecap: "round",
       strokeLinejoin: "round"
-    });
+    }));
   });
+  const objectsEl = objects.map((o, i) => /*#__PURE__*/React.createElement(FP_OBJECTS.LevelObject, {
+    key: i,
+    o: o,
+    i: i,
+    m2p: m2p,
+    scale: view.scale,
+    selected: selected === `obj-${i}`
+  }));
 
   // Stars are authored at an outer radius of 11 units in the path below, and
   // STAR_DRAW_R is that radius expressed in *world* units, so a star zooms
@@ -874,7 +976,7 @@ function CoordPlane({
     fontFamily: "ui-monospace,monospace",
     fill: "var(--lv-tick)",
     textAnchor: "end"
-  }, "0"), tickLabels, eqPaths, trailPath && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+  }, "0"), tickLabels, objectsEl, eqPaths, trailPath && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "fp-trail",
     gradientUnits: "userSpaceOnUse",
     x1: trailPath.x1,
@@ -925,6 +1027,14 @@ function CoordPlane({
     cx: -br * 0.31,
     cy: -br * 0.31,
     fill: "var(--lv-ball-shine)"
+  }), gravityDir != null && /*#__PURE__*/React.createElement("path", {
+    d: `M-5 ${gravityDir * (br + 5)} L0 ${gravityDir * (br + 11)} L5 ${gravityDir * (br + 5)}`,
+    fill: "none",
+    stroke: "var(--lv-ball)",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: 0.85
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -1023,7 +1133,10 @@ function PlaneFiller({
   selected,
   onSelect,
   onMove,
-  gridLabels = true
+  gridLabels = true,
+  objects,
+  gravityDir,
+  viewRef
 }) {
   const ref = useRL(null);
   const [size, setSize] = useSL({
@@ -1063,7 +1176,10 @@ function PlaneFiller({
     editable: editable,
     selected: selected,
     onSelect: onSelect,
-    onMove: onMove
+    onMove: onMove,
+    objects: objects,
+    gravityDir: gravityDir,
+    viewRef: viewRef
   }));
 }
 
@@ -1134,11 +1250,13 @@ function DomValBtn({
   segId,
   val,
   domKb,
-  onTap
+  onTap,
+  label
 }) {
   const isActive = domKb?.id === segId;
   const display = isActive ? domKb.val : String(val);
   return /*#__PURE__*/React.createElement("button", {
+    "aria-label": label,
     onPointerDown: e => {
       e.preventDefault();
       onTap();
@@ -1252,6 +1370,7 @@ function DomainEditor({
 // and onChange receives the updated string. The parent commits to state.
 function NumPad({
   val,
+  label = 'x-value',
   onChange,
   onDone
 }) {
@@ -1364,7 +1483,7 @@ function NumPad({
       letterSpacing: '0.08em',
       textTransform: 'uppercase'
     }
-  }, "x-value"), /*#__PURE__*/React.createElement("span", {
+  }, label), /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: "'Geist Mono','ui-monospace',monospace",
       fontSize: 15,
@@ -1785,6 +1904,45 @@ function MathExpr({
 window.MathExpr = MathExpr;
 
 // ─── Equation row ─────────────────────────────────────────────
+// Three states, one button: how the curve returns the ball. Drawn as the ball
+// over a floor with the arc it would take, so the state reads without words.
+const MAT_NEXT = {
+  none: 'dead',
+  dead: 'rubber',
+  rubber: null
+};
+const MAT_TITLE = {
+  none: 'Bounce: normal',
+  dead: 'Bounce: none — the ball lands and rolls',
+  rubber: 'Bounce: perfect — the ball keeps all its speed'
+};
+function MaterialIcon({
+  m
+}) {
+  const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
+  return /*#__PURE__*/React.createElement("svg", {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 16 16",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M1.5 13.5H14.5",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round"
+  }), arc && /*#__PURE__*/React.createElement("path", {
+    d: arc,
+    stroke: "currentColor",
+    strokeWidth: 1.3,
+    strokeLinecap: "round",
+    strokeDasharray: "2 1.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 4,
+    cy: m === 'dead' ? 11 : 10.5,
+    r: 2.4,
+    fill: "currentColor"
+  }));
+}
 function EqRow({
   idx,
   eq,
@@ -1796,7 +1954,8 @@ function EqRow({
   domKb,
   onDomInput,
   missing,
-  onAddSliders
+  onAddSliders,
+  materialsOn
 }) {
   const inputRef = useRL(null);
   const [domOpen, setDomOpen] = useSL(false);
@@ -1901,6 +2060,24 @@ function EqRow({
       padding: showPretty ? 0 : '10px 0',
       zIndex: 1
     }
+  })), materialsOn && !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      if (!disabled) onChange({
+        material: MAT_NEXT[eq.material || 'none']
+      });
+    },
+    title: MAT_TITLE[eq.material || 'none'],
+    style: {
+      width: 30,
+      flex: '0 0 30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: eq.material ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
+    }
+  }, /*#__PURE__*/React.createElement(MaterialIcon, {
+    m: eq.material || null
   })), !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
@@ -2047,6 +2224,118 @@ function EqRow({
 }
 
 // ─── Equations panel ──────────────────────────────────────────
+// One row per placed object: its kind, and every number the registry says it
+// has, each opening the NumPad. Tapping the row selects it on the plane.
+function ObjRow({
+  idx,
+  o,
+  selected,
+  disabled,
+  onSelect,
+  onRemove,
+  onField,
+  domKb,
+  onDomInput
+}) {
+  const K = FP_OBJECTS.KINDS[o.kind];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: '1px solid var(--lv-line)',
+      background: selected ? 'color-mix(in srgb, var(--fp-accent) 10%, transparent)' : 'transparent'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      onSelect();
+    },
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '9px 12px',
+      textAlign: 'left'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 11,
+      height: 11,
+      borderRadius: 3,
+      background: K.color,
+      flex: '0 0 11px'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink)'
+    }
+  }, K.label), /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      fontSize: 10.5,
+      color: 'var(--fp-ink-4)'
+    }
+  }, "#", idx + 1)), /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      if (!disabled) onRemove();
+    },
+    title: "Remove",
+    style: {
+      width: 34,
+      flex: '0 0 34px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--fp-ink-3)',
+      opacity: disabled ? 0.4 : 1
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 13,
+    height: 13,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M6 6L18 18M18 6L6 18",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '6px 10px',
+      padding: '0 12px 10px 31px'
+    }
+  }, K.fields.map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.k,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: 'var(--fp-ink-3)'
+    }
+  }, f.label), /*#__PURE__*/React.createElement(DomValBtn, {
+    segId: `obj-${idx}-${f.k}`,
+    val: o[f.k],
+    domKb: domKb,
+    label: `${K.label} #${idx + 1} ${f.label}`,
+    onTap: () => !disabled && onDomInput(`obj-${idx}-${f.k}`, o[f.k], v => onField(f.k, v), f.label)
+  })))));
+}
+
+// objects/setObjects turn on the Objects tab (the studio); extraTab is one
+// more tab with arbitrary content (the admin's level settings).
 function EquationsPanel({
   equations,
   setEquations,
@@ -2055,23 +2344,33 @@ function EquationsPanel({
   disabled,
   notation,
   allowedClass,
-  classWarning
+  classWarning,
+  materialsOn,
+  objects,
+  setObjects,
+  selectedObj,
+  onSelectObj,
+  placeAt,
+  extraTab
 }) {
   const activeInputRef = useRL(null);
   const [activeId, setActiveId] = useSL(null);
   const [kbVisible, setKbVisible] = useSL(true);
-  const kbOpen = activeId !== null && !disabled && kbVisible;
+  const [tab, setTab] = useSL('eq'); // 'eq' | 'obj' | 'extra'
+  const objectsEditable = !!setObjects;
+  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
   const [domKb, setDomKb] = useSL(null);
   const domKbCommitRef = useRL(null); // current commit fn (number → void)
 
-  const onDomInput = (id, currentVal, commit) => {
+  const onDomInput = (id, currentVal, commit, label) => {
     domKbCommitRef.current = commit;
     setDomKb({
       id,
-      val: String(currentVal)
+      val: String(currentVal),
+      label
     });
   };
   const handleNumPadChange = v => {
@@ -2097,6 +2396,21 @@ function EquationsPanel({
   const dismiss = () => {
     setActiveId(null);
     activeInputRef.current?.blur();
+  };
+  const switchTab = id => {
+    if (id !== 'eq') dismiss();
+    setDomKb(null);
+    setTab(id);
+  };
+  const addObject = kind => {
+    if (disabled) return;
+    setObjects(objs => [...objs, FP_OBJECTS.makeObject(kind, placeAt?.())]);
+    onSelectObj?.(`obj-${objects.length}`);
+  };
+  const setObjField = (i, k, v) => setObjects(objs => objs.map((o, j) => j === i ? FP_OBJECTS.setField(o, k, v) : o));
+  const removeObject = i => {
+    setObjects(objs => objs.filter((_, j) => j !== i));
+    onSelectObj?.(null);
   };
   const handleKbChange = newVal => {
     setEquations(eqs => eqs.map(e => e.id === activeId ? {
@@ -2192,7 +2506,46 @@ function EquationsPanel({
       justifyContent: 'space-between',
       padding: '0 12px 8px'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, objectsEditable || extraTab ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 4
+    }
+  }, [{
+    id: 'eq',
+    label: 'Equations',
+    n: equations.filter(e => e.expr.trim() && !e.param).length
+  }, ...(objectsEditable ? [{
+    id: 'obj',
+    label: 'Objects',
+    n: objects.length
+  }] : []), ...(extraTab ? [{
+    id: 'extra',
+    label: extraTab.label
+  }] : [])].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onPointerDown: e => {
+      e.preventDefault();
+      switchTab(t.id);
+    },
+    style: {
+      padding: '4px 10px',
+      borderRadius: 999,
+      fontSize: 11,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      fontWeight: 500,
+      background: tab === t.id ? 'var(--fp-ink)' : 'transparent',
+      color: tab === t.id ? 'var(--fp-bg)' : 'var(--fp-ink-3)',
+      border: `1px solid ${tab === t.id ? 'var(--fp-ink)' : 'var(--lv-line)'}`
+    }
+  }, t.label, t.n != null && /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      marginLeft: 5,
+      opacity: 0.7
+    }
+  }, t.n)))) : /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       letterSpacing: '0.1em',
@@ -2212,7 +2565,7 @@ function EquationsPanel({
       gap: 6,
       alignItems: 'center'
     }
-  }, activeId !== null && !disabled && /*#__PURE__*/React.createElement("button", {
+  }, tab === 'eq' && activeId !== null && !disabled && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
       setKbVisible(v => !v);
@@ -2256,7 +2609,7 @@ function EquationsPanel({
       color: 'var(--fp-accent)',
       fontWeight: 500
     }
-  }, "Done"), /*#__PURE__*/React.createElement("button", {
+  }, "Done"), tab === 'eq' && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
       !disabled && addRow();
@@ -2286,7 +2639,81 @@ function EquationsPanel({
     stroke: "currentColor",
     strokeWidth: 2.4,
     strokeLinecap: "round"
-  }))))), allowedClass && classWarning && /*#__PURE__*/React.createElement("div", {
+  }))))), tab === 'obj' && /*#__PURE__*/React.createElement("div", {
+    className: "fp-scroll",
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: 'auto',
+      paddingBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+      padding: '2px 12px 10px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--fp-ink-3)'
+    }
+  }, "Add"), FP_OBJECTS.KIND_ORDER.map(kind => /*#__PURE__*/React.createElement("button", {
+    key: kind,
+    onPointerDown: e => {
+      e.preventDefault();
+      addObject(kind);
+    },
+    disabled: disabled,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '5px 10px',
+      borderRadius: 999,
+      border: '1px solid var(--lv-line)',
+      background: 'var(--fp-surface)',
+      color: 'var(--fp-ink)',
+      fontSize: 12,
+      fontWeight: 500,
+      opacity: disabled ? 0.5 : 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 9,
+      height: 9,
+      borderRadius: 2,
+      background: FP_OBJECTS.KINDS[kind].color
+    }
+  }), FP_OBJECTS.KINDS[kind].label))), objects.map((o, i) => /*#__PURE__*/React.createElement(ObjRow, {
+    key: i,
+    idx: i,
+    o: o,
+    disabled: disabled,
+    selected: selectedObj === `obj-${i}`,
+    onSelect: () => onSelectObj?.(selectedObj === `obj-${i}` ? null : `obj-${i}`),
+    onRemove: () => removeObject(i),
+    onField: (k, v) => setObjField(i, k, v),
+    domKb: domKb,
+    onDomInput: onDomInput
+  })), objects.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '6px 16px 14px',
+      fontSize: 12,
+      color: 'var(--fp-ink-3)',
+      lineHeight: 1.5
+    }
+  }, "Tap a kind to place it at the centre of the view. Drag it on the plane, or edit its numbers here.")), tab === 'extra' && /*#__PURE__*/React.createElement("div", {
+    className: "fp-scroll",
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflowY: 'auto',
+      paddingBottom: 6
+    }
+  }, extraTab.content), tab === 'eq' && allowedClass && classWarning && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '8px 14px',
       fontSize: 11.5,
@@ -2295,7 +2722,7 @@ function EquationsPanel({
       color: '#e34',
       borderTop: '1px solid var(--lv-line)'
     }
-  }, classWarning), allowedClass && !classWarning && /*#__PURE__*/React.createElement("div", {
+  }, classWarning), tab === 'eq' && allowedClass && !classWarning && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '6px 14px',
       fontSize: 11,
@@ -2306,7 +2733,16 @@ function EquationsPanel({
     style: {
       color: 'var(--fp-ink)'
     }
-  }, allowedClass), " equations."), /*#__PURE__*/React.createElement("div", {
+  }, allowedClass), " equations."), tab === 'eq' && materialsOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '6px 14px',
+      fontSize: 11,
+      color: 'var(--fp-ink-3)',
+      borderTop: '1px solid var(--lv-line)'
+    }
+  }, "Bounce is adjustable here \u2014 tap a curve's ", /*#__PURE__*/React.createElement(MaterialIcon, {
+    m: null
+  }), " to make it dead or perfectly elastic."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
       flex: 1,
@@ -2325,6 +2761,7 @@ function EquationsPanel({
     onActivate: ref => activate(e.id, ref),
     missing: undeclaredParams(e.expr),
     onAddSliders: nms => addSliders(e.id, nms),
+    materialsOn: materialsOn,
     domKb: domKb,
     onDomInput: onDomInput
   })), equations.length === 0 && /*#__PURE__*/React.createElement("div", {
@@ -2341,6 +2778,7 @@ function EquationsPanel({
     onDone: dismiss
   }), domKb && /*#__PURE__*/React.createElement(NumPad, {
     val: domKb.val,
+    label: domKb.label,
     onChange: handleNumPadChange,
     onDone: handleNumPadDone
   }));
@@ -2406,7 +2844,12 @@ function LevelScreen({
   })));
   const [collectedCount, setCollectedCount] = useSL(0);
   const [completed, setCompleted] = useSL(null);
+  // false | true (missed) | 'hazard'
   const [missMsg, setMissMsg] = useSL(false);
+  // Which way gravity points, for the HUD and the arrow on the ball. Only
+  // shown where the pack can flip it.
+  const gravityFlip = !!(window.getPack ? getPack(pack.id)?.modifier === 'gravityFlip' : pack.modifier === 'gravityFlip');
+  const [gravityDir, setGravityDir] = useSL(1);
   // Path of the last run, kept on screen after it ends so a miss is readable.
   const [trail, setTrail] = useSL(null);
   const physRef = useRL(null);
@@ -2431,19 +2874,23 @@ function LevelScreen({
     })));
     setCollectedCount(0);
     setElapsed(0);
+    setGravityDir(1);
   };
   const [autoZoomTrigger, setAutoZoomTrigger] = useSL(0);
   const [historyOpen, setHistoryOpen] = useSL(false);
-  const loadFromHistory = exprs => {
+  const loadFromHistory = (exprs, mats = []) => {
     setHistoryOpen(false);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
+      let curve = 0;
       const rows = exprs.map((expr, i) => {
         const parsed = parseEquation(expr);
         return {
           id: i + 1,
           expr,
           ...parsed,
+          // mats is aligned to the curves, not to the slider rows ahead of them.
+          material: parsed.fn ? mats[curve++] || null : null,
           color: EQ_COLORS[(pre.length + i) % EQ_COLORS.length],
           visible: true,
           domain: null,
@@ -2483,27 +2930,8 @@ function LevelScreen({
       setTimeout(() => setMissMsg(false), 2200);
       return;
     }
-    physRef.current = {
-      x: levelData.ball.x,
-      y: levelData.ball.y,
-      vx: 0,
-      vy: 0,
-      stars: levelData.stars.map(s => ({
-        ...s,
-        collected: false
-      })),
-      lastTs: null,
-      acc: 0,
-      simS: 0,
-      bounced: false,
-      justCollected: false,
-      wonAtS: null,
-      tick: 0,
-      trail: [{
-        x: levelData.ball.x,
-        y: levelData.ball.y
-      }]
-    };
+    physRef.current = freshPh(levelData.ball, levelData.stars);
+    setGravityDir(1);
     setSimStars(levelData.stars.map(s => ({
       ...s,
       collected: false
@@ -2522,7 +2950,6 @@ function LevelScreen({
   useEL(() => {
     if (!running) return;
     const ph = physRef.current;
-    const dt = TICK_DT / SUB_STEPS;
 
     // Equations are locked while the sim runs, so colliders are built once
     // per run. Each collider lazily samples + caches curve geometry around
@@ -2532,30 +2959,19 @@ function LevelScreen({
     const colliders = FP_PHYSICS.makeColliders([...activeEqs.filter(e => !e.isImplicit), ...activeEqs.filter(e => e.isImplicit)].map(e => ({
       fn: e.fn,
       domain: e.domain,
-      isImplicit: e.isImplicit
+      isImplicit: e.isImplicit,
+      material: e.material
     })), BALL_R);
+    const world = {
+      field: FP_OBJECTS.makeField(levelData.objects),
+      hazards: levelData.objects.filter(o => o.kind === 'hazard'),
+      gravityFlip
+    };
     const frame = ts => {
-      if (ph.lastTs == null) ph.lastTs = ts;
-      ph.acc += Math.min((ts - ph.lastTs) / 1000, MAX_TICKS * TICK_DT);
-      ph.lastTs = ts;
-      ph.bounced = false;
-      ph.justCollected = false;
-      while (ph.acc >= TICK_DT) {
-        ph.acc -= TICK_DT;
-        for (let s = 0; s < SUB_STEPS; s++) physicsStep(ph, colliders, dt);
-        ph.simS += TICK_DT;
-        // Sampled every third tick (20/s): dense enough that a bounce reads as
-        // a corner, sparse enough that a full 28s run stays under 200 points.
-        if (ph.tick++ % 3 === 0) ph.trail.push({
-          x: ph.x,
-          y: ph.y
-        });
-        // Checked per tick, not per frame, so the recorded finish time has
-        // the same resolution however many ticks a frame happens to drain.
-        if (ph.wonAtS == null && ph.stars.every(s => s.collected)) ph.wonAtS = ph.simS;
-      }
+      drainTicks(ph, colliders, world, ts);
       const elapsedS = ph.simS;
       setElapsed(elapsedS);
+      if (gravityFlip) setGravityDir(ph.gSign);
       if (ph.bounced) {
         sfx('bounce');
       }
@@ -2575,7 +2991,7 @@ function LevelScreen({
       // 0.5s wind-down). The level then ends 0.5s later regardless of where
       // the ball wanders to.
       const wonElapsed = ph.wonAtS != null ? elapsedS - ph.wonAtS : -1;
-      const failed = ph.wonAtS == null && (ph.y < FALL_LIMIT || elapsedS > TIME_LIMIT);
+      const failed = ph.wonAtS == null && (ph.dead || outOfWorld(ph) || elapsedS > TIME_LIMIT);
       const succeeded = ph.wonAtS != null && wonElapsed >= 0.5;
       if (failed || succeeded) {
         cancelAnimationFrame(animRef.current);
@@ -2583,7 +2999,7 @@ function LevelScreen({
         setTrail(ph.trail);
         if (failed) {
           resetSim();
-          setMissMsg(true);
+          setMissMsg(ph.dead ? 'hazard' : true);
           sfx('levelFail');
           setTimeout(() => setMissMsg(false), 1800);
           return;
@@ -2611,6 +3027,7 @@ function LevelScreen({
           const sig = exprs.join('||');
           const entry = {
             exprs,
+            mats: curves.map(e => e.material || null),
             score: sc,
             time: finishT,
             stars: rating,
@@ -2748,6 +3165,9 @@ function LevelScreen({
   }), /*#__PURE__*/React.createElement(HudChip, {
     label: "Time",
     value: running ? elapsed.toFixed(1) + 's' : bestTime == null ? '—' : bestTime.toFixed(1) + 's'
+  }), gravityFlip && /*#__PURE__*/React.createElement(HudChip, {
+    label: "g",
+    value: gravityDir < 0 ? '↑' : '↓'
   }), /*#__PURE__*/React.createElement("button", {
     onClick: handlePlay,
     style: {
@@ -2843,7 +3263,9 @@ function LevelScreen({
     autoZoomEnabled: settings?.autoZoom !== false,
     gridLabels: settings?.gridLabels !== false,
     levelStars: levelData.stars,
-    trail: trail
+    trail: trail,
+    objects: levelData.objects,
+    gravityDir: gravityFlip && running ? gravityDir : null
   }), missMsg && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -2858,13 +3280,14 @@ function LevelScreen({
       color: '#c74440',
       textShadow: '0 1px 2px rgba(0,0,0,0.35)'
     }
-  }, classWarning ? 'Wrong equation type for this pack' : 'Collect all stars!')), /*#__PURE__*/React.createElement(EquationsPanel, {
+  }, classWarning ? 'Wrong equation type for this pack' : missMsg === 'hazard' ? 'The ball hit a hazard' : 'Collect all stars!')), /*#__PURE__*/React.createElement(EquationsPanel, {
     equations: equations,
     setEquations: setEquations,
     expanded: panelOpen,
     onToggle: () => setPanelOpen(o => !o),
     disabled: running,
     notation: settings?.notation || 'standard',
+    materialsOn: levelData.materials,
     allowedClass: packAllowedClass,
     classWarning: classWarning
   }), completed && /*#__PURE__*/React.createElement(LevelCompletePopup, {
@@ -3024,7 +3447,7 @@ function HistoryPopup({
       textOverflow: 'ellipsis'
     }
   }, expr))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onLoad(e.exprs),
+    onClick: () => onLoad(e.exprs, e.mats),
     style: {
       width: '100%',
       height: 36,
@@ -3045,6 +3468,9 @@ window.starRating = starRating;
 window.PlaneFiller = PlaneFiller;
 window.EquationsPanel = EquationsPanel;
 window.physicsStep = physicsStep;
+window.drainTicks = drainTicks;
+window.freshPh = freshPh;
+window.outOfWorld = outOfWorld;
 window.SIM = {
   TICK_DT,
   SUB_STEPS,

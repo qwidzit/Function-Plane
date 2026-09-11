@@ -340,14 +340,17 @@ function inDomain(x, domain) {
 // gradient approximations to blow up. The response tuning (GRAVITY,
 // bounciness, energyRetention, real-bounce threshold) is unchanged, so
 // the ball feels exactly as before on curves that already worked.
-function physicsStep(ph, colliders, dt) {
+// world = { field, hazards, gravityFlip } — what the level puts on the plane
+// besides curves. Built once per run from the level's objects.
+function physicsStep(ph, colliders, dt, world) {
   FP_PHYSICS.stepBall(ph, colliders, dt, {
-    gravity:         GRAVITY,
+    gravity:         GRAVITY * (ph.gSign || 1),
     ballR:           BALL_R,
     bounciness:      PHYSICS_CONFIG.bounciness,
     energyRetention: PHYSICS_CONFIG.energyRetention,
     traction:        PHYSICS_CONFIG.traction,
     bounceThreshold: 1.5,
+    field:           world?.field || null,
   });
 
   // ── Star collection ────────────────────────────────────────────────────
@@ -358,11 +361,60 @@ function physicsStep(ph, colliders, dt) {
       ph.justCollected = true;
     }
   }
+
+  if (world?.hazards?.length && FP_OBJECTS.hazardHit(world.hazards, ph.x, ph.y, BALL_R)) ph.dead = true;
+}
+
+// Left the world: below the floor, or — with gravity pointing up — above the
+// mirror-image ceiling, without which a flipped ball just rises until the
+// clock runs out.
+function outOfWorld(ph) {
+  return ph.y < FALL_LIMIT || (ph.gSign < 0 && ph.y > -FALL_LIMIT);
+}
+
+// Drains one frame's elapsed time into whole ticks. Shared by the level and
+// the studio so a run behaves identically in both.
+function drainTicks(ph, colliders, world, ts) {
+  if (ph.lastTs == null) ph.lastTs = ts;
+  ph.acc += Math.min((ts - ph.lastTs) / 1000, MAX_TICKS * TICK_DT);
+  ph.lastTs = ts;
+  ph.bounced = false;
+  ph.justCollected = false;
+  const dt = TICK_DT / SUB_STEPS;
+  while (ph.acc >= TICK_DT) {
+    ph.acc -= TICK_DT;
+    const bounces = ph.bounces;
+    for (let s = 0; s < SUB_STEPS; s++) physicsStep(ph, colliders, dt, world);
+    // Flipped once per *tick* that saw a real bounce, never per frame: a frame
+    // can drain several ticks, and two curves hit in one corner would
+    // otherwise flip twice into a no-op.
+    if (world?.gravityFlip && ph.bounces !== bounces) ph.gSign = -ph.gSign;
+    ph.simS += TICK_DT;
+    // Sampled every third tick (20/s): dense enough that a bounce reads as
+    // a corner, sparse enough that a full 28s run stays under 200 points.
+    if (ph.tick++ % 3 === 0) ph.trail.push({ x: ph.x, y: ph.y });
+    // Checked per tick, not per frame, so the recorded finish time has
+    // the same resolution however many ticks a frame happens to drain.
+    if (ph.wonAtS == null && ph.stars.every(s => s.collected)) ph.wonAtS = ph.simS;
+  }
+}
+
+function freshPh(ball, stars) {
+  return {
+    x: ball.x, y: ball.y, vx: 0, vy: 0,
+    stars: stars.map(s => ({ ...s, collected: false })),
+    lastTs: null, acc: 0, simS: 0, tick: 0,
+    bounced: false, bounces: 0, justCollected: false, gSign: 1, dead: false,
+    wonAtS: null, trail: [{ x: ball.x, y: ball.y }],
+  };
 }
 
 // ─── Coordinate plane ─────────────────────────────────────────
-function CoordPlane({ width, height, equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true }) {
+function CoordPlane({ width, height, equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true, objects = [], gravityDir = null, viewRef = null }) {
   const [view, setView] = useSL({ cx:0, cy:0, scale:40 });
+  // The studio places a new object at the centre of whatever the player is
+  // looking at, which only the plane knows.
+  if (viewRef) viewRef.current = view;
 
   // The box the last auto-zoom was asked to frame, kept until the player takes
   // manual control of the view. Non-null means "this fit is still mine to
@@ -385,6 +437,10 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
     if (autoZoomTrigger == null) return;
     const xs = [startPos.x, ...levelStars.map(s => s.x)];
     const ys = [startPos.y, ...levelStars.map(s => s.y)];
+    for (const o of objects) {
+      const b = FP_OBJECTS.bounds(o);
+      xs.push(b.minX, b.maxX); ys.push(b.minY, b.maxY);
+    }
     const box = {
       minX: Math.min(...xs), maxX: Math.max(...xs),
       minY: Math.min(...ys), maxY: Math.max(...ys),
@@ -438,7 +494,15 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
     for (let i = 0; i < (levelStars?.length ?? 0); i++) {
       if (near(levelStars[i].x, levelStars[i].y)) return `star-${i}`;
     }
-    return near(startPos.x, startPos.y) ? 'ball' : null;
+    if (near(startPos.x, startPos.y)) return 'ball';
+    // Objects are regions, so they're grabbed anywhere inside — in world
+    // units, and last, so a star sitting inside a zone stays grabbable.
+    const mx = view.cx + (px - width / 2) / view.scale;
+    const my = view.cy - (py - height / 2) / view.scale;
+    for (let i = objects.length - 1; i >= 0; i--) {
+      if (FP_OBJECTS.hitTest(objects[i], mx, my)) return `obj-${i}`;
+    }
+    return null;
   };
 
   const onPointerDown = e => {
@@ -573,13 +637,19 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
     }
   }
 
+  // A dead curve is drawn heavy, a rubber one dashed like a spring, so the
+  // material reads from the plane and not only from the row's toggle.
+  const strokeFor = eq => ({
+    strokeWidth: eq.material === 'dead' ? EQ_STROKE + 1.4 : EQ_STROKE,
+    strokeDasharray: eq.material === 'rubber' ? '7 4' : undefined,
+  });
   const eqPaths = equations.filter(eq => eq.fn && eq.visible).map(eq => {
     if (eq.isImplicit) {
       const implFn = eq.domain
         ? (x,y) => inDomain(x,eq.domain) ? eq.fn(x,y) : NaN
         : eq.fn;
       const d = marchingSquares(implFn, range.xMin, range.xMax, range.yMin, range.yMax, 60, m2p);
-      return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={EQ_STROKE}
+      return <path key={eq.id} d={d} stroke={eq.color} {...strokeFor(eq)}
         fill="none" strokeLinecap="round" strokeLinejoin="round"/>;
     }
     let d = '', pen = false, prevY = NaN;
@@ -592,9 +662,13 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
       d += pen?`L${p.x.toFixed(1)} ${p.y.toFixed(1)}`:`M${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
       pen=true; prevY=y;
     }
-    return <path key={eq.id} d={d} stroke={eq.color} strokeWidth={EQ_STROKE}
+    return <path key={eq.id} d={d} stroke={eq.color} {...strokeFor(eq)}
       fill="none" strokeLinecap="round" strokeLinejoin="round"/>;
   });
+
+  const objectsEl = objects.map((o, i) => (
+    <FP_OBJECTS.LevelObject key={i} o={o} i={i} m2p={m2p} scale={view.scale} selected={selected === `obj-${i}`}/>
+  ));
 
   // Stars are authored at an outer radius of 11 units in the path below, and
   // STAR_DRAW_R is that radius expressed in *world* units, so a star zooms
@@ -664,6 +738,7 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
             fill="var(--lv-tick)" textAnchor="end">0</text>
         )}
         {tickLabels}
+        {objectsEl}
         {eqPaths}
         {trailPath && (
           <>
@@ -689,6 +764,11 @@ function CoordPlane({ width, height, equations, ballPos, simStars, startPos, aut
         <g transform={`translate(${bp.x},${bp.y})`}>
           <circle r={br} fill="var(--lv-ball)" stroke="var(--lv-ball-stroke)" strokeWidth={BALL_OUTLINE}/>
           <circle r={br * 0.31} cx={-br * 0.31} cy={-br * 0.31} fill="var(--lv-ball-shine)"/>
+          {/* Which way is down right now — only drawn where gravity can flip */}
+          {gravityDir != null && (
+            <path d={`M-5 ${gravityDir * (br + 5)} L0 ${gravityDir * (br + 11)} L5 ${gravityDir * (br + 5)}`}
+              fill="none" stroke="var(--lv-ball)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.85}/>
+          )}
         </g>
       </svg>
       <div style={{
@@ -722,7 +802,7 @@ function ZBtn({ children, onClick, sm }) {
   );
 }
 
-function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true }) {
+function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, autoZoomEnabled, levelStars, trail, editable, selected, onSelect, onMove, gridLabels = true, objects, gravityDir, viewRef }) {
   const ref = useRL(null);
   const [size, setSize] = useSL({ w:360, h:300 });
   useEL(() => {
@@ -741,7 +821,8 @@ function PlaneFiller({ equations, ballPos, simStars, startPos, autoZoomTrigger, 
         simStars={simStars} startPos={startPos}
         autoZoomTrigger={autoZoomTrigger} autoZoomEnabled={autoZoomEnabled}
         levelStars={levelStars} trail={trail} gridLabels={gridLabels}
-        editable={editable} selected={selected} onSelect={onSelect} onMove={onMove}/>
+        editable={editable} selected={selected} onSelect={onSelect} onMove={onMove}
+        objects={objects} gravityDir={gravityDir} viewRef={viewRef}/>
     </div>
   );
 }
@@ -774,11 +855,11 @@ function HudChip({ label, value }) {
 
 // ─── Domain editor ────────────────────────────────────────────
 // Domain value button — tapping opens the NumPad instead of the native keyboard.
-function DomValBtn({ segId, val, domKb, onTap }) {
+function DomValBtn({ segId, val, domKb, onTap, label }) {
   const isActive = domKb?.id === segId;
   const display  = isActive ? domKb.val : String(val);
   return (
-    <button
+    <button aria-label={label}
       onPointerDown={e => { e.preventDefault(); onTap(); }}
       style={{
         width:52, minHeight:28, fontSize:12, textAlign:'center', padding:'3px 4px',
@@ -840,7 +921,7 @@ function DomainEditor({ eqId, domain, onChange, domKb, onDomInput }) {
 // ─── Number pad (for domain segment values) ───────────────────
 // Value-based (no DOM ref needed): the current string value is passed in,
 // and onChange receives the updated string. The parent commits to state.
-function NumPad({ val, onChange, onDone }) {
+function NumPad({ val, label = 'x-value', onChange, onDone }) {
   const { start: holdStart, stop: holdStop } = useKeyRepeat();
   // Held backspace repeats, so it must read the *current* value each tick — a
   // closure over `val` would delete the same character forever.
@@ -885,7 +966,7 @@ function NumPad({ val, onChange, onDone }) {
     }}>
       <div style={{ padding:'4px 4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <span style={{ fontSize:10, color:'var(--fp-ink-3)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
-          x-value
+          {label}
         </span>
         <span style={{ fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:15, color:'var(--fp-ink)', minWidth:50, textAlign:'right' }}>
           {val || '0'}
@@ -1120,7 +1201,22 @@ function MathExpr({ src }) {
 window.MathExpr = MathExpr;
 
 // ─── Equation row ─────────────────────────────────────────────
-function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, domKb, onDomInput, missing, onAddSliders }) {
+// Three states, one button: how the curve returns the ball. Drawn as the ball
+// over a floor with the arc it would take, so the state reads without words.
+const MAT_NEXT  = { none: 'dead', dead: 'rubber', rubber: null };
+const MAT_TITLE = { none: 'Bounce: normal', dead: 'Bounce: none — the ball lands and rolls', rubber: 'Bounce: perfect — the ball keeps all its speed' };
+function MaterialIcon({ m }) {
+  const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+      <path d="M1.5 13.5H14.5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
+      {arc && <path d={arc} stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeDasharray="2 1.5"/>}
+      <circle cx={4} cy={m === 'dead' ? 11 : 10.5} r={2.4} fill="currentColor"/>
+    </svg>
+  );
+}
+
+function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, domKb, onDomInput, missing, onAddSliders, materialsOn }) {
   const inputRef = useRL(null);
   const [domOpen, setDomOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
@@ -1180,6 +1276,17 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, do
               padding: showPretty ? 0 : '10px 0', zIndex: 1,
             }}/>
         </div>
+
+        {materialsOn && !locked && !eq.param && (
+          <button onPointerDown={e=>{e.preventDefault(); if (!disabled) onChange({ material: MAT_NEXT[eq.material || 'none'] });}}
+            title={MAT_TITLE[eq.material || 'none']}
+            style={{
+              width:30, flex:'0 0 30px', display:'flex', alignItems:'center', justifyContent:'center',
+              color: eq.material ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
+            }}>
+            <MaterialIcon m={eq.material || null}/>
+          </button>
+        )}
 
         {!locked && !eq.param && (
           <button onPointerDown={e=>{e.preventDefault(); setDomOpen(o=>!o);}}
@@ -1254,20 +1361,60 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, do
 }
 
 // ─── Equations panel ──────────────────────────────────────────
-function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled, notation, allowedClass, classWarning }) {
+// One row per placed object: its kind, and every number the registry says it
+// has, each opening the NumPad. Tapping the row selects it on the plane.
+function ObjRow({ idx, o, selected, disabled, onSelect, onRemove, onField, domKb, onDomInput }) {
+  const K = FP_OBJECTS.KINDS[o.kind];
+  return (
+    <div style={{ borderTop:'1px solid var(--lv-line)',
+      background: selected ? 'color-mix(in srgb, var(--fp-accent) 10%, transparent)' : 'transparent' }}>
+      <div style={{ display:'flex', alignItems:'center' }}>
+        <button onPointerDown={e=>{e.preventDefault(); onSelect();}}
+          style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:8, padding:'9px 12px', textAlign:'left' }}>
+          <span style={{ width:11, height:11, borderRadius:3, background:K.color, flex:'0 0 11px' }}/>
+          <span style={{ fontSize:13, color:'var(--fp-ink)' }}>{K.label}</span>
+          <span className="fp-mono" style={{ fontSize:10.5, color:'var(--fp-ink-4)' }}>#{idx+1}</span>
+        </button>
+        <button onPointerDown={e=>{e.preventDefault(); if (!disabled) onRemove();}} title="Remove"
+          style={{ width:34, flex:'0 0 34px', display:'flex', alignItems:'center', justifyContent:'center',
+            color:'var(--fp-ink-3)', opacity: disabled ? 0.4 : 1 }}>
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+            <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 10px', padding:'0 12px 10px 31px' }}>
+        {K.fields.map(f => (
+          <div key={f.k} style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <span style={{ fontSize:10.5, color:'var(--fp-ink-3)' }}>{f.label}</span>
+            <DomValBtn segId={`obj-${idx}-${f.k}`} val={o[f.k]} domKb={domKb} label={`${K.label} #${idx+1} ${f.label}`}
+              onTap={() => !disabled && onDomInput(`obj-${idx}-${f.k}`, o[f.k], v => onField(f.k, v), f.label)}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// objects/setObjects turn on the Objects tab (the studio); extraTab is one
+// more tab with arbitrary content (the admin's level settings).
+function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled, notation, allowedClass, classWarning,
+                          materialsOn, objects, setObjects, selectedObj, onSelectObj, placeAt, extraTab }) {
   const activeInputRef = useRL(null);
   const [activeId,  setActiveId]  = useSL(null);
   const [kbVisible, setKbVisible] = useSL(true);
-  const kbOpen = activeId !== null && !disabled && kbVisible;
+  const [tab, setTab] = useSL('eq');   // 'eq' | 'obj' | 'extra'
+  const objectsEditable = !!setObjects;
+  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
   const [domKb, setDomKb] = useSL(null);
   const domKbCommitRef    = useRL(null); // current commit fn (number → void)
 
-  const onDomInput = (id, currentVal, commit) => {
+  const onDomInput = (id, currentVal, commit, label) => {
     domKbCommitRef.current = commit;
-    setDomKb({ id, val: String(currentVal) });
+    setDomKb({ id, val: String(currentVal), label });
   };
 
   const handleNumPadChange = v => {
@@ -1291,6 +1438,18 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
     setKbVisible(true);
   };
   const dismiss = () => { setActiveId(null); activeInputRef.current?.blur(); };
+  const switchTab = id => { if (id !== 'eq') dismiss(); setDomKb(null); setTab(id); };
+
+  const addObject = kind => {
+    if (disabled) return;
+    setObjects(objs => [...objs, FP_OBJECTS.makeObject(kind, placeAt?.())]);
+    onSelectObj?.(`obj-${objects.length}`);
+  };
+  const setObjField = (i, k, v) => setObjects(objs => objs.map((o, j) => j === i ? FP_OBJECTS.setField(o, k, v) : o));
+  const removeObject = i => {
+    setObjects(objs => objs.filter((_, j) => j !== i));
+    onSelectObj?.(null);
+  };
 
   const handleKbChange = newVal => {
     setEquations(eqs => eqs.map(e =>
@@ -1355,13 +1514,28 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
 
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px 8px' }}>
-        <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fp-ink-3)', fontWeight:500 }}>
-          Equations <span className="fp-mono" style={{ color:'var(--fp-ink-4)', marginLeft:4 }}>
-            {equations.filter(e=>e.expr.trim() && !e.param).length}
-          </span>
-        </div>
+        {(objectsEditable || extraTab) ? (
+          <div style={{ display:'flex', gap:4 }}>
+            {[{ id:'eq', label:'Equations', n: equations.filter(e=>e.expr.trim() && !e.param).length },
+              ...(objectsEditable ? [{ id:'obj', label:'Objects', n: objects.length }] : []),
+              ...(extraTab ? [{ id:'extra', label: extraTab.label }] : [])].map(t => (
+              <button key={t.id} onPointerDown={e=>{e.preventDefault(); switchTab(t.id);}} style={{
+                padding:'4px 10px', borderRadius:999, fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:500,
+                background: tab === t.id ? 'var(--fp-ink)' : 'transparent',
+                color: tab === t.id ? 'var(--fp-bg)' : 'var(--fp-ink-3)',
+                border: `1px solid ${tab === t.id ? 'var(--fp-ink)' : 'var(--lv-line)'}`,
+              }}>{t.label}{t.n != null && <span className="fp-mono" style={{ marginLeft:5, opacity:0.7 }}>{t.n}</span>}</button>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--fp-ink-3)', fontWeight:500 }}>
+            Equations <span className="fp-mono" style={{ color:'var(--fp-ink-4)', marginLeft:4 }}>
+              {equations.filter(e=>e.expr.trim() && !e.param).length}
+            </span>
+          </div>
+        )}
         <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-          {activeId !== null && !disabled && (
+          {tab === 'eq' && activeId !== null && !disabled && (
             <button onPointerDown={e=>{e.preventDefault(); setKbVisible(v=>!v);}}
               title={kbVisible ? 'Hide keyboard' : 'Show keyboard'}
               style={{
@@ -1383,7 +1557,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
               Done
             </button>
           )}
-          <button onPointerDown={e=>{e.preventDefault(); !disabled && addRow();}} disabled={disabled}
+          {tab === 'eq' && <button onPointerDown={e=>{e.preventDefault(); !disabled && addRow();}} disabled={disabled}
             title="Add equation" aria-label="Add equation" style={{
             width:30, height:30, borderRadius:'50%',
             display:'flex', alignItems:'center', justifyContent:'center',
@@ -1393,44 +1567,87 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
             <svg width={15} height={15} viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round"/>
             </svg>
-          </button>
+          </button>}
         </div>
       </div>
 
+      {tab === 'obj' && (
+        <div className="fp-scroll" style={{ flex:1, minHeight:0, overflowY:'auto', paddingBottom:6 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', padding:'2px 12px 10px' }}>
+            <span style={{ fontSize:11, color:'var(--fp-ink-3)' }}>Add</span>
+            {FP_OBJECTS.KIND_ORDER.map(kind => (
+              <button key={kind} onPointerDown={e=>{e.preventDefault(); addObject(kind);}} disabled={disabled} style={{
+                display:'flex', alignItems:'center', gap:6, padding:'5px 10px', borderRadius:999,
+                border:'1px solid var(--lv-line)', background:'var(--fp-surface)', color:'var(--fp-ink)',
+                fontSize:12, fontWeight:500, opacity: disabled ? 0.5 : 1,
+              }}>
+                <span style={{ width:9, height:9, borderRadius:2, background:FP_OBJECTS.KINDS[kind].color }}/>
+                {FP_OBJECTS.KINDS[kind].label}
+              </button>
+            ))}
+          </div>
+          {objects.map((o, i) => (
+            <ObjRow key={i} idx={i} o={o} disabled={disabled} selected={selectedObj === `obj-${i}`}
+              onSelect={() => onSelectObj?.(selectedObj === `obj-${i}` ? null : `obj-${i}`)}
+              onRemove={() => removeObject(i)} onField={(k, v) => setObjField(i, k, v)}
+              domKb={domKb} onDomInput={onDomInput}/>
+          ))}
+          {objects.length === 0 && (
+            <div style={{ padding:'6px 16px 14px', fontSize:12, color:'var(--fp-ink-3)', lineHeight:1.5 }}>
+              Tap a kind to place it at the centre of the view. Drag it on the plane, or edit its numbers here.
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'extra' && (
+        <div className="fp-scroll" style={{ flex:1, minHeight:0, overflowY:'auto', paddingBottom:6 }}>
+          {extraTab.content}
+        </div>
+      )}
+
       {/* Allowed-class banner for themed packs */}
-      {allowedClass && classWarning && (
+      {tab === 'eq' && allowedClass && classWarning && (
         <div style={{
           padding: '8px 14px', fontSize: 11.5, lineHeight: 1.45,
           background: 'color-mix(in srgb, #e34 14%, transparent)',
           color: '#e34', borderTop: '1px solid var(--lv-line)',
         }}>{classWarning}</div>
       )}
-      {allowedClass && !classWarning && (
+      {tab === 'eq' && allowedClass && !classWarning && (
         <div style={{
           padding: '6px 14px', fontSize: 11, color: 'var(--fp-ink-3)',
           borderTop: '1px solid var(--lv-line)',
         }}>This themed pack only allows <strong style={{ color:'var(--fp-ink)' }}>{allowedClass}</strong> equations.</div>
       )}
+      {tab === 'eq' && materialsOn && (
+        <div style={{ padding:'6px 14px', fontSize:11, color:'var(--fp-ink-3)', borderTop:'1px solid var(--lv-line)' }}>
+          Bounce is adjustable here — tap a curve's <MaterialIcon m={null}/> to make it dead or perfectly elastic.
+        </div>
+      )}
 
       {/* Rows */}
-      <div className="fp-scroll" style={{ flex:1, minHeight:0, overflowY:'auto', paddingBottom:6 }}>
-        {equations.map((e,i) => (
-          <EqRow key={e.id} idx={i} eq={e} disabled={disabled} notation={notation}
-            onChange={p=>update(e.id,p)} onRemove={()=>remove(e.id)}
-            onActivate={ref=>activate(e.id,ref)}
-            missing={undeclaredParams(e.expr)} onAddSliders={nms=>addSliders(e.id,nms)}
-            domKb={domKb} onDomInput={onDomInput}/>
-        ))}
-        {equations.length === 0 && (
-          <div style={{ padding:'14px 16px', fontSize:12, color:'var(--fp-ink-3)' }}>
-            Tap <strong>+</strong> to enter an equation, e.g. <span className="fp-mono">y=sin(x)</span>
-          </div>
-        )}
-      </div>
+      {tab === 'eq' && (
+        <div className="fp-scroll" style={{ flex:1, minHeight:0, overflowY:'auto', paddingBottom:6 }}>
+          {equations.map((e,i) => (
+            <EqRow key={e.id} idx={i} eq={e} disabled={disabled} notation={notation}
+              onChange={p=>update(e.id,p)} onRemove={()=>remove(e.id)}
+              onActivate={ref=>activate(e.id,ref)}
+              missing={undeclaredParams(e.expr)} onAddSliders={nms=>addSliders(e.id,nms)}
+              materialsOn={materialsOn}
+              domKb={domKb} onDomInput={onDomInput}/>
+          ))}
+          {equations.length === 0 && (
+            <div style={{ padding:'14px 16px', fontSize:12, color:'var(--fp-ink-3)' }}>
+              Tap <strong>+</strong> to enter an equation, e.g. <span className="fp-mono">y=sin(x)</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Custom keyboard — math for equations, numpad for domain values */}
       {kbOpen && !domKb && <MathKeyboard inputRef={activeInputRef} onChange={handleKbChange} onDone={dismiss}/>}
-      {domKb && <NumPad val={domKb.val} onChange={handleNumPadChange} onDone={handleNumPadDone}/>}
+      {domKb && <NumPad val={domKb.val} label={domKb.label} onChange={handleNumPadChange} onDone={handleNumPadDone}/>}
     </div>
   );
 }
@@ -1472,7 +1689,12 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
   const [simStars,  setSimStars]  = useSL(levelData.stars.map(s=>({...s,collected:false})));
   const [collectedCount, setCollectedCount] = useSL(0);
   const [completed,  setCompleted]  = useSL(null);
+  // false | true (missed) | 'hazard'
   const [missMsg,    setMissMsg]    = useSL(false);
+  // Which way gravity points, for the HUD and the arrow on the ball. Only
+  // shown where the pack can flip it.
+  const gravityFlip = !!(window.getPack ? getPack(pack.id)?.modifier === 'gravityFlip' : pack.modifier === 'gravityFlip');
+  const [gravityDir, setGravityDir] = useSL(1);
   // Path of the last run, kept on screen after it ends so a miss is readable.
   const [trail,      setTrail]      = useSL(null);
 
@@ -1495,19 +1717,23 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     setSimStars(levelData.stars.map(s=>({...s,collected:false})));
     setCollectedCount(0);
     setElapsed(0);
+    setGravityDir(1);
   };
 
   const [autoZoomTrigger, setAutoZoomTrigger] = useSL(0);
   const [historyOpen, setHistoryOpen] = useSL(false);
 
-  const loadFromHistory = (exprs) => {
+  const loadFromHistory = (exprs, mats = []) => {
     setHistoryOpen(false);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
+      let curve = 0;
       const rows = exprs.map((expr, i) => {
         const parsed = parseEquation(expr);
         return {
           id: i + 1, expr, ...parsed,
+          // mats is aligned to the curves, not to the slider rows ahead of them.
+          material: parsed.fn ? (mats[curve++] || null) : null,
           color: EQ_COLORS[(pre.length + i) % EQ_COLORS.length],
           visible: true, domain: null, preplaced: false,
         };
@@ -1543,12 +1769,8 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       setTimeout(() => setMissMsg(false), 2200);
       return;
     }
-    physRef.current = {
-      x:levelData.ball.x, y:levelData.ball.y, vx:0, vy:0,
-      stars:levelData.stars.map(s=>({...s,collected:false})),
-      lastTs:null, acc:0, simS:0, bounced:false, justCollected:false,
-      wonAtS:null, tick:0, trail:[{ x:levelData.ball.x, y:levelData.ball.y }],
-    };
+    physRef.current = freshPh(levelData.ball, levelData.stars);
+    setGravityDir(1);
     setSimStars(levelData.stars.map(s=>({...s,collected:false})));
     setCollectedCount(0);
     setElapsed(0);
@@ -1566,7 +1788,6 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
   useEL(() => {
     if (!running) return;
     const ph = physRef.current;
-    const dt = TICK_DT/SUB_STEPS;
 
     // Equations are locked while the sim runs, so colliders are built once
     // per run. Each collider lazily samples + caches curve geometry around
@@ -1575,31 +1796,20 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     const activeEqs = equationsRef.current.filter(e => e.fn && e.visible);
     const colliders = FP_PHYSICS.makeColliders(
       [...activeEqs.filter(e => !e.isImplicit), ...activeEqs.filter(e => e.isImplicit)]
-        .map(e => ({ fn: e.fn, domain: e.domain, isImplicit: e.isImplicit })),
+        .map(e => ({ fn: e.fn, domain: e.domain, isImplicit: e.isImplicit, material: e.material })),
       BALL_R
     );
+    const world = {
+      field:   FP_OBJECTS.makeField(levelData.objects),
+      hazards: levelData.objects.filter(o => o.kind === 'hazard'),
+      gravityFlip,
+    };
 
     const frame = ts => {
-      if (ph.lastTs == null) ph.lastTs = ts;
-      ph.acc += Math.min((ts-ph.lastTs)/1000, MAX_TICKS*TICK_DT);
-      ph.lastTs = ts;
-
-      ph.bounced = false;
-      ph.justCollected = false;
-
-      while (ph.acc >= TICK_DT) {
-        ph.acc -= TICK_DT;
-        for (let s=0; s<SUB_STEPS; s++) physicsStep(ph, colliders, dt);
-        ph.simS += TICK_DT;
-        // Sampled every third tick (20/s): dense enough that a bounce reads as
-        // a corner, sparse enough that a full 28s run stays under 200 points.
-        if (ph.tick++ % 3 === 0) ph.trail.push({ x: ph.x, y: ph.y });
-        // Checked per tick, not per frame, so the recorded finish time has
-        // the same resolution however many ticks a frame happens to drain.
-        if (ph.wonAtS == null && ph.stars.every(s=>s.collected)) ph.wonAtS = ph.simS;
-      }
+      drainTicks(ph, colliders, world, ts);
       const elapsedS = ph.simS;
       setElapsed(elapsedS);
+      if (gravityFlip) setGravityDir(ph.gSign);
 
       if (ph.bounced) { sfx('bounce'); }
       if (ph.justCollected) { sfx('collectStar'); }
@@ -1614,7 +1824,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       // 0.5s wind-down). The level then ends 0.5s later regardless of where
       // the ball wanders to.
       const wonElapsed = ph.wonAtS != null ? (elapsedS - ph.wonAtS) : -1;
-      const failed = ph.wonAtS == null && (ph.y < FALL_LIMIT || elapsedS > TIME_LIMIT);
+      const failed = ph.wonAtS == null && (ph.dead || outOfWorld(ph) || elapsedS > TIME_LIMIT);
       const succeeded = ph.wonAtS != null && wonElapsed >= 0.5;
       if (failed || succeeded) {
         cancelAnimationFrame(animRef.current);
@@ -1623,7 +1833,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
 
         if (failed) {
           resetSim();
-          setMissMsg(true);
+          setMissMsg(ph.dead ? 'hazard' : true);
           sfx('levelFail');
           setTimeout(()=>setMissMsg(false), 1800);
           return;
@@ -1653,7 +1863,8 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           const prev = JSON.parse(localStorage.getItem(key) || '[]');
           const sig = exprs.join('||');
           const entry = {
-            exprs, score: sc, time: finishT, stars: rating,
+            exprs, mats: curves.map(e => e.material || null),
+            score: sc, time: finishT, stars: rating,
             ts: Date.now(),
           };
           const filtered = prev.filter(p => (p.exprs || []).join('||') !== sig);
@@ -1720,6 +1931,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           <HudChip label="Score" value={eqsUsed>0?liveScore:'—'}/>
           <HudChip label="Stars" value={`${collectedCount}/${totalStars}`}/>
           <HudChip label="Time"  value={running ? elapsed.toFixed(1)+'s' : (bestTime==null?'—':bestTime.toFixed(1)+'s')}/>
+          {gravityFlip && <HudChip label="g" value={gravityDir < 0 ? '↑' : '↓'}/>}
           <button onClick={handlePlay} style={{
             marginLeft:'auto',
             display:'flex', alignItems:'center', gap:7,
@@ -1768,7 +1980,8 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           simStars={simStars} startPos={levelData.ball}
           autoZoomTrigger={autoZoomTrigger} autoZoomEnabled={settings?.autoZoom !== false}
           gridLabels={settings?.gridLabels !== false}
-          levelStars={levelData.stars} trail={trail}/>
+          levelStars={levelData.stars} trail={trail}
+          objects={levelData.objects} gravityDir={gravityFlip && running ? gravityDir : null}/>
         {missMsg && (
           <div style={{
             position:'absolute', top:8, left:0, right:0,
@@ -1776,7 +1989,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
             fontSize:12, fontWeight:500, color:'#c74440',
             textShadow:'0 1px 2px rgba(0,0,0,0.35)',
           }}>
-            {classWarning ? 'Wrong equation type for this pack' : 'Collect all stars!'}
+            {classWarning ? 'Wrong equation type for this pack' : missMsg === 'hazard' ? 'The ball hit a hazard' : 'Collect all stars!'}
           </div>
         )}
       </div>
@@ -1787,6 +2000,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         expanded={panelOpen} onToggle={()=>setPanelOpen(o=>!o)}
         disabled={running}
         notation={settings?.notation || 'standard'}
+        materialsOn={levelData.materials}
         allowedClass={packAllowedClass}
         classWarning={classWarning}/>
 
@@ -1877,7 +2091,7 @@ function HistoryPopup({ packId, levelIndex, onClose, onLoad }) {
                   }}>{expr}</div>
                 ))}
               </div>
-              <button onClick={() => onLoad(e.exprs)} style={{
+              <button onClick={() => onLoad(e.exprs, e.mats)} style={{
                 width:'100%', height:36, borderRadius:10,
                 background:'var(--fp-ink)', color:'var(--fp-bg)',
                 fontSize:12.5, fontWeight:500,
@@ -1899,4 +2113,7 @@ window.starRating = starRating;
 window.PlaneFiller = PlaneFiller;
 window.EquationsPanel = EquationsPanel;
 window.physicsStep = physicsStep;
+window.drainTicks = drainTicks;
+window.freshPh = freshPh;
+window.outOfWorld = outOfWorld;
 window.SIM = { TICK_DT, SUB_STEPS, MAX_TICKS, BALL_R, FALL_LIMIT, EQ_COLORS };
