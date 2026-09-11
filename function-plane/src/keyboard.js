@@ -57,16 +57,28 @@ function MathKeyboard({
     start: holdStart,
     stop: holdStop
   } = useKeyRepeat();
-  const ins = text => {
+  // `back` leaves the cursor that many characters short of the end of what
+  // was typed — for keys that build something around it rather than after it.
+  const ins = (text, back = 0) => {
     const inp = inputRef?.current;
     if (!inp) return;
     inp.focus();
     const s = inp.selectionStart ?? inp.value.length;
     const e = inp.selectionEnd ?? inp.value.length;
     const v = inp.value.slice(0, s) + text + inp.value.slice(e);
-    const p = s + text.length;
+    const p = s + text.length - back;
     onChange(v);
     requestAnimationFrame(() => setCaret(inp, p));
+  };
+
+  // A fraction over whatever was just written — or, with nothing to put on
+  // top, an empty one with the cursor in the numerator, since that is the
+  // half you are about to fill in.
+  const frac = () => {
+    const inp = inputRef?.current;
+    if (!inp) return;
+    const before = inp.value.slice(0, inp.selectionStart ?? inp.value.length);
+    ins('/', /[0-9a-zA-Zπ.)]$/.test(before) ? 0 : 1);
   };
   const del = () => {
     const inp = inputRef?.current;
@@ -96,11 +108,7 @@ function MathKeyboard({
   // Key faces that are typeset rather than typed. Plain builders, not
   // components — a component declared in here is a new type every render, so
   // React would tear down and rebuild every key on each keystroke.
-  const it = c => /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: 'italic'
-    }
-  }, c);
+  const it = c => /*#__PURE__*/React.createElement("span", null, c);
   const pow = (base, ex) => /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'inline-flex',
@@ -147,8 +155,8 @@ function MathKeyboard({
   });
 
   // ── Left block: variables, grouping, the shapes with their own notation ──
-  const LEFT = [[k(it('x'), () => ins('x'), 'var', 1, 'x'), k(it('y'), () => ins('y'), 'var', 1, 'y'), k(pow('a', '2'), () => ins('^2'), 'op', 1, 'squared'), k(pow('a', 'b'), () => ins('^'), 'op', 1, 'power')], [k('(', () => ins('('), 'op'), k(')', () => ins(')'), 'op'), k('⌊a⌋', () => ins('floor('), 'fn'), k('⌈a⌉', () => ins('ceil('), 'fn')], [k('|a|', () => ins('abs('), 'fn'), k(',', () => ins(','), 'op'), k(FRAC, () => ins('/'), 'op', 1, 'fraction'), k('sgn', () => ins('sgn('), 'fn')], [k('ABC', () => setPage('abc'), 'ctrl'), k('√', () => ins('sqrt('), 'fn'), k(it('e'), () => ins('e'), 'const', 1, 'e'), k('π', () => ins('π'), 'const')]];
-  const NUM = [[k('7', () => ins('7'), 'num'), k('8', () => ins('8'), 'num'), k('9', () => ins('9'), 'num'), k('÷', () => ins('/'), 'num')], [k('4', () => ins('4'), 'num'), k('5', () => ins('5'), 'num'), k('6', () => ins('6'), 'num'), k('×', () => ins('*'), 'num')], [k('1', () => ins('1'), 'num'), k('2', () => ins('2'), 'num'), k('3', () => ins('3'), 'num'), k('−', () => ins('-'), 'num')], [k('0', () => ins('0'), 'num'), k('.', () => ins('.'), 'num'), k('=', () => ins('='), 'num'), k('+', () => ins('+'), 'num')]];
+  const LEFT = [[k(it('x'), () => ins('x'), 'var', 1, 'x'), k(it('y'), () => ins('y'), 'var', 1, 'y'), k(pow('a', '2'), () => ins('^2'), 'op', 1, 'squared'), k(pow('a', 'b'), () => ins('^'), 'op', 1, 'power')], [k('(', () => ins('('), 'op'), k(')', () => ins(')'), 'op'), k('⌊a⌋', () => ins('floor('), 'fn'), k('⌈a⌉', () => ins('ceil('), 'fn')], [k('|a|', () => ins('abs('), 'fn'), k(',', () => ins(','), 'op'), k(FRAC, frac, 'op', 1, 'fraction'), k('sgn', () => ins('sgn('), 'fn')], [k('ABC', () => setPage('abc'), 'ctrl'), k('√', () => ins('sqrt('), 'fn'), k(it('e'), () => ins('e'), 'const', 1, 'e'), k('π', () => ins('π'), 'const')]];
+  const NUM = [[k('7', () => ins('7'), 'num'), k('8', () => ins('8'), 'num'), k('9', () => ins('9'), 'num'), k('÷', frac, 'num')], [k('4', () => ins('4'), 'num'), k('5', () => ins('5'), 'num'), k('6', () => ins('6'), 'num'), k('×', () => ins('*'), 'num')], [k('1', () => ins('1'), 'num'), k('2', () => ins('2'), 'num'), k('3', () => ins('3'), 'num'), k('−', () => ins('-'), 'num')], [k('0', () => ins('0'), 'num'), k('.', () => ins('.'), 'num'), k('=', () => ins('='), 'num'), k('+', () => ins('+'), 'num')]];
   const FNS = [[k('sin', () => ins('sin('), 'fn'), k('cos', () => ins('cos('), 'fn'), k('tan', () => ins('tan('), 'fn'), k('ln', () => ins('ln('), 'fn'), k('log', () => ins('log('), 'fn')], [k('sin⁻¹', () => ins('arcsin('), 'fn'), k('cos⁻¹', () => ins('arccos('), 'fn'), k('tan⁻¹', () => ins('arctan('), 'fn'), k(pow('e', 'x'), () => ins('exp('), 'fn', 1, 'e to the x'), k('√', () => ins('sqrt('), 'fn')], [k('⌊a⌋', () => ins('floor('), 'fn'), k('⌈a⌉', () => ins('ceil('), 'fn'), k('sgn', () => ins('sgn('), 'fn'), k('|a|', () => ins('abs('), 'fn'), k(pow('a', 'b'), () => ins('^'), 'op', 1, 'power')], [k('Σ', () => ins('sum(1,5,n*x)'), 'adv'), k('d/dx', () => ins('deriv('), 'adv'), k('∫', () => ins('integ('), 'adv'), k('min', () => ins('min('), 'fn'), k('max', () => ins('max('), 'fn')]];
   const letters = row => row.split('').map(c => k(it(c), () => ins(c), 'var', 1, c));
   const ABC = [letters('qwertyuiop'), [gap(0.5), ...letters('asdfghjkl'), gap(0.5)], [gap(1.5), ...letters('zxcvbnm'), gap(1.5)], [k('123', () => setPage('main'), 'ctrl', 1.6), k('π', () => ins('π'), 'const'), k(it('e'), () => ins('e'), 'const', 1, 'e'), k(',', () => ins(','), 'op'), k(it('x'), () => ins('x'), 'var', 1, 'x'), k(it('y'), () => ins('y'), 'var', 1, 'y')]];

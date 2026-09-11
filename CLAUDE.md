@@ -7,6 +7,11 @@ physics, classifier, level data, auth and native shells actually work, and
 what's left to ship — is in [`ABOUT.md`](./ABOUT.md).** Read it before
 changing anything you don't already understand; this file assumes it.
 
+Two things live outside it: [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) (why
+writes from some countries never arrive, and what it costs to fix — not a code
+problem, don't try to solve it in the app) and
+[`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) (what is left before launch).
+
 ## Before calling a change done
 
 1. **Edited a `.jsx`?** Run `npm run build:jsx` and commit **both** files.

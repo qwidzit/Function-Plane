@@ -107,6 +107,7 @@ legal/                     # hostable Privacy/Terms HTML for the website (see be
 supabase/config.toml       # Supabase project config
 capacitor.config.json      # native shell config (appId app.functionplane)
 MOBILE-BUILD.md            # how to build the Android/iOS apps
+NETWORK-ACCESS.md          # where writes never arrive, and the ~€3/mo fix
 ```
 
 `android/` and `ios/` are gitignored — recreated locally with `npx cap add
@@ -530,7 +531,12 @@ Three things make that work:
   `x/`, `x^`, `sin(`, a lone `(`. That is what makes the fraction key feel
   like Desmos without a document model: typing `/` simply leaves the
   denominator missing, so the renderer draws the bar and an empty box, and
-  the caret is already inside it. Nothing special-cases the fraction key.
+  the caret is already inside it. Nothing about the renderer special-cases
+  the fraction key.
+  An **operator is not an atom**: `atom()` returns a slot for one *without
+  consuming it*, so a `/` with nothing in front of it leaves a slot behind for
+  `mul()` to hang a fraction on and renders empty over empty, rather than
+  being eaten as a stray slash.
 - **Taps hit-test the layout, not the text.** Every token and slot carries
   `data-pos`; `mathHitOffset` finds the nearest one to the tap and picks its
   near or far edge. Hit-testing the hidden input instead would put the caret
@@ -541,6 +547,10 @@ The math keyboard moves the selection directly on the DOM node, which React's
 `onSelect` does not reliably see, so `setCaret()` in `keyboard.jsx` dispatches
 an `fp-caret` event the row listens for. An expression only turns red once it
 has lost focus — half-written is not wrong.
+
+Variables render **upright**, not italic. The maths convention is italic, but
+at 14px on a phone, next to Geist Mono digits, it read as a slant rather than
+as meaning.
 
 `notation: 'standard'` still shows the plain text in the input, unstyled.
 
@@ -570,6 +580,11 @@ has lost focus — half-written is not wrong.
 - The **comma is load-bearing**, not decoration: `min(x,2)`, `max(x,1)`,
   `pow(x,7)` and `sum(1,5,n*x)` all need it, and `min`/`max`/`Σ` are all on
   the functions page. It is not a decimal separator — `.` is.
+- `a/b` and the keypad's `÷` are the **same action**, `frac()`: it types `/`,
+  and leaves the cursor *before* it when there is no term to put on top, so
+  pressing it on an empty field gives an empty fraction with the cursor in the
+  numerator — the half you are about to fill in — instead of an empty one
+  underneath.
 - Domain-restriction inputs use a separate `NumPad` (in `level-screen.jsx`)
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
@@ -688,50 +703,18 @@ personal best, and a 3-star run using more equations can score worse than a
 run that earned the stars. That is detection, not prevention; prevention needs
 a deterministic server-side replay, which the fixed-tick sim clock now makes
 possible.
-**Writes can vanish on a throttled network.** Measured from Russia over 24 h:
-every `GET` and `OPTIONS` answered 200 and **not one `POST` or `PATCH` ever
-reached the project** — the CORS preflight gets through and the write that
-follows it, with a body and a bearer token, is dropped in transit. Supabase's
-REST endpoint is Cloudflare-fronted, which is what that DPI throttles; the
-same account writes fine the moment a VPN is on (the one admin save that has
-ever landed came in from a Dutch exit node). Two consequences: an unbounded
-write leaves a spinner up forever, which is why every mutation goes through
-`_write` (bounded by `_withTimeout`, retried once, idempotent because they are
-all upserts or deletes); and affected players lose scores silently, since the
-progress upload is a `POST` too. The fix for the path itself is a custom
-domain in front of the REST endpoint on a host that isn't throttled — not a
-different database. Check `edge_logs` grouped by `cf_ipcountry` and method
-before blaming the code.
-
-**The fix, when it's worth €3/month.** Nothing moves out of Supabase; only the
-address the app dials changes, from the Cloudflare-fronted
-`<ref>.supabase.co` to a host the filtering doesn't recognise, which forwards
-every request on unchanged.
-
-1. Rent the smallest VPS that answers from the affected country (Hetzner CX22
-   ≈ €3.79/mo, Netcup ≈ €3). **Verify it answers a `POST` from that network
-   before paying for more than a month** — which ranges are throttled changes,
-   and no amount of code can tell you from here.
-2. Point `api.<domain>` at it and install Caddy. The whole config:
-
-   ```
-   api.example.com {
-     reverse_proxy https://<ref>.supabase.co {
-       header_up Host <ref>.supabase.co
-     }
-   }
-   ```
-
-   Caddy gets the TLS certificate itself. `header_up Host` is not optional —
-   Supabase routes on the Host header, and without it every request 404s.
-3. Change the one line in `src/supabase-config.js`:
-   `window.SUPABASE_URL = 'https://api.example.com';`
-
-Auth, RLS, realtime and storage all ride the same origin, so nothing else in
-the app changes. The proxy holds no data and no keys — it forwards bytes. The
-same box can serve the PWA itself, which is worth doing: `pages.dev` is
-Cloudflare, i.e. the most throttled name in the chain. Installed Android
-builds bundle their assets and only need the API.
+**Writes can vanish on some networks.** Measured from Russia over 24 h: every
+`GET` and `OPTIONS` answered 200 and **not one `POST` or `PATCH` ever reached
+the project**. The CORS preflight gets through and the write behind it, with a
+body and a bearer token, is dropped in transit; players lose scores silently,
+since the progress upload is a `POST` too. It is not a bug in the app and a
+different database would not fix it — the full measurement, the mechanism and
+the ~€3/month fix are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md). What the
+app does about it: every mutation goes through `_write` (bounded by
+`_withTimeout`, retried once, idempotent because they are all upserts or
+deletes), so a save that cannot get through says so instead of spinning
+forever. Check `edge_logs` grouped by `cf_ipcountry` and method before blaming
+the code.
 
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual

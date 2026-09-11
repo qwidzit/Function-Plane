@@ -30,12 +30,19 @@ Only these, from [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md):
 | 23 | Set the version scheme | **Done.** `versionCode 1` / `versionName "1.0"`, matching the app's `v 1.0 · build 1`. |
 | 15 | Add the reset-password redirect URL | **Done.** Site URL and redirect URL set; the page they point at is live. |
 | 21 | Create and back up the signing keystore | **Done.** PKCS12 upload key, wired into Gradle; a signed AAB is built and verified. **Back the `.jks` up.** |
-| 27 | Complete the Data safety form | **Outstanding — step 22.** Required before any track, including closed, can be released. |
-| 28 | Complete the content rating questionnaire | **Outstanding — step 21.** Same. |
+| 27 | Complete the Data safety form | **Done.** Five types collected, none shared, all optional; answers recorded in `store-assets/CONSOLE-SETUP.md`. |
+| 28 | Complete the content rating questionnaire | **Done.** No to every substantive question; re-take it in the release that ships Play Billing. |
+
+Every prerequisite above is now done, and **build 1 is in review on the closed
+track** — the steps below are the record of how it got there, and the reference
+for every upload after it.
 
 **Deliberately not blockers:** items 1–4 (content), 5–10 (payments), 17–18
 (website copy), 25–26 (listing text and screenshots — both drafted for you in
 `store-assets/`), 29–32 (polish). All of that can land during the 14 days.
+Item **11c** ([`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md)) is not a Play
+blocker either, but testers on an affected network will lose their scores
+without ever being told, so it is worth doing before the tester list grows.
 
 If you're shipping v1 without premium, decide item 10 now — it removes items
 5–9 entirely.

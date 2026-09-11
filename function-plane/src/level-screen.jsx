@@ -1233,7 +1233,7 @@ function buildMath(toks, src, caret) {
     const tk = peek();
     if (!tk) return { el: slot(), bare: null };
     if (tk.t === 'num')  { i++; return { el: <span>{tokEl(tk, tk.v)}</span>, bare: null }; }
-    if (tk.t === 'name') { i++; return { el: <span style={{ fontStyle:'italic' }}>{tokEl(tk, tk.v)}</span>, bare: null }; }
+    if (tk.t === 'name') { i++; return { el: <span>{tokEl(tk, tk.v)}</span>, bare: null }; }
     if (tk.t === '(') {
       i++;
       const inner = rel();
@@ -1261,6 +1261,10 @@ function buildMath(toks, src, caret) {
       parts.push(<span>)</span>);
       return { el: seq(parts), bare: null };
     }
+    // An operator is not an atom: leave it for whoever called us, so "/" with
+    // nothing in front of it still builds a fraction — empty on both halves —
+    // rather than being shown as a stray slash.
+    if (tk.t === 'op') return { el: slot(), bare: null };
     // A stray ")" or "," with nothing to attach to — show it, don't stall.
     i++;
     return { el: <span style={{ opacity:0.55 }}>{tokEl(tk, tk.v)}</span>, bare: null };
@@ -1366,7 +1370,6 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, do
             border:`1.5px solid ${eq.param ? 'var(--fp-ink-4)' : eq.color}`,
             display:'flex', alignItems:'center', justifyContent:'center',
             fontSize:10, fontWeight:600, fontFamily:'ui-monospace,monospace',
-            fontStyle: eq.param ? 'italic' : 'normal',
             color: eq.param ? 'var(--fp-ink-3)' : (eq.visible ? '#fff' : eq.color),
           }}>{eq.param ? eq.param.name : idx+1}</span>
         </button>
@@ -1474,7 +1477,7 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, do
             <button key={nm} onPointerDown={e=>{e.preventDefault(); onAddSliders([nm]);}} style={{
               minWidth:26, height:24, padding:'0 8px', borderRadius:6,
               border:'1px solid var(--lv-line)', background:'var(--fp-surface)',
-              color:'var(--fp-ink)', fontSize:12.5, fontStyle:'italic',
+              color:'var(--fp-ink)', fontSize:12.5,
               fontFamily:"'Geist Mono','ui-monospace',monospace",
             }}>{nm}</button>
           ))}

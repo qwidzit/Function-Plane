@@ -1944,11 +1944,7 @@ function buildMath(toks, src, caret) {
     if (tk.t === 'name') {
       i++;
       return {
-        el: /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontStyle: 'italic'
-          }
-        }, tokEl(tk, tk.v)),
+        el: /*#__PURE__*/React.createElement("span", null, tokEl(tk, tk.v)),
         bare: null
       };
     }
@@ -2011,6 +2007,13 @@ function buildMath(toks, src, caret) {
         bare: null
       };
     }
+    // An operator is not an atom: leave it for whoever called us, so "/" with
+    // nothing in front of it still builds a fraction — empty on both halves —
+    // rather than being shown as a stray slash.
+    if (tk.t === 'op') return {
+      el: slot(),
+      bare: null
+    };
     // A stray ")" or "," with nothing to attach to — show it, don't stall.
     i++;
     return {
@@ -2208,7 +2211,6 @@ function EqRow({
       fontSize: 10,
       fontWeight: 600,
       fontFamily: 'ui-monospace,monospace',
-      fontStyle: eq.param ? 'italic' : 'normal',
       color: eq.param ? 'var(--fp-ink-3)' : eq.visible ? '#fff' : eq.color
     }
   }, eq.param ? eq.param.name : idx + 1)), /*#__PURE__*/React.createElement("div", {
@@ -2433,7 +2435,6 @@ function EqRow({
       background: 'var(--fp-surface)',
       color: 'var(--fp-ink)',
       fontSize: 12.5,
-      fontStyle: 'italic',
       fontFamily: "'Geist Mono','ui-monospace',monospace"
     }
   }, nm)), slots.length > 1 && /*#__PURE__*/React.createElement("button", {
