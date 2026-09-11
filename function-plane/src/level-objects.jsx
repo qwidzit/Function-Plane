@@ -1,7 +1,7 @@
 // Function Plane — level objects (window.FP_OBJECTS)
 //
 // Things a level designer places on the plane besides the ball and the stars:
-// fans, antigravity zones, gravity wells, hazards. One registry so that a new
+// fans, zero-gravity zones, gravity wells, hazards. One registry so that a new
 // kind is a new entry here — its physics, its hit-test, its editor fields and
 // its picture — and nothing else in the app has to learn about it.
 //
@@ -27,8 +27,8 @@ const KINDS = {
       { k: 'strength', label: 'force',  min: 1,    max: 80 },
     ],
   },
-  antigrav: {
-    label: 'Antigravity', color: '#7a4fd6',
+  zerog: {
+    label: 'Zero gravity', color: '#7a4fd6',
     defaults: { x: 0, y: 0, w: 3, h: 3 },
     fields: [
       { k: 'x', label: 'x' }, { k: 'y', label: 'y' },
@@ -38,11 +38,12 @@ const KINDS = {
   },
   well: {
     label: 'Gravity well', color: '#2f3e8f',
-    defaults: { x: 0, y: 0, r: 2.5, strength: 18 },
+    defaults: { x: 0, y: 0, r: 2.5, strength: 30, damp: 1.5 },
     fields: [
       { k: 'x', label: 'x' }, { k: 'y', label: 'y' },
       { k: 'r',        label: 'radius', min: 0.5, max: 30 },
       { k: 'strength', label: 'pull',   min: 1,   max: 80 },
+      { k: 'damp',     label: 'drag',   min: 0,   max: 8 },
     ],
   },
   hazard: {
@@ -56,7 +57,7 @@ const KINDS = {
   },
 };
 
-const KIND_ORDER = ['fan', 'antigrav', 'well', 'hazard'];
+const KIND_ORDER = ['fan', 'zerog', 'well', 'hazard'];
 
 function makeObject(kind, at) {
   return { kind, ...KINDS[kind].defaults, ...(at || {}) };
@@ -80,33 +81,53 @@ function fanLocal(o, x, y) {
 }
 
 const INSIDE = {
-  fan:      (o, x, y) => { const { u, v } = fanLocal(o, x, y); return u >= 0 && u <= o.len && Math.abs(v) <= o.w / 2; },
-  antigrav: (o, x, y) => Math.abs(x - o.x) <= o.w / 2 && Math.abs(y - o.y) <= o.h / 2,
-  hazard:   (o, x, y) => Math.abs(x - o.x) <= o.w / 2 && Math.abs(y - o.y) <= o.h / 2,
-  well:     (o, x, y) => Math.hypot(x - o.x, y - o.y) <= o.r,
+  fan:    (o, x, y) => { const { u, v } = fanLocal(o, x, y); return u >= 0 && u <= o.len && Math.abs(v) <= o.w / 2; },
+  zerog:  (o, x, y) => Math.abs(x - o.x) <= o.w / 2 && Math.abs(y - o.y) <= o.h / 2,
+  hazard: (o, x, y) => Math.abs(x - o.x) <= o.w / 2 && Math.abs(y - o.y) <= o.h / 2,
+  well:   (o, x, y) => Math.hypot(x - o.x, y - o.y) <= o.r,
 };
+
+// The solid parts of an object, as a flat [ax, ay, bx, by, ...] segment list
+// the engine collides against. Only a fan has any: its housing is a wall, so
+// the ball can land on the back of a fan instead of sailing through it.
+function solidSegs(objects) {
+  const out = [];
+  for (const o of objects || []) {
+    if (o.kind !== 'fan') continue;
+    const a = o.angle * DEG, c = Math.cos(a), sn = Math.sin(a), hw = o.w / 2;
+    out.push(o.x + hw * sn, o.y - hw * c, o.x - hw * sn, o.y + hw * c);
+  }
+  return out;
+}
 
 // ── Forces ───────────────────────────────────────────────────────────
 // Accumulate into `out` — ax/ay in units/s², gMul scales gravity. The engine
 // calls this every substep, so it must not allocate.
 const FORCE = {
-  fan(o, x, y, out) {
+  fan(o, x, y, vx, vy, out) {
     if (!INSIDE.fan(o, x, y)) return;
     const a = o.angle * DEG;
     out.ax += o.strength * Math.cos(a);
     out.ay += o.strength * Math.sin(a);
   },
-  antigrav(o, x, y, out) {
-    if (INSIDE.antigrav(o, x, y)) out.gMul = -out.gMul;
+  zerog(o, x, y, vx, vy, out) {
+    if (INSIDE.zerog(o, x, y)) out.gMul = 0;
   },
-  well(o, x, y, out) {
+  well(o, x, y, vx, vy, out) {
     const dx = o.x - x, dy = o.y - y;
     const d = Math.hypot(dx, dy);
-    if (d > o.r || d < 1e-6) return;
+    if (d > o.r) return;
     // Constant pull inside the radius: predictable enough to aim with, and no
     // singularity at the centre for the integrator to blow up on.
-    out.ax += o.strength * dx / d;
-    out.ay += o.strength * dy / d;
+    if (d > 1e-6) {
+      out.ax += o.strength * dx / d;
+      out.ay += o.strength * dy / d;
+    }
+    // Drag proportional to speed. Without it the well is a slingshot — the
+    // ball trades the energy it gained falling in for exactly enough to leave
+    // again — so it has to *cost* something to cross one.
+    out.ax -= o.damp * vx;
+    out.ay -= o.damp * vy;
   },
 };
 
@@ -116,9 +137,9 @@ function makeField(objects) {
   const fs = (objects || []).filter(o => FORCE[o.kind]);
   if (!fs.length) return null;
   const out = { ax: 0, ay: 0, gMul: 1 };
-  return (x, y) => {
+  return (x, y, vx, vy) => {
     out.ax = 0; out.ay = 0; out.gMul = 1;
-    for (let i = 0; i < fs.length; i++) FORCE[fs[i].kind](fs[i], x, y, out);
+    for (let i = 0; i < fs.length; i++) FORCE[fs[i].kind](fs[i], x, y, vx, vy, out);
     return out;
   };
 }
@@ -198,27 +219,28 @@ function Fan({ o, i, m2p, scale, selected }) {
         </g>
       </g>
       {/* housing at the base, arrowhead at the mouth */}
-      <rect x={-3} y={-W / 2} width={5} height={W} rx={2} fill={c} opacity={0.85}/>
+      {/* the housing is solid — drawn as a wall, and collided with as one */}
+      <rect x={-4} y={-W / 2} width={6} height={W} rx={1.5} fill={c}/>
       <path d={`M${L - 9} ${-6} L${L - 1} 0 L${L - 9} 6`} fill="none" stroke={c} strokeWidth={2}
         strokeLinecap="round" strokeLinejoin="round" opacity={0.9}/>
     </g>
   );
 }
 
-function Antigrav({ o, m2p, scale, selected }) {
-  const c = KINDS.antigrav.color;
+// Weightless, not upward: a drifting speck inside a loose ring, and
+// deliberately no arrows — an arrow would read as a direction.
+function ZeroG({ o, m2p, scale, selected }) {
+  const c = KINDS.zerog.color;
   const p = m2p(o.x, o.y);
   const W = o.w * scale, H = o.h * scale;
-  const chev = Math.min(10, W * 0.25, H * 0.2);
+  const r = Math.max(5, Math.min(13, W * 0.16, H * 0.16));
   return (
     <g transform={`translate(${p.x},${p.y})`}>
       <rect x={-W / 2} y={-H / 2} width={W} height={H} rx={6}
         fill={c} fillOpacity={selected ? 0.14 : 0.08}
         stroke={c} strokeWidth={selected ? 2 : 1.2} strokeDasharray={selected ? undefined : '5 4'} opacity={0.75}/>
-      {[1, 0, -1].map(k => (
-        <path key={k} d={`M${-chev} ${k * chev * 1.2 + chev / 2} L0 ${k * chev * 1.2 - chev / 2} L${chev} ${k * chev * 1.2 + chev / 2}`}
-          fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" opacity={0.55}/>
-      ))}
+      <circle r={r} fill="none" stroke={c} strokeWidth={1.4} strokeDasharray="3 3" opacity={0.6}/>
+      <circle r={r * 0.3} cx={-r * 0.2} cy={-r * 0.15} fill={c} opacity={0.65}/>
     </g>
   );
 }
@@ -268,7 +290,7 @@ function Hazard({ o, i, m2p, scale, selected }) {
   );
 }
 
-const DRAW = { fan: Fan, antigrav: Antigrav, well: Well, hazard: Hazard };
+const DRAW = { fan: Fan, zerog: ZeroG, well: Well, hazard: Hazard };
 
 function LevelObject({ o, i, m2p, scale, selected }) {
   const C = DRAW[o.kind];
@@ -277,6 +299,6 @@ function LevelObject({ o, i, m2p, scale, selected }) {
 
 window.FP_OBJECTS = {
   KINDS, KIND_ORDER, makeObject, setField,
-  makeField, hazardHit, hitTest, bounds,
+  makeField, solidSegs, hazardHit, hitTest, bounds,
   LevelObject,
 };

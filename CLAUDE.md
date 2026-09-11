@@ -117,6 +117,16 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   `drainTicks` and counts `ph.bounces` (real bounces only), never the
   per-frame `ph.bounced` flag. And a flipped ball needs the ceiling in
   `outOfWorld`, or it rises until the clock runs out.
+- The caret in an equation row lands in the wrong place, or stops moving →
+  the typeset layer draws its own cursor from a character offset, and the
+  math keyboard has to announce selection changes with the `fp-caret` event
+  (`setCaret()` in `keyboard.jsx`) because React's `onSelect` does not see a
+  direct `setSelectionRange`. Taps must hit-test `data-pos` on the typeset
+  layer, never the hidden input.
+- A half-typed expression renders as plain text instead of maths → something
+  made `buildMath` throw again. The display grammar is deliberately forgiving:
+  a missing operand is a slot, not an error, and that is the whole reason the
+  fraction key feels immediate. Only `mathTokens` may reject input.
 - A curve material or field seems to have no effect → the studio and the
   level both pass `material` into `makeColliders` and `field` into
   `physicsStep`'s `world`; a run loop that builds its own colliders/cfg

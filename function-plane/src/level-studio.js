@@ -205,19 +205,8 @@ function LevelStudio({
   useLSE(() => {
     if (!running) return;
     const ph = physRef.current;
-    const active = eqRef.current.filter(e => e.fn && e.visible);
-    const colliders = FP_PHYSICS.makeColliders([...active.filter(e => !e.isImplicit), ...active.filter(e => e.isImplicit)].map(e => ({
-      fn: e.fn,
-      domain: e.domain,
-      isImplicit: e.isImplicit,
-      material: e.material
-    })), SIM.BALL_R);
-    const objs = objRef.current;
-    const world = {
-      field: FP_OBJECTS.makeField(objs),
-      hazards: objs.filter(o => o.kind === 'hazard'),
-      gravityFlip
-    };
+    const world = makeWorld(objRef.current, gravityFlip);
+    const colliders = makeRunColliders(eqRef.current, world);
     const frame = ts => {
       drainTicks(ph, colliders, world, ts);
       setElapsed(ph.simS);

@@ -6,6 +6,13 @@ const { useState: useKB, useRef: useRK, useEffect: useEK } = React;
 // fires once; holding starts repeating after HOLD_DELAY and then every
 // HOLD_RATE, the way a hardware key does. Shared with the domain NumPad in
 // level-screen.jsx, which loads after this file.
+// Moving the selection on the DOM node directly is invisible to React's
+// onSelect, and the typeset field draws its own cursor — so say so.
+function setCaret(inp, p) {
+  inp.setSelectionRange?.(p, p);
+  inp.dispatchEvent(new Event('fp-caret'));
+}
+
 const HOLD_DELAY = 420;
 const HOLD_RATE  = 60;
 
@@ -43,7 +50,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     const v = inp.value.slice(0, s) + text + inp.value.slice(e);
     const p = s + text.length;
     onChange(v);
-    requestAnimationFrame(() => inp.setSelectionRange?.(p, p));
+    requestAnimationFrame(() => setCaret(inp, p));
   };
 
   const del = () => {
@@ -56,7 +63,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     else if (s>0) { v = inp.value.slice(0,s-1) + inp.value.slice(s); p = s-1; }
     else return;
     onChange(v);
-    requestAnimationFrame(() => inp.setSelectionRange?.(p, p));
+    requestAnimationFrame(() => setCaret(inp, p));
   };
 
   const mov = d => {
@@ -64,7 +71,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     if (!inp) return;
     inp.focus();
     const p = Math.max(0, Math.min(inp.value.length, (inp.selectionStart ?? 0) + d));
-    requestAnimationFrame(() => inp.setSelectionRange?.(p, p));
+    requestAnimationFrame(() => setCaret(inp, p));
   };
 
   // Key faces that are typeset rather than typed. Plain builders, not
@@ -85,19 +92,21 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   );
 
   // t: 'var' | 'op' | 'num' | 'const' | 'fn' | 'adv' | 'del' | 'ctrl' | 'enter' | 'gap'
-  const k = (lbl, act, t, w) => ({ lbl, act, t, w });
+  // `al` names a key whose face is drawn rather than written, so it still has
+  // something to read out.
+  const k = (lbl, act, t, w, al) => ({ lbl, act, t, w, al });
   const gap = w => ({ t:'gap', w });
 
   // ── Left block: variables, grouping, the shapes with their own notation ──
   const LEFT = [
-    [k(it('x'), ()=>ins('x'), 'var'), k(it('y'), ()=>ins('y'), 'var'),
-     k(pow('a','2'), ()=>ins('^2'), 'op'), k(pow('a','b'), ()=>ins('^'), 'op')],
+    [k(it('x'), ()=>ins('x'), 'var', 1, 'x'), k(it('y'), ()=>ins('y'), 'var', 1, 'y'),
+     k(pow('a','2'), ()=>ins('^2'), 'op', 1, 'squared'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
     [k('(', ()=>ins('('), 'op'), k(')', ()=>ins(')'), 'op'),
      k('⌊a⌋', ()=>ins('floor('), 'fn'), k('⌈a⌉', ()=>ins('ceil('), 'fn')],
     [k('|a|', ()=>ins('abs('), 'fn'), k(',', ()=>ins(','), 'op'),
-     k(FRAC, ()=>ins('/'), 'op'), k('sgn', ()=>ins('sgn('), 'fn')],
-    [k('ABC', ()=>setPage('abc'), 'ctrl'), k(it('e'), ()=>ins('e'), 'const'),
-     k('√', ()=>ins('sqrt('), 'fn'), k('π', ()=>ins('π'), 'const')],
+     k(FRAC, ()=>ins('/'), 'op', 1, 'fraction'), k('sgn', ()=>ins('sgn('), 'fn')],
+    [k('ABC', ()=>setPage('abc'), 'ctrl'), k('√', ()=>ins('sqrt('), 'fn'),
+     k(it('e'), ()=>ins('e'), 'const', 1, 'e'), k('π', ()=>ins('π'), 'const')],
   ];
 
   const NUM = [
@@ -111,21 +120,21 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     [k('sin', ()=>ins('sin('), 'fn'), k('cos', ()=>ins('cos('), 'fn'), k('tan', ()=>ins('tan('), 'fn'),
      k('ln', ()=>ins('ln('), 'fn'), k('log', ()=>ins('log('), 'fn')],
     [k('sin⁻¹', ()=>ins('arcsin('), 'fn'), k('cos⁻¹', ()=>ins('arccos('), 'fn'), k('tan⁻¹', ()=>ins('arctan('), 'fn'),
-     k(pow('e','x'), ()=>ins('exp('), 'fn'), k('√', ()=>ins('sqrt('), 'fn')],
+     k(pow('e','x'), ()=>ins('exp('), 'fn', 1, 'e to the x'), k('√', ()=>ins('sqrt('), 'fn')],
     [k('⌊a⌋', ()=>ins('floor('), 'fn'), k('⌈a⌉', ()=>ins('ceil('), 'fn'), k('sgn', ()=>ins('sgn('), 'fn'),
-     k('|a|', ()=>ins('abs('), 'fn'), k(pow('a','b'), ()=>ins('^'), 'op')],
+     k('|a|', ()=>ins('abs('), 'fn'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
     [k('Σ', ()=>ins('sum(1,5,n*x)'), 'adv'), k('d/dx', ()=>ins('deriv('), 'adv'), k('∫', ()=>ins('integ('), 'adv'),
      k('min', ()=>ins('min('), 'fn'), k('max', ()=>ins('max('), 'fn')],
   ];
 
-  const letters = row => row.split('').map(c => k(it(c), ()=>ins(c), 'var'));
+  const letters = row => row.split('').map(c => k(it(c), ()=>ins(c), 'var', 1, c));
   const ABC = [
     letters('qwertyuiop'),
     [gap(0.5), ...letters('asdfghjkl'), gap(0.5)],
     [gap(1.5), ...letters('zxcvbnm'), gap(1.5)],
     [k('123', ()=>setPage('main'), 'ctrl', 1.6), k('π', ()=>ins('π'), 'const'),
-     k(it('e'), ()=>ins('e'), 'const'), k(',', ()=>ins(','), 'op'),
-     k(it('x'), ()=>ins('x'), 'var'), k(it('y'), ()=>ins('y'), 'var')],
+     k(it('e'), ()=>ins('e'), 'const', 1, 'e'), k(',', ()=>ins(','), 'op'),
+     k(it('x'), ()=>ins('x'), 'var', 1, 'x'), k(it('y'), ()=>ins('y'), 'var', 1, 'y')],
   ];
 
   // ── Right block: page switch, caret, backspace, accept ──
@@ -164,6 +173,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
             ? <div key={ki} style={{ flex:key.w }}/>
             : (
               <button key={ki}
+                aria-label={key.al || (typeof key.lbl === 'string' ? key.lbl : undefined)}
                 onPointerDown={e => { e.preventDefault(); if (key.t === 'del') holdStart(key.act); else key.act(); }}
                 onPointerUp={holdStop}
                 onPointerCancel={holdStop}

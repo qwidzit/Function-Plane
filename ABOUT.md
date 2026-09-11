@@ -94,7 +94,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
-    level-objects.jsx      # FP_OBJECTS — fans, antigravity, wells, hazards: physics + drawing
+    level-objects.jsx      # FP_OBJECTS — fans, zero-g, wells, hazards: physics + drawing
     level-studio.jsx       # sandbox AND the admin level editor — same plane/panel/physics
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
     keyboard.jsx           # custom math keyboard (Desmos layout: main/abc/fn pages)
@@ -425,7 +425,7 @@ so it reads as subordinate to Play instead of competing with it.
 
 ## Level objects (level-objects.jsx, window.FP_OBJECTS)
 
-Fans, antigravity zones, gravity wells and hazards. One registry, `KINDS`,
+Fans, zero-gravity zones, gravity wells and hazards. One registry, `KINDS`,
 holds everything a kind is — its `defaults`, the `fields` an editor may
 change (with the range each is clamped to), its colour, and its picture — and
 `FORCE`/`INSIDE` hold what it does. Adding a kind is adding an entry here; the
@@ -434,16 +434,27 @@ engine, the plane, the studio's Objects tab and `getLevelData` learn nothing.
 - **Fan** — a rectangle standing on its base at `(x, y)`, reaching `len`
   along `angle` (0° is +x, 90° is +y — so a sideways fan is `angle: 0` or
   `180`) and `w` wide. Constant acceleration `strength` along the angle while
-  the ball is inside. Drawn as a tinted, dashed box with a housing bar at the
-  base, an arrowhead at the mouth, and wind streaks sliding downwind — the
-  streaks are SMIL `animateTransform`, seeded per fan so they don't
-  reshuffle on re-render, drawn over two lengths and slid by exactly one so
-  the loop is seamless, and quicker for a stronger fan.
-- **Antigravity** — an axis-aligned box; inside it gravity is *reversed*
-  (`gMul = -1`, and two overlapping zones cancel).
+  the ball is inside. Its **housing is solid**: `solidSegs()` returns the one
+  segment across the base, and the run appends it as a `{ segs }` collider,
+  so the ball lands on the back of a fan instead of sailing through it. Drawn
+  as a tinted, dashed box with that housing as a filled bar, an arrowhead at
+  the mouth, and wind streaks sliding downwind — the streaks are SMIL
+  `animateTransform`, seeded per fan so they don't reshuffle on re-render,
+  drawn over two lengths and slid by exactly one so the loop is seamless, and
+  quicker for a stronger fan.
+- **Zero gravity** — an axis-aligned box; inside it `gMul = 0`, so the ball
+  keeps whatever velocity it arrived with and nothing accelerates it. Not
+  *anti*-gravity: nothing is pushed upward, and overlapping zones can't
+  cancel back to normal. Drawn as a drifting speck inside a loose dashed
+  ring — deliberately not arrows, which would read as a direction.
 - **Gravity well** — constant pull `strength` toward the centre within radius
-  `r`. Constant, not inverse-square: predictable enough to aim with, and no
-  singularity for the integrator to blow up on at the centre.
+  `r`, plus `damp`, a drag proportional to speed. Constant rather than
+  inverse-square: predictable enough to aim with, and no singularity for the
+  integrator to blow up on at the centre. The drag is what makes it a well
+  rather than scenery — without it the ball trades the energy it gained
+  falling in for exactly what it needs to climb out, so crossing one costs
+  nothing. `field(x, y, vx, vy)` takes the velocity for this and nothing
+  else; it is still a pure function of the ball's state.
 - **Hazard** — an axis-aligned box the ball must not touch; the run fails
   ("The ball hit a hazard") the substep the ball's *edge* meets it.
 
@@ -498,14 +509,50 @@ to the ball, which resets to its start on failure and would collapse the
 gradient to zero length — so the end of the run is the most visible part.
 Cleared when the next run starts.
 
+## Equation field — typeset while you type
+
+The row is laid out as maths *while it is being edited*, not only at rest.
+There is still exactly one `<input>` underneath holding the text and the
+selection — it keeps desktop typing, selection and undo working — but its
+glyphs and its caret are transparent, and a typeset layer sits on top drawing
+the expression and its own cursor. The text string stays the single source of
+truth; `MathExpr` is a renderer with a caret drawn into it, not a document
+model, so the parser, the classifier, run history and every save are
+unchanged.
+
+Three things make that work:
+
+- **Tokens carry their source offsets.** The caret is a character index, so
+  `buildMath` can emit it at exactly the right place in the layout — including
+  *inside* a token, which is how you put the cursor in the middle of `12.5`.
+- **The grammar is forgiving.** A half-written expression renders as far as it
+  parses and shows a dashed empty slot wherever an operand is missing —
+  `x/`, `x^`, `sin(`, a lone `(`. That is what makes the fraction key feel
+  like Desmos without a document model: typing `/` simply leaves the
+  denominator missing, so the renderer draws the bar and an empty box, and
+  the caret is already inside it. Nothing special-cases the fraction key.
+- **Taps hit-test the layout, not the text.** Every token and slot carries
+  `data-pos`; `mathHitOffset` finds the nearest one to the tap and picks its
+  near or far edge. Hit-testing the hidden input instead would put the caret
+  where the *raw string* would have been, which stops matching the moment a
+  fraction stacks anything.
+
+The math keyboard moves the selection directly on the DOM node, which React's
+`onSelect` does not reliably see, so `setCaret()` in `keyboard.jsx` dispatches
+an `fp-caret` event the row listens for. An expression only turns red once it
+has lost focus — half-written is not wrong.
+
+`notation: 'standard'` still shows the plain text in the input, unstyled.
+
 ## Custom math keyboard
 
 - Native mobile keyboard is suppressed via `inputMode="none"` on equation
   inputs.
 - `MathKeyboard` (`keyboard.jsx`) follows the Desmos mobile layout: three
   blocks side by side — a left variable/notation block (`x`, `y`, `a²`, `aᵇ`,
-  parens, `|a|`, `,`, the `a/b` fraction key, `⌊a⌋`, `⌈a⌉`, `sgn`, `ABC`, `e`,
-  `√`, `π`), a 4×4 numeric keypad (`7 8 9 ÷` … `0 . = +`), and a right control
+  parens, `⌊a⌋`, `⌈a⌉`, `|a|`, `,`, the `a/b` fraction key, `sgn`, `ABC`, `√`,
+  `e`, `π` — `e` and `π` sit together, so `√` takes the slot beside `ABC`), a
+  4×4 numeric keypad (`7 8 9 ÷` … `0 . = +`), and a right control
   column (`functions`, `← →`, `⌫`, and the accent `↵` that closes the
   keyboard). Three pages: `main`, `abc` (a QWERTY row set, for typing
   parameter letters) and `fn` (trig, inverse trig, `ln`/`log`, `eˣ`, `√`,
@@ -517,7 +564,12 @@ Cleared when the next run starts.
 - Key faces that are typeset (`a²`, the fraction key) are built by plain
   functions, never by components declared inside `MathKeyboard` — a component
   declared in a render body is a new type every render, so React would tear
-  down and rebuild every key on each keystroke.
+  down and rebuild every key on each keystroke. Those keys carry an
+  `aria-label` (`fraction`, `power`, `squared`, …), since their face is drawn
+  rather than written.
+- The **comma is load-bearing**, not decoration: `min(x,2)`, `max(x,1)`,
+  `pow(x,7)` and `sum(1,5,n*x)` all need it, and `min`/`max`/`Σ` are all on
+  the functions page. It is not a decimal separator — `.` is.
 - Domain-restriction inputs use a separate `NumPad` (in `level-screen.jsx`)
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
@@ -840,7 +892,7 @@ the two channels require different, mutually exclusive payment systems:
 
 ### Level variety — objects, rules and what each one costs
 
-**Built:** fans, antigravity zones, gravity wells, hazards, dead/rubber curve
+**Built:** fans, zero-gravity zones, gravity wells, hazards, dead/rubber curve
 materials (player-set, per level, off by default), the Inversion pack
 (gravity flips on every real bounce), the studio that places all of it, and
 the admin editor built on the studio. See *Level objects* above. The rules
@@ -882,7 +934,7 @@ undoes that for every level it appears in.
 | Object | Where it hooks in | Notes |
 |---|---|---|
 | **Fan / wind** | extra acceleration in `stepBall`'s substep loop, after gravity | Constant force inside a region. Deterministic, composes with gravity, cheapest thing on the list. |
-| **Antigravity zone** | same pass, scales `cfg.gravity` locally | Same code as the fan with a different force law — free once fans exist. |
+| **Zero-gravity zone** | same pass, scales `cfg.gravity` locally | Same code as the fan with a different force law — free once fans exist. |
 | **Gravity well** | same pass, force toward a point | Radial attractor. Pairs with the Asymptotes pack. |
 | **Hazard / forbidden zone** | region test in the tick loop → fail the run | Makes *domain restriction* — a shipped feature almost nothing forces you to use — actually necessary. |
 | **Moving star** | star position becomes `f(simS)` | Geometry puzzle becomes a timing puzzle. Costs more than it looks: every reader of a star position (renderer, collection, auto-zoom framing) has to go through the function. |

@@ -136,3 +136,8 @@ input { font: inherit; }
     linear-gradient(to right, var(--fp-grid) 1px, transparent 1px),
     linear-gradient(to bottom, var(--fp-grid) 1px, transparent 1px);
 }
+
+/* The typeset equation field draws its own cursor — the real <input> under it
+   is transparent, so its native one would sit at the wrong place entirely. */
+.fp-caret { animation: fp-caret-blink 1.1s step-end infinite; }
+@keyframes fp-caret-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }

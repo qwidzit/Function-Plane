@@ -495,6 +495,11 @@ const simWorld = (defs, start, seconds, field) => {
   return ph;
 };
 
+it('exposes a force and a picture for every kind it offers', () => {
+  for (const kind of objs.KIND_ORDER) ok(objs.KINDS[kind], `${kind} is in KINDS`);
+  for (const kind of Object.keys(objs.KINDS)) ok(objs.KIND_ORDER.includes(kind), `${kind} is offered`);
+});
+
 it('lets a sideways fan push the ball across', () => {
   const fan = objs.makeObject('fan', { x: -5, y: 0, angle: 0, len: 10, w: 40, strength: 10 });
   const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 0.5, objs.makeField([fan]));
@@ -502,22 +507,51 @@ it('lets a sideways fan push the ball across', () => {
   near(ph.vy, -GRAVITY * 0.5, 1e-9, 'and gravity is untouched');
 });
 
-it('reverses gravity inside an antigravity zone', () => {
-  const zone = objs.makeObject('antigrav', { x: 0, y: 0, w: 40, h: 40 });
-  const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 1, objs.makeField([zone]));
-  near(ph.vy, GRAVITY, 1e-9, 'falls upward at gravity');
+it('cancels gravity inside a zero-gravity zone, never reverses it', () => {
+  const zone = objs.makeObject('zerog', { x: 0, y: 0, w: 40, h: 40 });
+  const ph = simWorld([], { x: 0, y: 3, vx: 2, vy: 0 }, 1, objs.makeField([zone]));
+  near(ph.vy, 0, 1e-9, 'no vertical acceleration at all');
+  near(ph.vx, 2, 1e-9, 'and nothing touches sideways drift');
+  near(ph.y, 3, 1e-9, 'so it coasts');
 });
 
 it('pulls the ball toward a gravity well', () => {
-  const well = objs.makeObject('well', { x: -3, y: 0, r: 10, strength: 20 });
+  const well = objs.makeObject('well', { x: -3, y: 0, r: 10, strength: 20, damp: 0 });
   const ph = simWorld([], { x: 0, y: 0, vx: 0, vy: 0 }, 0.5, objs.makeField([well]));
   ok(ph.vx < -5, `pulled left, vx=${ph.vx}`);
 });
 
+it('bleeds speed inside a well instead of slingshotting it back out', () => {
+  // Without drag a well is scenery: the ball trades what it gained falling in
+  // for exactly what it needs to climb out, and nothing has happened. Drag is
+  // exponential in contact time, so half a second at k=2 leaves e^-1 of it.
+  const drag = simWorld([], { x: 0, y: 0, vx: 10, vy: 0 }, 0.5,
+    objs.makeField([objs.makeObject('well', { x: 0, y: 0, r: 30, strength: 0, damp: 2 })]));
+  near(drag.vx, 10 * Math.exp(-1), 0.02, 'sideways speed after half a second');
+  const shipped = objs.makeObject('well');
+  ok(shipped.damp > 0, 'drag is on by default');
+  ok(shipped.strength >= 30, `and the pull is worth feeling, got ${shipped.strength}`);
+});
+
+it('makes a fan housing solid, and nothing else', () => {
+  // A fan you can fall straight through from behind is scenery, not an object.
+  const fan = objs.makeObject('fan', { x: 0, y: 0, angle: 90, len: 4, w: 3, strength: 0 });
+  const segs = objs.solidSegs([fan]);
+  eq(segs.length, 4, 'one segment across the base');
+  near(segs[0], 1.5, 1e-9, 'from +w/2 across the wind');
+  near(segs[2], -1.5, 1e-9, 'to -w/2');
+  eq(objs.solidSegs([objs.makeObject('hazard'), objs.makeObject('well'), objs.makeObject('zerog')]).length, 0,
+    'no other kind is solid');
+  // Dropped onto the housing from above, the ball must come to rest on it.
+  const ph = simWorld([{ segs }], { x: 0, y: 3, vx: 0, vy: 0 }, 2.5, null);
+  near(ph.y, BALL_R, 0.03, 'resting on the housing');
+});
+
 it('is a pure function of position — the same field twice gives the same run', () => {
   const field = objs.makeField([
-    objs.makeObject('fan',  { x: -2, y: 1, angle: 45, len: 6, w: 3, strength: 12 }),
-    objs.makeObject('well', { x: 3, y: -1, r: 4, strength: 9 }),
+    objs.makeObject('fan',   { x: -2, y: 1, angle: 45, len: 6, w: 3, strength: 12 }),
+    objs.makeObject('well',  { x: 3, y: -1, r: 4, strength: 9 }),
+    objs.makeObject('zerog', { x: 0, y: -4, w: 3, h: 2 }),
   ]);
   const a = simWorld([], { x: 0, y: 2, vx: 1, vy: 0 }, 2, field);
   const b = simWorld([], { x: 0, y: 2, vx: 1, vy: 0 }, 2, field);
@@ -810,7 +844,7 @@ it('reads objects and materials off a level, ignoring kinds it does not know', (
   }
   w.FP_LEVEL_OVERRIDES = { 'r-I-0': {
     ball_x: 0, ball_y: 1, stars: [{ x: 1, y: 1 }], score_goal: 40, eq_goal: 1,
-    objects: [{ kind: 'fan', x: 0, y: 0, angle: 0, len: 2, w: 1, strength: 5 }, { kind: 'portal', x: 0, y: 0 }],
+    objects: [{ kind: 'fan', x: 0, y: 0, angle: 0, len: 2, w: 1, strength: 5 }, { kind: 'antigrav', x: 0, y: 0 }],
     materials: true,
   } };
   const d = w.getLevelData('r-I', 0);

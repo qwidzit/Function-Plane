@@ -255,6 +255,13 @@
   }
 
   // ── Colliders (geometry cache + query) ───────────────────────────────
+  // A fixed list of segments — a level object's solid parts (a fan's housing).
+  // No cache and no sampling: the geometry is already the geometry.
+  function makeSegmentCollider(def, ballR) {
+    const segs = def.segs;
+    return { query: (px, py) => closestOnSegs(segs, px, py, ballR) };
+  }
+
   function makeExplicitCollider(def, ballR) {
     let cache = null;
     return {
@@ -364,18 +371,21 @@
 
   // ── Public API ───────────────────────────────────────────────────────
   // makeColliders(defs, ballR): defs = [{ fn, domain, isImplicit, material }]
-  //   — one collider per equation, with its own geometry cache. Build once
-  //   per run (equations are locked while the sim is running).
+  //   — one collider per equation, with its own geometry cache — or
+  //   [{ segs }] for a level object's solid parts. Build once per run
+  //   (equations are locked while the sim is running).
   // stepBall(ph, colliders, dt, cfg): one integration substep. cfg =
   //   { gravity, ballR, bounciness, energyRetention, traction,
-  //     bounceThreshold, field }. `field(x, y)` → { ax, ay, gMul } is the
-  //   level's objects (fans, wells, antigravity) sampled at the ball; null
-  //   when there are none.
+  //     bounceThreshold, field }. `field(x, y, vx, vy)` → { ax, ay, gMul } is
+  //   the level's objects (fans, wells, zero-gravity zones) sampled at the
+  //   ball; null when there are none. It takes the velocity because a well
+  //   drags on it.
   window.FP_PHYSICS = {
     MATERIALS,
     makeColliders(defs, ballR) {
       return defs.map(d => {
-        const col = d.isImplicit ? makeImplicitCollider(d, ballR)
+        const col = d.segs       ? makeSegmentCollider(d, ballR)
+                  : d.isImplicit ? makeImplicitCollider(d, ballR)
                                  : makeExplicitCollider(d, ballR);
         col.mat = MATERIALS[d.material] || null;
         return col;
@@ -395,7 +405,7 @@
       const h = dt / n;
       for (let k = 0; k < n; k++) {
         if (cfg.field) {
-          const f = cfg.field(ph.x, ph.y);
+          const f = cfg.field(ph.x, ph.y, ph.vx, ph.vy);
           ph.vx += f.ax * h;
           ph.vy += (f.ay - cfg.gravity * f.gMul) * h;
         } else {
