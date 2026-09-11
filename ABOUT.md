@@ -549,6 +549,36 @@ domain in front of the REST endpoint on a host that isn't throttled — not a
 different database. Check `edge_logs` grouped by `cf_ipcountry` and method
 before blaming the code.
 
+**The fix, when it's worth €3/month.** Nothing moves out of Supabase; only the
+address the app dials changes, from the Cloudflare-fronted
+`<ref>.supabase.co` to a host the filtering doesn't recognise, which forwards
+every request on unchanged.
+
+1. Rent the smallest VPS that answers from the affected country (Hetzner CX22
+   ≈ €3.79/mo, Netcup ≈ €3). **Verify it answers a `POST` from that network
+   before paying for more than a month** — which ranges are throttled changes,
+   and no amount of code can tell you from here.
+2. Point `api.<domain>` at it and install Caddy. The whole config:
+
+   ```
+   api.example.com {
+     reverse_proxy https://<ref>.supabase.co {
+       header_up Host <ref>.supabase.co
+     }
+   }
+   ```
+
+   Caddy gets the TLS certificate itself. `header_up Host` is not optional —
+   Supabase routes on the Host header, and without it every request 404s.
+3. Change the one line in `src/supabase-config.js`:
+   `window.SUPABASE_URL = 'https://api.example.com';`
+
+Auth, RLS, realtime and storage all ride the same origin, so nothing else in
+the app changes. The proxy holds no data and no keys — it forwards bytes. The
+same box can serve the PWA itself, which is worth doing: `pages.dev` is
+Cloudflare, i.e. the most throttled name in the chain. Installed Android
+builds bundle their assets and only need the API.
+
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual
   restore. A paused project doesn't refuse connections, it stops answering
@@ -705,6 +735,90 @@ the two channels require different, mutually exclusive payment systems:
 - Done already: `LEGAL_WEBSITE` set to the public site URL; Android hardware
   back button (`@capacitor/app`); haptics removed; webfonts self-hosted;
   password-reset redirect pointed at the website page.
+
+### Level variety — objects, rules and what each one costs
+
+Fifty unauthored levels that differ only in where the stars sit is the real
+content problem. Two separable answers, and the cheap one is not the objects.
+
+**Rules first — no engine work at all.** These multiply what an authored level
+can ask for without touching physics, and every one of them applies to levels
+that already exist:
+
+- **Ordered stars** — collect 1 → 2 → 3 in sequence. The collection loop in
+  `physicsStep` already walks the stars in order; gating on the previous one
+  plus numbering them in `CoordPlane` is the whole change. Turns "reach three
+  points" into "reach three points *in this order*", which is a different
+  puzzle on identical geometry.
+- **Per-level `allowedClass`** — pack-level class gating already exists
+  (`classMatches`, `pack_overrides.allowed_class`). Exposing the same field on
+  `level_overrides` gives "solve this one with a parabola" for a column and an
+  admin field.
+- **Speed-gated stars** — a star that only counts when the ball is under (or
+  over) a speed. One comparison in the same loop; makes momentum legible.
+
+**Objects need a slot before they need code.** Every object idea below is a
+new column, a new admin form and a snapshot regen if they land one at a time.
+Add **one** `objects jsonb` column to `level_overrides` holding
+`[{ kind, ... }]`, a `kind → { render, force, hit }` registry, and a single
+pass over it in the tick loop; after that each new kind is its own ~30 lines
+and nothing else moves.
+
+**The one rule every object must obey**: be a pure function of ball position
+and `ph.simS`. Never the wall clock, never `Math.random()` — recorded times
+are tick-counted precisely so the leaderboard compares play and not hardware
+(see *Sim timing*), and one time-varying object read from `performance.now()`
+undoes that for every level it appears in.
+
+| Object | Where it hooks in | Notes |
+|---|---|---|
+| **Fan / wind** | extra acceleration in `stepBall`'s substep loop, after gravity | Constant force inside a region. Deterministic, composes with gravity, cheapest thing on the list. |
+| **Antigravity zone** | same pass, scales `cfg.gravity` locally | Same code as the fan with a different force law — free once fans exist. |
+| **Gravity well** | same pass, force toward a point | Radial attractor. Pairs with the Asymptotes pack. |
+| **Hazard / forbidden zone** | region test in the tick loop → fail the run | Makes *domain restriction* — a shipped feature almost nothing forces you to use — actually necessary. |
+| **Moving star** | star position becomes `f(simS)` | Geometry puzzle becomes a timing puzzle. Costs more than it looks: every reader of a star position (renderer, collection, auto-zoom framing) has to go through the function. |
+| **One-way curve** | skip the contact in `resolve` when `vn` says the ball came from the far side | About five lines for the most expressive thing here: drop-through platforms and funnels. |
+| **Breakable curve** | count real bounces per collider, drop it past N | Adds sequencing to a static track. |
+
+**Surface materials** are not objects — they belong to the curve. `resolve`
+currently reads `bounciness`, `energyRetention` and `traction` from the one
+global `cfg`. Moving them onto the collider def
+(`{ fn, domain, isImplicit, material }`, falling back to `cfg`) is a small,
+contained change and gives ice, mud and rubber. Two constraints:
+
+- Materials belong to **pre-placed** curves only. A material on a player's own
+  curve would change what a score means, and pre-placed curves already cost
+  nothing and carry no score.
+- `physics-config.js` documents *why* the defaults are what they are —
+  `traction` ≥ 4 breaks momentum puzzles, `bounciness` > 0.4 makes most levels
+  very hard. A material is a deliberate exception to that advice, per level,
+  not a new default. Keep the shipped `PHYSICS_CONFIG` pinned by the tests.
+
+This also wants `preplaced` to stop being `text[]`. As `jsonb` holding
+`[{ expr, material, domain }]` the same migration that adds materials gives
+pre-placed curves their own domain restrictions, which they cannot express
+today. Twenty authored levels makes that migration cheap now and expensive
+later.
+
+**Gravity-flips-on-bounce pack.** Works, and the engine already has the hard
+part: `resolve` distinguishes a *real bounce* (`-vn > bounceThreshold`) from
+rolling contact, which is exactly the line between "flip" and "flip sixty
+times a second while the ball rests on a curve". Three things it needs:
+
+- Flip **per tick, not per frame**. `ph.bounced` is cleared once per
+  `requestAnimationFrame`, and a frame can drain several ticks; counting
+  bounces and flipping once per tick keeps it frame-rate independent, and
+  stops two curves hit in one corner from flipping twice into a no-op.
+- A **ceiling**. `FALL_LIMIT` is one-sided (`-13`): with gravity reversed the
+  ball leaves upward and nothing fails it, so the run only ends at
+  `TIME_LIMIT`. Needs a symmetric bound.
+- A **visible gravity direction** in the HUD. The trail shows it after the
+  fact; the player needs it during.
+
+Deliberately not doing: **portals** (cheap to code, but they break "collide
+with what's drawn" and make the path trace unreadable), **random gusts**
+(kills determinism and the time leaderboard), **player-placed objects** (turns
+the game into a sandbox builder and makes scores incomparable).
 
 ## Non-obvious files worth knowing about
 
