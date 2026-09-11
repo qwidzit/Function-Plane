@@ -76,7 +76,7 @@ approved — and each one says so.
 | 25 | Store listing text | **Done.** Pasted into the Console from `store-assets/short-description.txt` and `full-description.txt` (plain text; the Console fields take no markdown). Add a level count only once the levels exist. | Both |
 | 26 | Screenshots and feature graphic | **Uploaded and submitted**, in the order `04-level`, `05-run`, `03-levels`, `06-howtoplay`, `01-main`. Re-capture all of them once the real levels exist, and re-shoot the sandbox with curves on the plane before using it at all. | Both |
 | 27 | Complete the Data safety form | **Done.** Five types collected, none shared, all optional; answers recorded in `store-assets/CONSOLE-SETUP.md`. | You |
-| 33 | Register for Android developer verification | **Deadline 30 September 2026.** Unregistered Play apps are removed from Play globally. Register `app.functionplane` plus any signing key used for builds distributed outside Play — the upload key signs the sideloaded test APKs. Reached from the banner in the Console. | You |
+| 33 | Register for Android developer verification | **Done, automatically.** Play Console ▸ Android developer verification shows `app.functionplane` as **Registered** with 3 keys since 28 August 2026 — apps created in the Console are registered on creation. The 30 September 2026 deadline only bites for unregistered packages; the banner is a general notice, not an outstanding task. Revisit only if you ever distribute an APK outside Play under a key that is not listed there. | You |
 | 28 | Complete the content rating questionnaire | **Done.** No to every substantive question, including all three digital-goods boxes; re-take it in the release that ships Play Billing. | You |
 
 ## App polish
