@@ -534,6 +534,21 @@ personal best, and a 3-star run using more equations can score worse than a
 run that earned the stars. That is detection, not prevention; prevention needs
 a deterministic server-side replay, which the fixed-tick sim clock now makes
 possible.
+**Writes can vanish on a throttled network.** Measured from Russia over 24 h:
+every `GET` and `OPTIONS` answered 200 and **not one `POST` or `PATCH` ever
+reached the project** — the CORS preflight gets through and the write that
+follows it, with a body and a bearer token, is dropped in transit. Supabase's
+REST endpoint is Cloudflare-fronted, which is what that DPI throttles; the
+same account writes fine the moment a VPN is on (the one admin save that has
+ever landed came in from a Dutch exit node). Two consequences: an unbounded
+write leaves a spinner up forever, which is why every mutation goes through
+`_write` (bounded by `_withTimeout`, retried once, idempotent because they are
+all upserts or deletes); and affected players lose scores silently, since the
+progress upload is a `POST` too. The fix for the path itself is a custom
+domain in front of the REST endpoint on a host that isn't throttled — not a
+different database. Check `edge_logs` grouped by `cf_ipcountry` and method
+before blaming the code.
+
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual
   restore. A paused project doesn't refuse connections, it stops answering

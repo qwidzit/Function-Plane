@@ -660,7 +660,24 @@ it('bounds every network call with a timeout', () => {
     [/_withTimeout\(_sb\.from\('level_scores'\)\s*\n?\s*\.select/, 'the audit query'],
     [/_withTimeout\(Promise\.all\(\[/,         'the progress upload'],
     [/_withTimeout\(_sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
+    [/_withTimeout\(Promise\.all\(\[\n\s*_sb\.from\('pack_overrides'\)/, 'the override fetch'],
   ];
+  // Admin writes hang the panel's "Saving…" forever when a middlebox drops the
+  // request after the preflight — measured, not hypothetical. Each must be
+  // bounded and retried through _write.
+  ok(/function _write\(/.test(accountsJs), 'accounts.js must define _write');
+  const written = [
+    ["pack_overrides'\\).upsert", 'the pack save'],
+    ["level_overrides'\\).upsert", 'the level save'],
+    ["achievement_overrides'\\).upsert", 'the achievement save'],
+    ["achievement_overrides'\\).delete", 'the achievement delete'],
+    ["level_scores'\\).delete", 'the score delete'],
+    ["profiles'\\).update\\(\\{ is_premium", 'the premium grant'],
+  ];
+  for (const [frag, what] of written) {
+    ok(new RegExp(`_write\\(\\(\\) => _sb\\.from\\('${frag}`).test(accountsJs),
+      `${what} must go through _write`);
+  }
   for (const [re, what] of guarded) {
     ok(re.test(accountsJs), `${what} must go through _withTimeout`);
   }

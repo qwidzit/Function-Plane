@@ -48,6 +48,19 @@
     ]);
   }
 
+  // Writes have to be bounded *and* retried. On networks whose middleboxes
+  // throttle a connection after the handshake, the CORS preflight gets through
+  // and the POST that follows is simply never delivered — measured from Russia:
+  // every GET and OPTIONS answered 200, not one POST or PATCH ever arrived. An
+  // unbounded write there leaves "Saving…" up forever with no error. Every one
+  // of these is an upsert or a delete, so retrying is idempotent.
+  function _write(call, what) {
+    return _withTimeout(call(), what).catch(e => {
+      if (!/timed out/.test(e?.message || '')) throw e;
+      return _withTimeout(call(), what);
+    });
+  }
+
   const readJSON  = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const progressKey = id  => id ? PROGRESS_PREFIX + id : GUEST_KEY;
@@ -527,11 +540,11 @@
       { data: packs, error: pErr },
       { data: levels, error: lErr },
       { data: achievements, error: aErr },
-    ] = await Promise.all([
+    ] = await _withTimeout(Promise.all([
       _sb.from('pack_overrides').select('*'),
       _sb.from('level_overrides').select('*'),
       _sb.from('achievement_overrides').select('*'),
-    ]);
+    ]), 'Level data');
     if (pErr) throw new Error('pack_overrides: ' + (pErr.message || 'fetch failed'));
     if (lErr) throw new Error('level_overrides: ' + (lErr.message || 'fetch failed'));
     if (aErr && !/not exist|relation/i.test(aErr.message || '')) {
@@ -573,7 +586,7 @@
   async function savePackOverride(packId, patch) {
     if (!_sb) throw new Error('Supabase not configured');
     const row = { pack_id: packId, ...patch, updated_at: new Date().toISOString() };
-    const { error } = await _sb.from('pack_overrides').upsert(row, { onConflict: 'pack_id' });
+    const { error } = await _write(() => _sb.from('pack_overrides').upsert(row, { onConflict: 'pack_id' }), 'Pack save');
     if (error) {
       console.warn('FP_AUTH: pack_overrides upsert error', error);
       const hint = /not exist|relation/i.test(error.message)
@@ -588,7 +601,7 @@
   async function saveLevelOverride(packId, levelIndex, patch) {
     if (!_sb) throw new Error('Supabase not configured');
     const row = { pack_id: packId, level_index: levelIndex, ...patch, updated_at: new Date().toISOString() };
-    const { error } = await _sb.from('level_overrides').upsert(row, { onConflict: 'pack_id,level_index' });
+    const { error } = await _write(() => _sb.from('level_overrides').upsert(row, { onConflict: 'pack_id,level_index' }), 'Level save');
     if (error) {
       console.warn('FP_AUTH: level_overrides upsert error', error);
       const hint = /not exist|relation/i.test(error.message)
@@ -603,7 +616,7 @@
   async function saveAchievementOverride(row) {
     if (!_sb) throw new Error('Supabase not configured');
     const payload = { ...row, updated_at: new Date().toISOString() };
-    const { error } = await _sb.from('achievement_overrides').upsert(payload, { onConflict: 'id' });
+    const { error } = await _write(() => _sb.from('achievement_overrides').upsert(payload, { onConflict: 'id' }), 'Achievement save');
     if (error) {
       console.warn('FP_AUTH: achievement_overrides upsert error', error);
       const hint = /not exist|relation/i.test(error.message)
@@ -617,7 +630,7 @@
 
   async function deleteAchievementOverride(id) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { error } = await _sb.from('achievement_overrides').delete().eq('id', id);
+    const { error } = await _write(() => _sb.from('achievement_overrides').delete().eq('id', id), 'Achievement delete');
     if (error) throw new Error(error.message);
   }
 
@@ -633,7 +646,7 @@
   // Stripe webhook is wired). Uses RLS, so only the Test Account can call.
   async function setPremium(userId, value) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { error } = await _sb.from('profiles').update({ is_premium: !!value }).eq('id', userId);
+    const { error } = await _write(() => _sb.from('profiles').update({ is_premium: !!value }).eq('id', userId), 'Premium grant');
     if (error) throw new Error(error.message);
   }
 
@@ -664,8 +677,8 @@
   // delete anyone's row; everyone else only their own.
   async function deleteScoreRow(userId, packId, levelIndex) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { error } = await _sb.from('level_scores').delete()
-      .eq('user_id', userId).eq('pack_id', packId).eq('level_index', levelIndex);
+    const { error } = await _write(() => _sb.from('level_scores').delete()
+      .eq('user_id', userId).eq('pack_id', packId).eq('level_index', levelIndex), 'Score delete');
     if (error) throw new Error(error.message);
     writeJSON(LB_KEY, {});   // cached boards still list the deleted entry
   }
