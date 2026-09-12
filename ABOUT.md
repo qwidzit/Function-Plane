@@ -51,7 +51,7 @@ Script load order is fixed in `function-plane/index.html` (config files →
 vendor → `accounts.js` → data/store → screens → `app.js`, which must load
 last because it calls `ReactDOM.createRoot(...).render(<App/>)`). Globals are
 attached to `window` (`FP_AUTH`, `FP_DATA`, `FP_PHYSICS`, `LevelScreen`,
-`PREMIUM_LINKS`, etc.) rather than imported — there are no ES module imports
+`FP_PREMIUM`, etc.) rather than imported — there are no ES module imports
 at runtime. A new top-level file needs three additions in lockstep: the
 `<script>` tag in `index.html` (in the right position — e.g. `data.js` before
 `main-screen.js` because `MainScreen` calls `getPack()` at module scope), the
@@ -90,7 +90,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     physics-engine.js      # FP_PHYSICS — ball collision against sampled curve geometry
     equation-classifier.js # classifyEquation/detectClass — AST-based equation analysis
     supabase-config.js     # Supabase URL + anon key + VAPID key
-    premium-config.js      # Stripe Payment Link URLs (web payment path) — not filled in yet
+    premium-config.js      # FP_PREMIUM — lifetime price + Stripe link (web path), link not filled in yet
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
@@ -635,8 +635,23 @@ If you change fonts, update the `document.fonts.load(...)` calls in
   logging in anywhere grants access everywhere. Whatever payment path is
   used, the job is always the same: flip `is_premium` on the user's profile
   (server-side).
+- **`is_premium` is not client-writable.** RLS is row-level, so the
+  `auth.uid() = id` update policy would otherwise let any player PATCH their
+  own row premium with the publishable key. Column privileges are the only
+  lever that stops that, so `20260912_premium_entitlement_guard.sql` revokes
+  insert/update on that column from `anon` and `authenticated` — `total_stars`
+  is the only profile column the game itself writes. Whatever flips the flag
+  has to come in above those roles: the entitlement webhook with the
+  service-role key, or the admin RPC below.
 - Admins can grant premium manually today via the in-app admin screen
-  (Manage users / grant premium). This is the current interim mechanism.
+  (Manage users / grant premium) — `FP_AUTH.setPremium()` calls the
+  `admin_set_premium` security-definer RPC, which re-checks that the *caller's
+  own* profile is `Test Account` rather than trusting anything from the client.
+  This is the current interim mechanism.
+- `FP_AUTH.refreshEntitlement()` re-reads the profile and notifies
+  subscribers. That is what the premium screen's **Restore purchases** button
+  calls: the entitlement is account-based, so re-reading it restores a
+  purchase made on another device, another channel, or before a reinstall.
 - **Admin identity**: there is exactly one admin account — the profile whose
   `name` is exactly `Test Account` (case-sensitive, no trailing spaces),
   checked by `isAdmin()` in `accounts.js`. Overrides-table RLS policies key
@@ -820,23 +835,30 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
 
 ## Roadmap / left to do
 
-### Payments — dual path + environment detection *(planned, not built)*
+### Payments — dual path + environment detection *(partly built)*
 
-The game will be distributed on **both** Google Play and the open web, and
-the two channels require different, mutually exclusive payment systems:
+**What is sold:** one lifetime unlock of every pack, **€4.90**. Not a
+subscription — `is_premium` is a boolean with no expiry column, so nothing in
+the schema could express a lapsed subscription, and a permanent unlock is what
+it can honestly carry. `FP_PREMIUM` in `premium-config.js` holds the price and
+the Stripe link; `npm test` fails if subscription wording comes back.
+
+The game is distributed on **both** Google Play and the open web, and the two
+channels require different, mutually exclusive payment systems:
 
 - [ ] **Google Play Billing** — required for the Play Store build. Google
       forbids Stripe/external payment for digital goods, and Play Billing
       does **not** work on sideloaded / web-downloaded installs. Verify
       purchases and flip `is_premium`. RevenueCat
       (`@revenuecat/purchases-capacitor`) is the recommended integration; a
-      RevenueCat→Supabase webhook (Edge Function) sets the flag. Must
-      include a **Restore purchases** button.
-- [ ] **Stripe (web / sideloaded)** — already scaffolded in
-      `premium-config.js` (`PREMIUM_LINKS`, currently all empty strings) and
-      `account-screen.jsx`'s `PremiumView`. Allowed everywhere **except**
-      inside the Play Store build. A Stripe webhook (Supabase Edge Function)
-      sets `is_premium`.
+      RevenueCat→Supabase webhook (Edge Function) sets the flag. Note that
+      adding it makes the app contact a third party for the first time — the
+      privacy policy, `legal/` and the Data safety form all currently say
+      Supabase is the only one.
+- [ ] **Stripe (web / sideloaded)** — scaffolded in `premium-config.js`
+      (`FP_PREMIUM.stripeLink`, empty) and `account-screen.jsx`'s
+      `PremiumView`. Allowed everywhere **except** inside the Play Store
+      build. A Stripe webhook (Supabase Edge Function) sets `is_premium`.
 - [x] **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
       resolves to `play` on any native build and `stripe` on web. Never show
       Stripe links inside the Play Store build (Google anti-steering).
@@ -846,6 +868,14 @@ the two channels require different, mutually exclusive payment systems:
       check on the purchase button. **Remove that `PremiumCard` guard in the
       release that adds billing.** Both paths converge on the same
       `is_premium` write, so screen logic downstream is unchanged.
+- [x] **Restore purchases** — a Play requirement for any paid entitlement.
+      `FP_AUTH.refreshEntitlement()` re-reads the profile, which is the whole
+      restore while the flag is granted server-side. Play Billing's own
+      restore queries Play first and then lands on the same refresh.
+- [x] **The entitlement is server-side only** — see *Supabase & entitlement
+      model* above. Do not reintroduce a client write to `is_premium`; the
+      column privilege is gone and the write would fail in a player's hands
+      even though it looks fine in review.
 - [ ] iOS equivalent uses StoreKit (RevenueCat covers it in the same
       integration).
 
@@ -970,8 +1000,9 @@ the game into a sandbox builder and makes scores incomparable).
   `overrides-store.js` — hand-written plain JS, **no `.jsx` source**. Edit
   them directly; there's no compile step to remember, but also no
   auto-regeneration to catch a hand-edit mistake.
-- `function-plane/src/premium-config.js` — feature-flag stub for premium
-  (`PREMIUM_LINKS`); billing isn't wired up yet (see Roadmap).
+- `function-plane/src/premium-config.js` — `FP_PREMIUM`: the lifetime price
+  and the Stripe Payment Link for the web channel. No billing behind either
+  yet (see Roadmap).
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.
 - `function-plane/vendor/` — vendored React/ReactDOM/Supabase, plus the
   self-hosted webfonts (`fonts.css` + `fonts/*.woff2`). If you

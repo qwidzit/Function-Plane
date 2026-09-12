@@ -86,7 +86,7 @@ Fits well inside the 4000-character limit.
 | Tags | puzzle, brain game, education, maths |
 | Price | Free |
 | Contains ads | **No** |
-| In-app purchases | **No** for the first closed-testing build. Becomes Yes only when Play Billing ships (checklist item 5). |
+| In-app purchases | **No** for the first closed-testing build. Becomes Yes only when Play Billing ships (checklist item 5) — one product then: lifetime unlock, €4.90. |
 | Email | functionplane.support@gmail.com |
 | Privacy policy | https://functionplane.pages.dev/privacy.html |
 

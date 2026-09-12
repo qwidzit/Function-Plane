@@ -642,12 +642,29 @@
     return !!_currentUser?.isPremium;
   }
 
-  // Admin-only: flip is_premium on a profile (for manual grant before
-  // Stripe webhook is wired). Uses RLS, so only the Test Account can call.
+  // Admin-only: flip is_premium on a profile (for manual grant before the
+  // entitlement webhook is wired). RLS cannot gate a single column, so the
+  // client roles have no write privilege on is_premium at all and this goes
+  // through a security-definer RPC that re-checks the caller is the admin
+  // (20260912_premium_entitlement_guard.sql).
   async function setPremium(userId, value) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { error } = await _write(() => _sb.from('profiles').update({ is_premium: !!value }).eq('id', userId), 'Premium grant');
+    const { error } = await _write(() => _sb.rpc('admin_set_premium', { target: userId, value: !!value }), 'Premium grant');
     if (error) throw new Error(error.message);
+  }
+
+  // "Restore purchases". The entitlement lives on the profile, not the device,
+  // so re-reading it restores a purchase made on any other device or channel —
+  // which is the whole job while premium is granted server-side. Play Billing's
+  // own restore queries Play first and then lands here.
+  async function refreshEntitlement() {
+    if (!_sb) throw new Error('Supabase is not configured yet');
+    const { data } = await _withTimeout(_sb.auth.getSession(), 'Restore');
+    const user = data?.session?.user;
+    if (!user) throw new Error('Sign in first — premium follows your account, not this device');
+    _currentUser = await _withTimeout(_fetchProfile(user), 'Restore');
+    notify();
+    return !!_currentUser?.isPremium;
   }
 
   // Admin-only: the raw leaderboard rows, newest submission first, for the
@@ -746,7 +763,7 @@
   // ── Export ────────────────────────────────────────────────────────────────
 
   window.FP_AUTH = {
-    getActive, signOut, isAdmin, isPremium, setPremium, deleteAccount,
+    getActive, signOut, isAdmin, isPremium, setPremium, refreshEntitlement, deleteAccount,
     enablePushNotifications,
     register, signIn, resetPassword,
     checkNameAvailable,

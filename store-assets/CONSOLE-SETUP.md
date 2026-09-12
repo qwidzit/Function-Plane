@@ -285,11 +285,11 @@ set shows placeholder levels.
 ## Two things to decide before you submit
 
 **In-app purchases.** Declare **No** for now: the Play build has no Play
-Billing, so there is nothing to buy. The premium screen still renders in the
-native build and shows prices behind a "purchases aren't switched on" dialog.
-That is policy-safe — it never opens a Stripe link on the `play` channel — but
-it reads as broken to a reviewer. Hiding the premium entry when
-`FP_PAY_CHANNEL === 'play'` is a small change and the cleaner v1.
+Billing, so there is nothing to buy, and the premium entry point is hidden
+outright on the `play` channel (`PremiumCard` returns null) — a reviewer sees
+no prices and no dead button. This becomes **Yes** in the release that ships
+billing, along with re-taking the content rating questionnaire and revisiting
+the Data safety answers if a third-party billing SDK goes in.
 
 **Countries and testers** come after this checklist, on the closed-testing
 track. Nothing in this file changes for them.

@@ -809,8 +809,9 @@ it('bounds every network call with a timeout', () => {
     ["achievement_overrides'\\).upsert", 'the achievement save'],
     ["achievement_overrides'\\).delete", 'the achievement delete'],
     ["level_scores'\\).delete", 'the score delete'],
-    ["profiles'\\).update\\(\\{ is_premium", 'the premium grant'],
   ];
+  ok(/_write\(\(\) => _sb\.rpc\('admin_set_premium'/.test(accountsJs),
+    'the premium grant must go through _write');
   for (const [frag, what] of written) {
     ok(new RegExp(`_write\\(\\(\\) => _sb\\.from\\('${frag}`).test(accountsJs),
       `${what} must go through _write`);
@@ -818,6 +819,42 @@ it('bounds every network call with a timeout', () => {
   for (const [re, what] of guarded) {
     ok(re.test(accountsJs), `${what} must go through _withTimeout`);
   }
+});
+
+it('never writes the entitlement from the client', () => {
+  // RLS cannot gate one column, so is_premium is revoked from both client
+  // roles (20260912_premium_entitlement_guard.sql) and the admin grant goes
+  // through a security-definer RPC. A direct write here would look fine in
+  // review and fail with "permission denied" in a player's hands — and any
+  // path that did work would let a player unlock every pack for free.
+  ok(!/\.(update|upsert|insert)\(\{[^}]*is_premium/.test(accountsJs),
+    'is_premium must be set through admin_set_premium, never a profiles write');
+  ok(/rpc\('admin_set_premium', \{ target: userId, value: !!value \}\)/.test(accountsJs),
+    'the admin grant must call the RPC with the arguments the migration declares');
+
+  // A restore path is a Play requirement for any paid entitlement, and the
+  // entitlement lives on the account, so re-reading the profile is the whole
+  // restore.
+  ok(/async function refreshEntitlement\(/.test(accountsJs),
+    'accounts.js must expose refreshEntitlement for Restore purchases');
+  ok(/refreshEntitlement,/.test(accountsJs), 'refreshEntitlement must be exported on FP_AUTH');
+  const acct = read(path.join(SRC, 'account-screen.js'));
+  ok(/FP_AUTH\.refreshEntitlement\(\)/.test(acct), 'the premium screen must call it');
+  ok(/'Restore purchases'/.test(acct), 'the premium screen must offer a restore button');
+});
+
+it('sells one lifetime unlock, not a subscription', () => {
+  // is_premium is a boolean with no expiry: nothing in the schema can express
+  // a lapsed subscription, so the screen must not offer one.
+  const cfg  = read(path.join(SRC, 'premium-config.js'));
+  const acct = read(path.join(SRC, 'account-screen.js'));
+  ok(/window\.FP_PREMIUM = \{/.test(cfg), 'premium-config.js must define FP_PREMIUM');
+  ok(!/PREMIUM_LINKS/.test(cfg + acct), 'the three-plan PREMIUM_LINKS shape is gone');
+  ok(!/(Billed monthly|Cancel anytime|\/ month)/.test(acct),
+    'no subscription wording on a one-time purchase');
+  // Anti-steering: a Stripe link inside the Play build is a takedown risk.
+  ok(/\(window\.FP_PAY_CHANNEL \|\| 'stripe'\) !== 'stripe'/.test(acct),
+    'the purchase button must refuse to open a payment link off the stripe channel');
 });
 
 it('explains an empty leaderboard rather than implying there are no scores', () => {

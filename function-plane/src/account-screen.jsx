@@ -422,17 +422,16 @@ function ResetView({ onBack, padX }) {
 // ─── Premium ───────────────────────────────────────────────────────────────
 
 function PremiumView({ onBack, padX }) {
-  const [selected, setSelected] = useACS('yearly');
-  const plans = [
-    { id:'yearly',  label:'Annual',  price:'$9.99',  sub:'$0.83 / month',  badge:'Best value' },
-    { id:'monthly', label:'Monthly', price:'$0.99',  sub:'Billed monthly' },
-    { id:'lifetime',label:'Lifetime',price:'$14.99', sub:'One-time purchase' },
-  ];
+  const [isPremium, setIsPremium] = useACS(!!window.FP_AUTH?.isPremium?.());
+  const [msg,  setMsg]  = useACS({ text:'', ok:false });
+  const [busy, setBusy] = useACS(false);
+
+  const price = (window.FP_PREMIUM || {}).price || '';
 
   // Stripe must never be reachable from inside the Play build — external
   // payment for digital goods is an anti-steering violation. Play Billing
   // isn't wired up yet, so on native the answer is "not yet", not a checkout.
-  const onContinue = () => {
+  const onBuy = () => {
     if ((window.FP_PAY_CHANNEL || 'stripe') !== 'stripe') {
       window.fpConfirm?.({
         title: 'Not available yet',
@@ -441,16 +440,35 @@ function PremiumView({ onBack, padX }) {
       });
       return;
     }
-    const url = (window.PREMIUM_LINKS || {})[selected];
+    const url = (window.FP_PREMIUM || {}).stripeLink;
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
       return;
     }
     window.fpConfirm?.({
       title: 'Premium not configured',
-      body: 'In-app purchases aren\'t hooked up yet. The site owner needs to create three Stripe Payment Links and paste the URLs into src/premium-config.js. Once that\'s done, this button will open the checkout.',
+      body: 'In-app purchases aren\'t hooked up yet. The site owner needs to create a Stripe Payment Link and paste the URL into src/premium-config.js. Once that\'s done, this button will open the checkout.',
       confirmLabel: 'OK',
     });
+  };
+
+  // Play requires a restore path for any paid entitlement. Premium is stored
+  // on the account rather than the device, so re-reading the profile is the
+  // restore — it covers a reinstall, a second device and a purchase made on
+  // the other channel. Play Billing's own restore queries Play first, then
+  // lands on this same refresh.
+  const onRestore = () => {
+    setBusy(true);
+    setMsg({ text:'', ok:false });
+    FP_AUTH.refreshEntitlement()
+      .then(active => {
+        setIsPremium(active);
+        setMsg(active
+          ? { text:'Premium restored — every pack is unlocked on this account.', ok:true }
+          : { text:'No purchase found on this account. If you bought premium under a different email, sign in with that one.', ok:false });
+      })
+      .catch(e => setMsg({ text: e.message || 'Could not reach the server', ok:false }))
+      .finally(() => setBusy(false));
   };
 
   return (
@@ -466,8 +484,10 @@ function PremiumView({ onBack, padX }) {
           <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>All packs, now and forever.</div>
         </div>
 
+        <StatusLine msg={msg.text} ok={msg.ok}/>
+
         <div style={{ background:'var(--fp-surface)', border:'1px solid var(--fp-line)', borderRadius:16, padding:'14px 18px', marginBottom:22 }}>
-          {['All themed packs unlocked immediately','All future chapter packs included','No advertisements ever','Support indie development'].map((f, i, arr) => (
+          {['All themed packs unlocked immediately','All future chapter packs included','One payment — not a subscription','Support indie development'].map((f, i, arr) => (
             <div key={f} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom: i < arr.length-1 ? '1px solid var(--fp-line)' : 'none' }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="var(--fp-accent)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>
               <span style={{ fontSize:13.5, color:'var(--fp-ink)' }}>{f}</span>
@@ -475,24 +495,28 @@ function PremiumView({ onBack, padX }) {
           ))}
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>
-          {plans.map(plan => (
-            <button key={plan.id} onClick={() => setSelected(plan.id)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderRadius:14, textAlign:'left', background: selected===plan.id ? 'var(--fp-surface)' : 'transparent', border:`1.5px solid ${selected===plan.id ? 'var(--fp-ink)' : 'var(--fp-line)'}` }}>
-              <div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:14, fontWeight:600, color:'var(--fp-ink)' }}>{plan.label}</span>
-                  {plan.badge && <span style={{ fontSize:9.5, letterSpacing:'0.06em', textTransform:'uppercase', padding:'2px 7px', borderRadius:999, background:'var(--fp-ink)', color:'var(--fp-bg)' }}>{plan.badge}</span>}
-                </div>
-                <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', marginTop:2 }}>{plan.sub}</div>
-              </div>
-              <div style={{ fontFamily:"'Geist Mono', monospace", fontSize:17, fontWeight:600, color:'var(--fp-ink)' }}>{plan.price}</div>
-            </button>
-          ))}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'15px 17px', borderRadius:14, marginBottom:18, background:'var(--fp-surface)', border:'1.5px solid var(--fp-ink)' }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:600, color:'var(--fp-ink)' }}>Lifetime</div>
+            <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', marginTop:2 }}>One-time purchase</div>
+          </div>
+          <div style={{ fontFamily:"'Geist Mono', monospace", fontSize:19, fontWeight:600, color:'var(--fp-ink)' }}>{price}</div>
         </div>
 
-        <button onClick={onContinue} style={{ width:'100%', height:54, borderRadius:16, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:16, fontWeight:600 }}>Continue</button>
+        {isPremium ? (
+          <div style={{ height:54, borderRadius:16, background:'var(--fp-surface-2)', border:'1px solid var(--fp-line)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14.5, fontWeight:500, color:'var(--fp-ink)' }}>
+            Premium is active on this account
+          </div>
+        ) : (
+          <button onClick={onBuy} style={{ width:'100%', height:54, borderRadius:16, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:16, fontWeight:600 }}>Unlock for {price}</button>
+        )}
+
+        <button onClick={onRestore} disabled={busy} style={{ width:'100%', height:46, marginTop:10, borderRadius:14, background:'transparent', border:'1px solid var(--fp-line)', color:'var(--fp-ink-2)', fontSize:13.5, fontWeight:500, opacity:busy?0.6:1 }}>
+          {busy ? 'Checking…' : 'Restore purchases'}
+        </button>
+
         <div style={{ textAlign:'center', marginTop:14, fontSize:11, color:'var(--fp-ink-4)', lineHeight:1.6 }}>
-          Payment processed securely. Cancel anytime.<br/>Restore purchases · Terms · Privacy
+          One payment, no subscription.<br/>Premium follows your account, not this device.
         </div>
       </div>
     </ScreenFrame>
