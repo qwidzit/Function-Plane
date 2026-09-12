@@ -91,6 +91,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     equation-classifier.js # classifyEquation/detectClass — AST-based equation analysis
     supabase-config.js     # Supabase URL + anon key + VAPID key
     premium-config.js      # FP_PREMIUM — lifetime price + Stripe link (web path), link not filled in yet
+    billing.js             # FP_BILLING — Play Billing purchase/restore, verified server-side
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
     admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
@@ -846,32 +847,40 @@ the Stripe link; `npm test` fails if subscription wording comes back.
 The game is distributed on **both** Google Play and the open web, and the two
 channels require different, mutually exclusive payment systems:
 
-- [ ] **Google Play Billing** — required for the Play Store build. Google
-      forbids Stripe/external payment for digital goods, and Play Billing
-      does **not** work on sideloaded / web-downloaded installs. Verify
-      purchases and flip `is_premium`. RevenueCat
-      (`@revenuecat/purchases-capacitor`) is the recommended integration; a
-      RevenueCat→Supabase webhook (Edge Function) sets the flag. Note that
-      adding it makes the app contact a third party for the first time — the
-      privacy policy, `legal/` and the Data safety form all currently say
-      Supabase is the only one.
-- [ ] **Stripe (web / sideloaded)** — scaffolded in `premium-config.js`
-      (`FP_PREMIUM.stripeLink`, empty) and `account-screen.jsx`'s
-      `PremiumView`. Allowed everywhere **except** inside the Play Store
-      build. A Stripe webhook (Supabase Edge Function) sets `is_premium`.
+- [x] **Google Play Billing** — required for the Play Store build; Google
+      forbids external payment for digital goods there. `billing.js` wraps
+      `capacitor-plugin-cdv-purchase` (MIT, Billing Library 9 — anything below
+      8 is rejected at upload since 31 August 2026) and hands the purchase
+      token to the `play-verify` edge function, which asks the Play Developer
+      API, records the purchase and grants the flag. **No billing provider**:
+      verifying server-side ourselves is what keeps Supabase the only host the
+      app talks to, so the privacy policy and the Data safety answers stand
+      unchanged. The plugin install and the Play Console product are the
+      remaining manual steps — see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
+- [x] **Stripe (web / sideloaded)** — a Payment Link opened with
+      `client_reference_id=<user id>`, which is the only thing tying the
+      payment to an account; `stripe-webhook` (verify_jwt off, signature
+      checked) grants on `checkout.session.completed`. Allowed everywhere
+      **except** inside the Play build. Inert until `FP_PREMIUM.stripeLink` is
+      filled in. On this channel you are the merchant of record, so EU VAT is
+      yours; on Play, Google's.
 - [x] **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
       resolves to `play` on any native build and `stripe` on web. Never show
       Stripe links inside the Play Store build (Google anti-steering).
-      Until Play Billing ships, `PremiumCard` in `account-screen.jsx` renders
-      nothing at all when the channel is `play`, so the native build has no
-      premium entry point; `PremiumView` keeps its own channel guard as the
-      check on the purchase button. **Remove that `PremiumCard` guard in the
-      release that adds billing.** Both paths converge on the same
-      `is_premium` write, so screen logic downstream is unchanged.
+      `PremiumCard` renders only where the build can actually take money: on
+      web always, on Play once `FP_BILLING.available()` is true, which happens
+      when the plugin's bridge lands (`fp-billing-ready`). So the entry point
+      turns itself on with the plugin rather than on a flag someone has to
+      remember. `PremiumView` keeps its own channel check on the purchase
+      button. Both paths converge on the same `is_premium` write, so screen
+      logic downstream is unchanged.
 - [x] **Restore purchases** — a Play requirement for any paid entitlement.
       `FP_AUTH.refreshEntitlement()` re-reads the profile, which is the whole
       restore while the flag is granted server-side. Play Billing's own
       restore queries Play first and then lands on the same refresh.
+- [x] **A purchase can only be spent once** — `purchases` (token PK) is the
+      ledger both functions write; a token already attached to another account
+      is refused. Only the service role can read or write it.
 - [x] **The entitlement is server-side only** — see *Supabase & entitlement
       model* above. Do not reintroduce a client write to `is_premium`; the
       column privilege is gone and the write would fail in a player's hands

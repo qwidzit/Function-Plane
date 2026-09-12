@@ -67,9 +67,22 @@ function StatusLine({ msg, ok }) {
 }
 
 function PremiumCard({ onPremium }) {
-  // Nothing to sell inside the Play build until Play Billing ships, and a
-  // price list that cannot be bought reads as broken.
-  if ((window.FP_PAY_CHANNEL || 'stripe') !== 'stripe') return null;
+  // A price list that cannot be bought reads as broken, so the entry point
+  // follows what the build can actually take money with rather than a flag
+  // someone has to remember to flip: web always can, and the Play build only
+  // once the billing plugin is really there. `available()` is false for the
+  // moment before the Capacitor bridge lands, hence the event.
+  const [canSell, setCanSell] = useACS(
+    (window.FP_PAY_CHANNEL || 'stripe') === 'stripe' || !!window.FP_BILLING?.available());
+
+  useACSEffect(() => {
+    if (canSell) return;
+    const onReady = () => setCanSell(true);
+    window.addEventListener('fp-billing-ready', onReady);
+    return () => window.removeEventListener('fp-billing-ready', onReady);
+  }, [canSell]);
+
+  if (!canSell) return null;
 
   return (
     <div style={{ borderRadius:18, background:'var(--fp-surface)', border:'1px solid var(--fp-line)', overflow:'hidden', marginBottom:24 }}>
@@ -426,23 +439,66 @@ function PremiumView({ onBack, padX }) {
   const [msg,  setMsg]  = useACS({ text:'', ok:false });
   const [busy, setBusy] = useACS(false);
 
-  const price = (window.FP_PREMIUM || {}).price || '';
+  const price   = (window.FP_PREMIUM || {}).price || '';
+  const channel = window.FP_PAY_CHANNEL || 'stripe';
 
-  // Stripe must never be reachable from inside the Play build — external
-  // payment for digital goods is an anti-steering violation. Play Billing
-  // isn't wired up yet, so on native the answer is "not yet", not a checkout.
+  // A purchase has to land on an account: the entitlement is a column on the
+  // profile, and a guest has no row to write it to.
+  const needsAccount = () => {
+    if (FP_AUTH.getActive()) return false;
+    setMsg({ text:'Sign in first — premium is stored on your account so it follows you to any device.', ok:false });
+    return true;
+  };
+
+  // Play Billing hands the entitlement over asynchronously: the purchase sheet
+  // closes, the token goes to the server, and the answer arrives here.
+  useACSEffect(() => {
+    const onGranted = e => {
+      setBusy(false);
+      if (e.detail?.premium) {
+        setIsPremium(true);
+        setMsg({ text:'Purchase confirmed — every pack is unlocked.', ok:true });
+      } else if (e.detail?.error) {
+        setMsg({ text: e.detail.error, ok:false });
+      }
+    };
+    window.addEventListener('fp-premium', onGranted);
+    return () => window.removeEventListener('fp-premium', onGranted);
+  }, []);
+
   const onBuy = () => {
-    if ((window.FP_PAY_CHANNEL || 'stripe') !== 'stripe') {
-      window.fpConfirm?.({
-        title: 'Not available yet',
-        body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
-        confirmLabel: 'OK',
+    if (needsAccount()) return;
+
+    // Stripe must never be reachable from inside the Play build — external
+    // payment for digital goods is an anti-steering violation.
+    if (channel !== 'stripe') {
+      if (!window.FP_BILLING?.available()) {
+        window.fpConfirm?.({
+          title: 'Not available yet',
+          body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
+          confirmLabel: 'OK',
+        });
+        return;
+      }
+      setBusy(true);
+      setMsg({ text:'', ok:false });
+      FP_BILLING.buy().catch(e => {
+        setBusy(false);
+        setMsg({ text: e.message || 'Google Play could not start the purchase', ok:false });
       });
       return;
     }
-    const url = (window.FP_PREMIUM || {}).stripeLink;
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+
+    const link = (window.FP_PREMIUM || {}).stripeLink;
+    if (link) {
+      // client_reference_id is how the webhook knows whose profile to flip —
+      // a Payment Link carries no identity on its own.
+      const acct = FP_AUTH.getActive();
+      const url  = new URL(link);
+      url.searchParams.set('client_reference_id', acct.id);
+      if (acct.email) url.searchParams.set('prefilled_email', acct.email);
+      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+      setMsg({ text:'Finish the checkout in the tab that opened, then come back and tap Restore purchases.', ok:true });
       return;
     }
     window.fpConfirm?.({
@@ -454,13 +510,18 @@ function PremiumView({ onBack, padX }) {
 
   // Play requires a restore path for any paid entitlement. Premium is stored
   // on the account rather than the device, so re-reading the profile is the
-  // restore — it covers a reinstall, a second device and a purchase made on
-  // the other channel. Play Billing's own restore queries Play first, then
-  // lands on this same refresh.
+  // restore on any channel — it covers a reinstall, a second device and a
+  // purchase made on the other channel. On Play we also ask Play itself, which
+  // recovers a purchase that was paid for but never granted (the app died
+  // between the payment and the verify call).
   const onRestore = () => {
     setBusy(true);
     setMsg({ text:'', ok:false });
-    FP_AUTH.refreshEntitlement()
+    const askStore = channel === 'play' && window.FP_BILLING?.available()
+      ? FP_BILLING.restore().catch(() => {})   // fall through to the profile read
+      : Promise.resolve();
+    askStore
+      .then(() => FP_AUTH.refreshEntitlement())
       .then(active => {
         setIsPremium(active);
         setMsg(active

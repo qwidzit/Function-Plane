@@ -1,4 +1,4 @@
-const CACHE = 'fp-v41';
+const CACHE = 'fp-v42';
 const SHELL = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const SHELL = [
   './src/physics-engine.js',
   './src/audio.js',
   './src/accounts.js',
+  './src/billing.js',
   './src/ui-kit.js',
   './src/app-logo.js',
   './src/data.js',

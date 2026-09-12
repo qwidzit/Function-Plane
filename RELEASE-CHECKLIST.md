@@ -9,7 +9,8 @@ the work on the game itself.
 Claude writes the code, you supply a key or press the button.
 
 Order is by area, not priority. See [`PLAYTEST-SETUP.md`](./PLAYTEST-SETUP.md)
-for which of these block the start of closed testing, and for the exact steps.
+for which of these block the start of closed testing, and for the exact steps;
+[`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md) does the same for items 5–10.
 
 **Done** marks work that has landed in the repo. Several of those still need
 something from you to take effect — a URL pasted in, a file deployed, an asset
@@ -30,14 +31,14 @@ approved — and each one says so.
 
 | # | Item | Description | Who |
 |---|---|---|---|
-| 5 | Google Play Billing | The Play build must use Play Billing; Stripe is forbidden there for digital goods. The premium card is hidden while `FP_PAY_CHANNEL` is `play` — remove that guard in `PremiumCard` in the same release that ships billing. | Both |
+| 5 | Google Play Billing | **Code done, needs your machine.** `billing.js` wraps `capacitor-plugin-cdv-purchase` (MIT, Billing Library 9) and verifies every purchase through the `play-verify` edge function. Left to you: `npm install capacitor-plugin-cdv-purchase`, `npx cap sync android`, create the **`premium_lifetime`** product in Play Console at €4.90, and add the `GOOGLE_SERVICE_ACCOUNT` secret. Steps in [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md). The `PremiumCard` guard no longer needs removing by hand — it follows `FP_BILLING.available()`. | Both |
 | 6 | Restore purchases | **Done.** The premium screen has a real Restore button calling `FP_AUTH.refreshEntitlement()`, which re-reads the profile — premium is account-based, so that restores a purchase from another device, the other channel, or before a reinstall. Play Billing's own restore hooks into the same refresh. | Claude |
 | 7 | Channel detection | **Done.** `FP_PAY_CHANNEL` in `src/store-config.js` resolves to `play` on any native build and `stripe` on web; the premium screen refuses to open a Stripe link unless the channel is `stripe`. A sideloaded build is treated as `play` — we can't tell it from a Play install without native code, and that's the safe way to be wrong. | Claude |
-| 8 | Entitlement webhook | A verified purchase has to flip `is_premium` server-side, not client-side. | Both |
-| 9 | Stripe payment link | `FP_PREMIUM.stripeLink` in `premium-config.js` is one empty string (one product now, not three); the web channel is dead until it's filled. Create the Payment Link for **€4.90 lifetime**. | You |
-| 10 | Decide: ship premium at all in v1 | Launching with premium hidden is a legitimate option and removes items 5–9 from the critical path. Note that premium sells "all packs unlocked", which is worth little until item 1 lands. | You |
+| 8 | Entitlement webhook | **Done.** Two edge functions deployed to `Function Plane Main`: `play-verify` (JWT required; asks the Play Developer API, records the purchase, grants, then acknowledges — in that order, so a purchase we cannot grant auto-refunds rather than being silently kept) and `stripe-webhook` (verify_jwt off, HMAC signature checked — verified against Node's reference implementation, including the two-signature rotation case). Both inert until their secrets are set. | Both |
+| 9 | Stripe payment link | `FP_PREMIUM.stripeLink` in `premium-config.js` is one empty string (one product now, not three); the web channel is dead until it's filled. Create the Payment Link for **€4.90 lifetime**, point a `checkout.session.completed` webhook at `stripe-webhook`, and set `STRIPE_WEBHOOK_SECRET`. Note that on this channel **you** are the merchant of record, so EU VAT is yours to handle — on Play it is Google's. Steps in [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md). | You |
+| 10 | Decide: ship premium at all in v1 | **Decided: yes, in the next release.** Worth knowing what is being sold alongside: premium is "all packs unlocked immediately", and until item 1 lands five of seven packs are one repeated placeholder. | You |
 | 10b | **Decided: one lifetime unlock at €4.90** | Was monthly/annual/lifetime. `is_premium` is a boolean with no expiry, so the schema cannot express a lapsed subscription; a one-time unlock also drops grace periods, billing retry and subscription restore from the work. The screen, the config and the tests are updated. | Claude |
-| 10c | Choose the billing provider | RevenueCat (`@revenuecat/purchases-capacitor`) gives the webhook and restore for free, but is the first third party the app would contact — privacy policy, `legal/` and the Data safety answers all currently say Supabase is the only one. Raw Play Billing avoids that and means verifying purchases yourself against the Play Developer API. | You |
+| 10c | Choose the billing provider | **Decided: no provider.** Verification is ours, against the Play Developer API, which costs you nothing extra to set up (the service account is needed either way) and keeps Supabase the only host the app contacts — so the privacy policy, `legal/` and the Data safety answers all stand. | You |
 
 ## Backend
 

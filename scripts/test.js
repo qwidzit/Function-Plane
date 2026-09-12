@@ -843,6 +843,32 @@ it('never writes the entitlement from the client', () => {
   ok(/'Restore purchases'/.test(acct), 'the premium screen must offer a restore button');
 });
 
+it('grants the entitlement only on the server\'s word', () => {
+  // Everything about billing that the device says is a claim, not a fact: a
+  // rooted phone can call into the page. The token goes to the edge function,
+  // which asks Google and writes with the service-role key.
+  const billing = read(path.join(SRC, 'billing.js'));
+  ok(/FP_AUTH\.verifyPlayPurchase\(token\)/.test(billing),
+    'an approved purchase must be verified server-side');
+  ok(!/is_premium\s*[:=]/.test(billing), 'billing.js must never write the entitlement itself');
+  // Finishing a transaction is what releases the money. Doing it before the
+  // grant lands turns a failed verification into a player who paid for nothing.
+  ok(/if \(premium\) tx\.finish\(\)/.test(billing),
+    'the transaction may only be finished once premium was actually granted');
+  ok(/functions\/v1\/play-verify/.test(accountsJs), 'the verify call must hit the edge function');
+
+  const fn = read(path.join(__dirname, '..', 'supabase', 'functions', 'play-verify', 'index.ts'));
+  ok(/admin\.auth\.getUser\(jwt\)/.test(fn),
+    'play-verify must take the user from the JWT, never from the request body');
+  ok(/purchaseState !== 0/.test(fn), 'play-verify must reject a purchase Google does not call complete');
+  ok(/existing\.user_id !== user\.id/.test(fn),
+    'one purchase token must not unlock a second account');
+
+  const hook = read(path.join(__dirname, '..', 'supabase', 'functions', 'stripe-webhook', 'index.ts'));
+  ok(/signatureValid\(payload, header, secret\)/.test(hook),
+    'the Stripe webhook runs without a JWT, so the signature check is the authentication');
+});
+
 it('sells one lifetime unlock, not a subscription', () => {
   // is_premium is a boolean with no expiry: nothing in the schema can express
   // a lapsed subscription, so the screen must not offer one.
@@ -852,9 +878,14 @@ it('sells one lifetime unlock, not a subscription', () => {
   ok(!/PREMIUM_LINKS/.test(cfg + acct), 'the three-plan PREMIUM_LINKS shape is gone');
   ok(!/(Billed monthly|Cancel anytime|\/ month)/.test(acct),
     'no subscription wording on a one-time purchase');
-  // Anti-steering: a Stripe link inside the Play build is a takedown risk.
-  ok(/\(window\.FP_PAY_CHANNEL \|\| 'stripe'\) !== 'stripe'/.test(acct),
-    'the purchase button must refuse to open a payment link off the stripe channel');
+  // Anti-steering: a Stripe link opened inside the Play build is a takedown
+  // risk, so the channel has to be checked before the link is ever read. A
+  // string match would pass on a check that runs after the window.open, so
+  // compare where they sit.
+  const guard = acct.search(/channel !== 'stripe'/);
+  const link  = acct.search(/FP_PREMIUM \|\| \{\}\)\.stripeLink/);
+  ok(guard > 0 && link > guard,
+    'the payment link must only be reachable past the channel check');
 });
 
 it('explains an empty leaderboard rather than implying there are no scores', () => {

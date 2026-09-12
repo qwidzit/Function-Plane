@@ -653,6 +653,34 @@
     if (error) throw new Error(error.message);
   }
 
+  // Hands a Play purchase token to the edge function, which asks Google
+  // whether it is real and flips is_premium with the service-role key. The
+  // answer is never taken from the client: the client roles have no write
+  // privilege on that column, so a forged "I bought it" changes nothing.
+  async function verifyPlayPurchase(purchaseToken) {
+    if (!_sb) throw new Error('Supabase is not configured yet');
+    const { data } = await _withTimeout(_sb.auth.getSession(), 'Purchase');
+    const token = data?.session?.access_token;
+    if (!token) throw new Error('Sign in first — a purchase has to attach to an account');
+
+    // Verification is idempotent server-side, so the retry inside _write is
+    // safe on the networks that drop a POST after the preflight.
+    const res = await _write(() => fetch(`${window.SUPABASE_URL}/functions/v1/play-verify`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+        apikey:          window.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ purchaseToken }),
+    }), 'Purchase');
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || `Could not confirm the purchase (${res.status})`);
+    await refreshEntitlement();
+    return !!body.premium;
+  }
+
   // "Restore purchases". The entitlement lives on the profile, not the device,
   // so re-reading it restores a purchase made on any other device or channel —
   // which is the whole job while premium is granted server-side. Play Billing's
@@ -763,7 +791,8 @@
   // ── Export ────────────────────────────────────────────────────────────────
 
   window.FP_AUTH = {
-    getActive, signOut, isAdmin, isPremium, setPremium, refreshEntitlement, deleteAccount,
+    getActive, signOut, isAdmin, isPremium, setPremium, deleteAccount,
+    refreshEntitlement, verifyPlayPurchase,
     enablePushNotifications,
     register, signIn, resetPassword,
     checkNameAvailable,
