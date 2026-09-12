@@ -44,14 +44,14 @@ across browser, Android WebView, and iOS WebView.
 Not every `.js` file has a `.jsx` sibling — some are hand-written plain JS
 with no source to compile from: `physics-engine.js`, `equation-classifier.js`,
 `overrides-store.js`, `accounts.js`, `audio.js`, `physics-config.js`,
-`supabase-config.js`, `premium-config.js`. **Never hand-edit a `.js` file that
+`supabase-config.js`, `store-config.js`. **Never hand-edit a `.js` file that
 has a `.jsx` sibling** — the next `build:jsx` run silently overwrites it.
 
 Script load order is fixed in `function-plane/index.html` (config files →
 vendor → `accounts.js` → data/store → screens → `app.js`, which must load
 last because it calls `ReactDOM.createRoot(...).render(<App/>)`). Globals are
 attached to `window` (`FP_AUTH`, `FP_DATA`, `FP_PHYSICS`, `LevelScreen`,
-`FP_PREMIUM`, etc.) rather than imported — there are no ES module imports
+`FP_PREMIUM_PRICE`, etc.) rather than imported — there are no ES module imports
 at runtime. A new top-level file needs three additions in lockstep: the
 `<script>` tag in `index.html` (in the right position — e.g. `data.js` before
 `main-screen.js` because `MainScreen` calls `getPack()` at module scope), the
@@ -90,7 +90,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     physics-engine.js      # FP_PHYSICS — ball collision against sampled curve geometry
     equation-classifier.js # classifyEquation/detectClass — AST-based equation analysis
     supabase-config.js     # Supabase URL + anon key + VAPID key
-    premium-config.js      # FP_PREMIUM — lifetime price + Stripe link (web path), link not filled in yet
+    store-config.js        # FP_STORE_LINKS, FP_PREMIUM_PRICE, FP_PAY_CHANNEL
     billing.js             # FP_BILLING — Play Billing purchase/restore, verified server-side
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
@@ -844,14 +844,16 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
 
 ### Payments — dual path + environment detection *(partly built)*
 
-**What is sold:** one lifetime unlock of every pack, **€4.90**. Not a
-subscription — `is_premium` is a boolean with no expiry column, so nothing in
-the schema could express a lapsed subscription, and a permanent unlock is what
-it can honestly carry. `FP_PREMIUM` in `premium-config.js` holds the price and
-the Stripe link; `npm test` fails if subscription wording comes back.
+**What is sold:** one lifetime unlock of every pack, **€4.90**, through Google
+Play. Not a subscription — `is_premium` is a boolean with no expiry column, so
+nothing in the schema could express a lapsed subscription, and a permanent
+unlock is what it can honestly carry. `FP_PREMIUM_PRICE` in `store-config.js`
+is the display string (Play quotes its own localized price on the sheet);
+`npm test` fails if subscription wording or a payment link comes back.
 
-The game is distributed on **both** Google Play and the open web, and the two
-channels require different, mutually exclusive payment systems:
+The game is distributed on **both** Google Play and the open web, but it
+**sells on Play only**. The web build signs in, restores and plays; it has no
+checkout.
 
 - [x] **Google Play Billing** — required for the Play Store build; Google
       forbids external payment for digital goods there. `billing.js` wraps
@@ -863,16 +865,20 @@ channels require different, mutually exclusive payment systems:
       app talks to, so the privacy policy and the Data safety answers stand
       unchanged. The plugin install and the Play Console product are the
       remaining manual steps — see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
-- [x] **Stripe (web / sideloaded)** — a Payment Link opened with
-      `client_reference_id=<user id>`, which is the only thing tying the
-      payment to an account; `stripe-webhook` (verify_jwt off, signature
-      checked) grants on `checkout.session.completed`. Allowed everywhere
-      **except** inside the Play build. Inert until `FP_PREMIUM.stripeLink` is
-      filled in. On this channel you are the merchant of record, so EU VAT is
-      yours; on Play, Google's.
+- [ ] **The web channel does not sell** — `FP_PAY_CHANNEL` is `web` there and
+      the premium screen says premium is sold through Google Play, with a link
+      to the listing once `FP_STORE_LINKS.android` is set. Restore still works,
+      which is the point: buying in the app unlocks the web build too.
+      A Stripe path exists server-side (`stripe-webhook`, deployed but with no
+      secret and nothing pointing at it) and the client half was removed. The
+      reason is tax, not code: on Play, Google is merchant of record and
+      handles VAT; selling direct makes that ours from the first sale. Turning
+      it on again means a checkout in `PremiumView` and a decision about VAT —
+      see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
 - [x] **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
-      resolves to `play` on any native build and `stripe` on web. Never show
-      Stripe links inside the Play Store build (Google anti-steering).
+      resolves to `play` on any native build and `web` otherwise. A sideloaded
+      build counts as `play`: of the two ways to be wrong, an outside payment
+      route inside a Play build is the one that gets the app taken down.
       `PremiumCard` renders only where the build can actually take money: on
       web always, on Play once `FP_BILLING.available()` is true, which happens
       when the plugin's bridge lands (`fp-billing-ready`). So the entry point
@@ -1023,9 +1029,8 @@ the game into a sandbox builder and makes scores incomparable).
   `overrides-store.js` — hand-written plain JS, **no `.jsx` source**. Edit
   them directly; there's no compile step to remember, but also no
   auto-regeneration to catch a hand-edit mistake.
-- `function-plane/src/premium-config.js` — `FP_PREMIUM`: the lifetime price
-  and the Stripe Payment Link for the web channel. No billing behind either
-  yet (see Roadmap).
+- `function-plane/src/store-config.js` — the Play listing URL, the lifetime
+  price as a display string, and `FP_PAY_CHANNEL`.
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.
 - `function-plane/vendor/` — vendored React/ReactDOM/Supabase, plus the
   self-hosted webfonts (`fonts.css` + `fonts/*.woff2`). If you

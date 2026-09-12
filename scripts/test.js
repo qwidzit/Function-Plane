@@ -906,23 +906,30 @@ it('takes premium back when a purchase is refunded', () => {
   }
 });
 
-it('sells one lifetime unlock, not a subscription', () => {
+it('sells one lifetime unlock through Google Play only', () => {
   // is_premium is a boolean with no expiry: nothing in the schema can express
   // a lapsed subscription, so the screen must not offer one.
-  const cfg  = read(path.join(SRC, 'premium-config.js'));
+  const cfg  = read(path.join(SRC, 'store-config.js'));
   const acct = read(path.join(SRC, 'account-screen.js'));
-  ok(/window\.FP_PREMIUM = \{/.test(cfg), 'premium-config.js must define FP_PREMIUM');
-  ok(!/PREMIUM_LINKS/.test(cfg + acct), 'the three-plan PREMIUM_LINKS shape is gone');
+  ok(/window\.FP_PREMIUM_PRICE = /.test(cfg), 'store-config.js must carry the price');
   ok(!/(Billed monthly|Cancel anytime|\/ month)/.test(acct),
     'no subscription wording on a one-time purchase');
-  // Anti-steering: a Stripe link opened inside the Play build is a takedown
-  // risk, so the channel has to be checked before the link is ever read. A
-  // string match would pass on a check that runs after the window.open, so
-  // compare where they sit.
-  const guard = acct.search(/channel !== 'stripe'/);
-  const link  = acct.search(/FP_PREMIUM \|\| \{\}\)\.stripeLink/);
-  ok(guard > 0 && link > guard,
-    'the payment link must only be reachable past the channel check');
+
+  // Premium is a Play product. Nothing in the app may open an outside payment
+  // route — inside the Play build that is anti-steering, and on the web there
+  // is no checkout to offer at all.
+  const src = [cfg, acct, read(path.join(SRC, 'billing.js'))].join('\n');
+  ok(!/PREMIUM_LINKS|stripeLink|buy\.stripe\.com/.test(src),
+    'no payment link anywhere in the client');
+
+  // The web build must say where premium is sold rather than show a dead
+  // button, and must keep Restore — that is how a Play buyer unlocks it here.
+  ok(/Premium is sold through Google Play/.test(acct),
+    'the web build must explain where premium is sold');
+  const buy     = acct.search(/onClick: onBuy/);
+  const onPlay  = acct.search(/const onPlay\s*=/);
+  ok(onPlay > 0 && buy > onPlay, 'the buy button must sit behind the channel check');
+  ok(/'Restore purchases'/.test(acct), 'restore stays reachable on both channels');
 });
 
 it('explains an empty leaderboard rather than implying there are no scores', () => {

@@ -2,9 +2,14 @@
 
 What is built, and the steps that need your machine and your accounts.
 
-**What is sold:** one lifetime unlock of every pack, **€4.90**. Not a
-subscription — `is_premium` is a boolean with no expiry column, so nothing in
-the schema could express a lapsed subscription.
+**What is sold:** one lifetime unlock of every pack, **€4.90**, **through
+Google Play only**. Not a subscription — `is_premium` is a boolean with no
+expiry column, so nothing in the schema could express a lapsed subscription.
+
+The web build has no checkout. It signs in, restores, and plays everything
+already unlocked, and its premium screen says premium is sold in the Android
+app (with a link to the listing once `FP_STORE_LINKS.android` is set). That is
+a tax decision rather than a technical one — see *The web channel* at the end.
 
 **The trust model, in one line:** nothing the device says grants anything.
 `is_premium` is revoked from both client roles, so the only writers are the two
@@ -20,14 +25,10 @@ it likes; the column does not move.
                                               ↓
                                      tx.finish()  ← releases the money
 
-  Web build           app  →  Payment Link + client_reference_id
-                                              ↓
-                                     Stripe → stripe-webhook (edge fn)
-                                              ↓  signature checked
-                                     profiles.is_premium = true
+  Web build           no checkout — "buy it in the Android app", and
+                      Restore purchases unlocks what Play already sold
 
-  Refunds             Stripe  →  webhook, within seconds
-                      Play    →  nightly sweep asks Google
+  Refunds             Play  →  nightly sweep asks Google
                                               ↓
                                      void_purchase(token)
                                               ↓  no live purchase left?
@@ -46,9 +47,9 @@ restore, the admin screen — is unchanged.
 | Entitlement is server-side only | `20260912_premium_entitlement_guard.sql`, applied and verified against the live project |
 | Purchase ledger | `20260912_purchases.sql`, applied — one row per verified purchase, keyed by the store's token, so a purchase cannot be replayed onto a second account |
 | `play-verify` edge function | Deployed to `Function Plane Main`, `verify_jwt` on |
-| `stripe-webhook` edge function | Deployed, `verify_jwt` **off** — Stripe has no Supabase JWT, so the signature check is the authentication |
-| Client purchase + restore | `billing.js` (Play) and `PremiumView` (both channels) |
-| Refund revocation | Stripe refunds and disputes revoke within seconds; Play refunds are caught by a daily sweep (`play-refunds` + the `play-refund-sweep` cron job, both live). One rule for both: `void_purchase()` drops premium only when no live purchase is left, so someone who bought on both channels keeps it when one is refunded |
+| Client purchase + restore | `billing.js` (Play) and `PremiumView`; restore works on both builds, because the entitlement is on the account |
+| Refund revocation | A daily sweep (`play-refunds` + the `play-refund-sweep` cron job, both live) asks Google for voided purchases, since it reports a refund only when asked. `void_purchase()` drops premium only when no live purchase is left |
+| `stripe-webhook` edge function | Deployed but **dormant** — no secret, nothing pointing at it. Left in place for the day the web channel opens; it grants and revokes on its own if a Stripe endpoint is ever configured |
 | Premium entry point | Appears by itself once billing is really installed — no flag to remember |
 
 Both functions are inert until their secrets exist. Until then the buy button
@@ -113,34 +114,38 @@ seen a build that declares the billing permission.
    your tester Google accounts. Their purchases complete for free and can be
    refunded from the Orders page, so you can run the flow repeatedly.
 
-## 2. Stripe (web channel)
+## 2. The web channel
 
-Two things worth knowing before you start:
+Nothing to do. The web build sells nothing, so there is no Stripe account, no
+Payment Link and no VAT question — `FP_PAY_CHANNEL` is `web` there and the
+premium screen points at Google Play.
 
-- Stripe accounts are not available in every country. Check yours is supported
-  before building a release around this path.
-- On this path **you are the merchant of record**, so EU VAT on digital goods
-  is yours to handle. On Google Play, Google is the merchant and handles it.
-  That is the real asymmetry between the two channels, not the code.
+**Why it is off.** On Play, Google is the merchant of record: it charges the
+buyer's local VAT and remits it, and you account for net payouts as income.
+Selling direct makes you the merchant, and EU VAT on digital goods is then
+yours from the first sale — there is no small-seller threshold for
+cross-border digital sales to consumers. For a channel that will see a
+fraction of Play's volume, that is a poor trade.
 
-1. Stripe Dashboard → Products → create a product at **€4.90, one-time** →
-   **Payment links** → create a link.
-2. Paste it into `FP_PREMIUM.stripeLink` in
-   `function-plane/src/premium-config.js`.
-3. Developers → **Webhooks** → Add endpoint:
-   - URL `https://miuxqxllxjvxddolpzno.supabase.co/functions/v1/stripe-webhook`
-   - Events: **`checkout.session.completed`** (grants),
-     **`charge.refunded`** and **`charge.dispute.created`** (revoke). Those
-     three only — anything else is acknowledged and ignored, but sending
-     fewer means a refund silently leaves the player premium.
-4. Copy the endpoint's **signing secret** (`whsec_…`) → Supabase → Edge
-   Functions → Secrets → `STRIPE_WEBHOOK_SECRET`.
-5. Test with Stripe's test mode and card `4242 4242 4242 4242`. The webhook
-   log in Stripe tells you whether the signature passed.
+**If you turn it on later**, the options in rough order of effort:
 
-The app appends `client_reference_id=<your user id>` to the link — that is the
-only thing tying a payment to an account, which is why the buy button asks a
-signed-out player to sign in first.
+1. **Stripe + Stripe Tax** (0.5% per transaction) — calculates and collects
+   the right local rate and gives you the filing data. You still register,
+   usually through **One-Stop Shop**: one quarterly return covering the EU.
+2. **A merchant-of-record reseller** — Paddle, Lemon Squeezy, FastSpring. They
+   sell to the customer and you sell to them, so VAT stops being yours, the
+   same way it is not yours on Play. Costs more (~5% + fees against Stripe's
+   ~1.5% + €0.25) and is the least work by a distance.
+3. **Stripe alone**, registering and filing yourself. Cheapest per sale, and
+   the only one where a missed filing is your problem.
+
+Whichever: the server half already exists. `stripe-webhook` is deployed and
+grants on `checkout.session.completed`, revokes on `charge.refunded` and
+`charge.dispute.created`, and records `payment_ref` so a refund finds its row.
+What was removed is the client half — a checkout button in `PremiumView` and
+the link config — because a payment link the app can open is the part that
+must never exist inside the Play build (anti-steering). A reseller would need
+a different webhook; the Play side and everything downstream is untouched.
 
 ## 3. The release that turns it on
 
@@ -171,10 +176,10 @@ signed-out player to sign in first.
    Within a few seconds the `purchases` row has a `voided_at` and
    `is_premium` is false again. The `play-refunds` logs say how many voided
    purchases Google reported and how many were new to us.
-
-   For the Stripe side, refund the payment in the Stripe Dashboard — that one
-   arrives as a webhook and revokes immediately, no waiting.
-5. Kill the app mid-purchase and reopen it: `billing.js` starts at launch and
+5. On the web build, sign in as that same account: the premium screen should
+   say premium is active. Sign in as a different one and it should say premium
+   is sold in the Android app, with no button that cannot complete.
+6. Kill the app mid-purchase and reopen it: `billing.js` starts at launch and
    picks up anything Play is still holding, so the purchase completes.
 
 ## If something goes wrong
@@ -184,6 +189,5 @@ signed-out player to sign in first.
 | "Could not confirm the purchase (401)" | Service-account permissions have not propagated yet, or `GOOGLE_SERVICE_ACCOUNT` is missing/malformed |
 | "Google could not find that purchase" (402) | Product ID mismatch, or the purchase was made against a different package |
 | Purchase succeeds, premium never arrives | Look at the `play-verify` logs in the Supabase dashboard — every failure path logs |
-| Player paid on Stripe, no premium | `client_reference_id` missing — the webhook logs it loudly. Grant by hand from the admin screen |
 | Money taken, then refunded a few days later | The transaction was never finished. That is the deliberate order: we acknowledge only after granting |
-| A refunded player still has premium | Play refunds are swept nightly, not instantly — run `select public.sweep_play_refunds();` to check now. If that does nothing, the two halves of `REFUND_SWEEP_SECRET` disagree, or the player has a second live purchase on the other channel (`select * from purchases where user_id = …`) |
+| A refunded player still has premium | Play refunds are swept nightly, not instantly — run `select public.sweep_play_refunds();` to check now. If that does nothing, the two halves of `REFUND_SWEEP_SECRET` disagree, or the player has a second live purchase row (`select * from purchases where user_id = …`) |

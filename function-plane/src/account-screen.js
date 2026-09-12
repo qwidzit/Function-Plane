@@ -171,19 +171,21 @@ function StatusLine({
 function PremiumCard({
   onPremium
 }) {
-  // A price list that cannot be bought reads as broken, so the entry point
-  // follows what the build can actually take money with rather than a flag
-  // someone has to remember to flip: web always can, and the Play build only
-  // once the billing plugin is really there. `available()` is false for the
-  // moment before the Capacitor bridge lands, hence the event.
-  const [canSell, setCanSell] = useACS((window.FP_PAY_CHANNEL || 'stripe') === 'stripe' || !!window.FP_BILLING?.available());
+  // A buy button that cannot buy reads as broken, so the Play build shows this
+  // only once the billing plugin is really there — no flag for anyone to
+  // remember to flip. `available()` is false for the moment before the
+  // Capacitor bridge lands, hence the event. On web the card always shows:
+  // there is nothing to buy there, but the screen behind it says where to buy
+  // and carries Restore purchases, which is how a Play buyer unlocks the web
+  // build.
+  const [show, setShow] = useACS((window.FP_PAY_CHANNEL || 'web') !== 'play' || !!window.FP_BILLING?.available());
   useACSEffect(() => {
-    if (canSell) return;
-    const onReady = () => setCanSell(true);
+    if (show) return;
+    const onReady = () => setShow(true);
     window.addEventListener('fp-billing-ready', onReady);
     return () => window.removeEventListener('fp-billing-ready', onReady);
-  }, [canSell]);
-  if (!canSell) return null;
+  }, [show]);
+  if (!show) return null;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       borderRadius: 18,
@@ -1029,8 +1031,9 @@ function PremiumView({
     ok: false
   });
   const [busy, setBusy] = useACS(false);
-  const price = (window.FP_PREMIUM || {}).price || '';
-  const channel = window.FP_PAY_CHANNEL || 'stripe';
+  const price = window.FP_PREMIUM_PRICE || '';
+  const onPlay = (window.FP_PAY_CHANNEL || 'web') === 'play';
+  const storeLink = (window.FP_STORE_LINKS || {}).android;
 
   // A purchase has to land on an account: the entitlement is a column on the
   // profile, and a guest has no row to write it to.
@@ -1064,53 +1067,30 @@ function PremiumView({
     window.addEventListener('fp-premium', onGranted);
     return () => window.removeEventListener('fp-premium', onGranted);
   }, []);
+
+  // Premium sells through Google Play only, so this runs in the Play build
+  // alone — the web build gets the explanation below instead of a button.
   const onBuy = () => {
     if (needsAccount()) return;
-
-    // Stripe must never be reachable from inside the Play build — external
-    // payment for digital goods is an anti-steering violation.
-    if (channel !== 'stripe') {
-      if (!window.FP_BILLING?.available()) {
-        window.fpConfirm?.({
-          title: 'Not available yet',
-          body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
-          confirmLabel: 'OK'
-        });
-        return;
-      }
-      setBusy(true);
+    if (!window.FP_BILLING?.available()) {
+      window.fpConfirm?.({
+        title: 'Not available yet',
+        body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
+        confirmLabel: 'OK'
+      });
+      return;
+    }
+    setBusy(true);
+    setMsg({
+      text: '',
+      ok: false
+    });
+    FP_BILLING.buy().catch(e => {
+      setBusy(false);
       setMsg({
-        text: '',
+        text: e.message || 'Google Play could not start the purchase',
         ok: false
       });
-      FP_BILLING.buy().catch(e => {
-        setBusy(false);
-        setMsg({
-          text: e.message || 'Google Play could not start the purchase',
-          ok: false
-        });
-      });
-      return;
-    }
-    const link = (window.FP_PREMIUM || {}).stripeLink;
-    if (link) {
-      // client_reference_id is how the webhook knows whose profile to flip —
-      // a Payment Link carries no identity on its own.
-      const acct = FP_AUTH.getActive();
-      const url = new URL(link);
-      url.searchParams.set('client_reference_id', acct.id);
-      if (acct.email) url.searchParams.set('prefilled_email', acct.email);
-      window.open(url.toString(), '_blank', 'noopener,noreferrer');
-      setMsg({
-        text: 'Finish the checkout in the tab that opened, then come back and tap Restore purchases.',
-        ok: true
-      });
-      return;
-    }
-    window.fpConfirm?.({
-      title: 'Premium not configured',
-      body: 'In-app purchases aren\'t hooked up yet. The site owner needs to create a Stripe Payment Link and paste the URL into src/premium-config.js. Once that\'s done, this button will open the checkout.',
-      confirmLabel: 'OK'
     });
   };
 
@@ -1126,7 +1106,7 @@ function PremiumView({
       text: '',
       ok: false
     });
-    const askStore = channel === 'play' && window.FP_BILLING?.available() ? FP_BILLING.restore().catch(() => {}) // fall through to the profile read
+    const askStore = onPlay && window.FP_BILLING?.available() ? FP_BILLING.restore().catch(() => {}) // fall through to the profile read
     : Promise.resolve();
     askStore.then(() => FP_AUTH.refreshEntitlement()).then(active => {
       setIsPremium(active);
@@ -1272,7 +1252,7 @@ function PremiumView({
       fontWeight: 500,
       color: 'var(--fp-ink)'
     }
-  }, "Premium is active on this account") : /*#__PURE__*/React.createElement("button", {
+  }, "Premium is active on this account") : onPlay ? /*#__PURE__*/React.createElement("button", {
     onClick: onBuy,
     style: {
       width: '100%',
@@ -1283,7 +1263,53 @@ function PremiumView({
       fontSize: 16,
       fontWeight: 600
     }
-  }, "Unlock for ", price), /*#__PURE__*/React.createElement("button", {
+  }, "Unlock for ", price) :
+  /*#__PURE__*/
+  // Nothing to buy on the web. Say where it is sold rather than
+  // showing a button that cannot complete, and point at the listing
+  // when we have one — a player who buys in the app and signs in here
+  // gets everything unlocked through Restore.
+  React.createElement("div", {
+    style: {
+      borderRadius: 16,
+      background: 'var(--fp-surface-2)',
+      border: '1px solid var(--fp-line)',
+      padding: '16px 18px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 600,
+      color: 'var(--fp-ink)',
+      marginBottom: 5
+    }
+  }, "Available in the Android app"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: 'var(--fp-ink-3)',
+      lineHeight: 1.55
+    }
+  }, "Premium is sold through Google Play. Buy it there once and it unlocks every pack on this account \u2014 including here, on the web, after Restore purchases."), storeLink && /*#__PURE__*/React.createElement("button", {
+    onClick: () => window.open(storeLink, '_blank', 'noopener,noreferrer'),
+    style: {
+      width: '100%',
+      height: 44,
+      marginTop: 13,
+      borderRadius: 12,
+      background: 'var(--fp-accent)',
+      color: 'var(--fp-accent-ink)',
+      fontSize: 14,
+      fontWeight: 600,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8
+    }
+  }, "Get it on Google Play", /*#__PURE__*/React.createElement(Icon.Chevron, {
+    dir: "right",
+    size: 12,
+    c: "currentColor"
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: onRestore,
     disabled: busy,
     style: {

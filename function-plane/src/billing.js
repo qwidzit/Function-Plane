@@ -1,10 +1,9 @@
 // Function Plane — Google Play Billing (the `play` channel's purchase path).
 //
-// The plugin (capacitor-plugin-cdv-purchase, Billing Library 9) exists only in
-// the native build, so every call here no-ops when `window.CdvPurchase` is
-// absent. That is what keeps the two channels from ever meeting: the web build
-// cannot reach Play Billing, and `PremiumView` will not open a Stripe link off
-// the `stripe` channel.
+// Premium sells through Play only, so this is the whole purchase path. The
+// plugin (capacitor-plugin-cdv-purchase, Billing Library 9) exists only in the
+// native build, so every call here no-ops when `window.CdvPurchase` is absent
+// — on the web the premium screen says where to buy instead.
 //
 // The app never decides that a purchase is real. An approved transaction is
 // sent to the `play-verify` edge function, which asks Google and flips
@@ -102,7 +101,7 @@ window.FP_BILLING = (function () {
 
   // A purchase can complete while the app is closed, so pick up anything Play
   // is already holding at launch instead of waiting for the premium screen.
-  if ((window.FP_PAY_CHANNEL || 'stripe') === 'play') start();
+  if ((window.FP_PAY_CHANNEL || 'web') === 'play') start();
 
   return { PRODUCT_ID, available, start, buy, restore };
 })();
