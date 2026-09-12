@@ -649,6 +649,12 @@ If you change fonts, update the `document.fonts.load(...)` calls in
   `admin_set_premium` security-definer RPC, which re-checks that the *caller's
   own* profile is `Test Account` rather than trusting anything from the client.
   This is the current interim mechanism.
+- `purchases` is the ledger: one row per verified purchase, keyed by the
+  store's own token (a Play purchaseToken or a Stripe checkout session id),
+  with `payment_ref` holding the Stripe payment_intent a later refund arrives
+  under, and `voided_at` set when one is refunded. Service-role only — RLS is
+  on with no policies, so the client roles are denied by default rather than
+  by policy.
 - `FP_AUTH.refreshEntitlement()` re-reads the profile and notifies
   subscribers. That is what the premium screen's **Restore purchases** button
   calls: the entitlement is account-based, so re-reading it restores a
@@ -881,6 +887,14 @@ channels require different, mutually exclusive payment systems:
 - [x] **A purchase can only be spent once** — `purchases` (token PK) is the
       ledger both functions write; a token already attached to another account
       is refused. Only the service role can read or write it.
+- [x] **A refund takes premium back** — Stripe sends `charge.refunded` and
+      `charge.dispute.created` and the webhook revokes within seconds; Google
+      tells nobody, so the `play-refund-sweep` cron job (03:40 UTC) has
+      `play-refunds` read the Play Developer API's voided purchases. Both call
+      `void_purchase()`, which holds the one rule worth not duplicating:
+      premium drops only when the player has **no live purchase left**, so
+      buying on both channels and refunding one keeps it. Granting clears any
+      earlier void, so re-buying after a refund works.
 - [x] **The entitlement is server-side only** — see *Supabase & entitlement
       model* above. Do not reintroduce a client write to `is_premium`; the
       column privilege is gone and the write would fail in a player's hands

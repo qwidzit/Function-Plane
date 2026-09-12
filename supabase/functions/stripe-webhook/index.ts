@@ -54,6 +54,36 @@ Deno.serve(async req => {
   }
 
   const event = JSON.parse(payload);
+  const admin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { persistSession: false } },
+  );
+
+  // Money going back out. A dispute is treated as a refund on the grounds
+  // that arguing with a chargeback over €4.90 costs more than the €4.90.
+  if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+    // A charge and a dispute both carry payment_intent, which is what the
+    // purchase row was stamped with.
+    const intent = (event.data?.object || {}).payment_intent;
+    if (!intent) return new Response('no payment_intent', { status: 200 });
+
+    // A partial refund on a single non-consumable is not a thing we sell, so
+    // any refund at all ends the entitlement.
+    const { data: row } = await admin
+      .from('purchases').select('token').eq('payment_ref', intent).maybeSingle();
+    if (!row) {
+      console.warn('stripe-webhook: refund for a payment we have no row for', intent);
+      return new Response('unknown payment', { status: 200 });
+    }
+    const { error } = await admin.rpc('void_purchase', { p_token: row.token });
+    if (error) {
+      console.error('stripe-webhook: could not void', error.message);
+      return new Response('void failed', { status: 500 });  // let Stripe retry
+    }
+    return new Response('voided', { status: 200 });
+  }
+
   // Anything else is acknowledged and ignored — an unhandled event type is not
   // an error, and a non-2xx makes Stripe retry it for days.
   if (event.type !== 'checkout.session.completed') return new Response('ignored', { status: 200 });
@@ -68,17 +98,15 @@ Deno.serve(async req => {
     return new Response('no client_reference_id', { status: 200 });
   }
 
-  const admin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    { auth: { persistSession: false } },
-  );
-
   const { error: recErr } = await admin.from('purchases').upsert({
-    token:      session.id,
-    user_id:    userId,
-    platform:   'stripe',
-    product_id: 'premium_lifetime',
+    token:       session.id,
+    user_id:     userId,
+    platform:    'stripe',
+    product_id:  'premium_lifetime',
+    // How a later refund finds its way back to this row, and what clears a
+    // previous void if this player is buying again after one.
+    payment_ref: session.payment_intent,
+    voided_at:   null,
   }, { onConflict: 'token' });
   if (recErr) {
     console.error('stripe-webhook: could not record purchase', recErr.message);

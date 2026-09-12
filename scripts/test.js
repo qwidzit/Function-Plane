@@ -869,6 +869,43 @@ it('grants the entitlement only on the server\'s word', () => {
     'the Stripe webhook runs without a JWT, so the signature check is the authentication');
 });
 
+it('takes premium back when a purchase is refunded', () => {
+  const FN = f => read(path.join(__dirname, '..', 'supabase', 'functions', f, 'index.ts'));
+  const mig = read(path.join(__dirname, '..', 'supabase', 'migrations',
+                             '20260912_refund_revocation.sql'));
+
+  // "Refunded" is not always "revoke" — a player who bought on both channels
+  // keeps premium when one is refunded. That condition lives in one place on
+  // purpose; two copies would drift.
+  ok(/create or replace function public\.void_purchase/.test(mig),
+    'the revoke rule belongs in the database, not in each function');
+  ok(/where user_id = u and voided_at is null/.test(mig),
+    'premium may only drop when no live purchase is left');
+  for (const f of ['stripe-webhook', 'play-refunds']) {
+    ok(/rpc\('void_purchase'/.test(FN(f)), `${f} must revoke through void_purchase`);
+    ok(!/is_premium: false/.test(FN(f)), `${f} must not decide the revoke itself`);
+  }
+
+  // Google says nothing about a refund unless asked, so a scheduled sweep asks.
+  ok(/cron\.schedule\('play-refund-sweep'/.test(mig), 'the Play sweep must be scheduled');
+  ok(/voidedpurchases/.test(FN('play-refunds')), 'the sweep must read Google\'s voided purchases');
+  // No secret yet is a skipped run, not a daily error on a project mid-setup.
+  ok(/if sweep_secret is null then[\s\S]{0,120}return;/.test(mig),
+    'the cron job must no-op until the vault secret exists');
+
+  ok(/event\.type === 'charge\.refunded' \|\| event\.type === 'charge\.dispute\.created'/.test(FN('stripe-webhook')),
+    'Stripe refunds and disputes both end the entitlement');
+  // A refund arrives as a charge, which knows its payment_intent and not the
+  // checkout session the row is keyed on.
+  ok(/payment_ref: session\.payment_intent/.test(FN('stripe-webhook')),
+    'the grant must record what a later refund can be matched by');
+  // Buying again after a refund has to clear the void, or the new purchase
+  // grants premium and the next sweep takes it straight back.
+  for (const f of ['stripe-webhook', 'play-verify']) {
+    ok(/voided_at:\s*null/.test(FN(f)), `${f} must clear an earlier void when granting`);
+  }
+});
+
 it('sells one lifetime unlock, not a subscription', () => {
   // is_premium is a boolean with no expiry: nothing in the schema can express
   // a lapsed subscription, so the screen must not offer one.

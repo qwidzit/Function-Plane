@@ -127,6 +127,9 @@ Deno.serve(async req => {
       user_id:    user.id,
       platform:   'play',
       product_id: PRODUCT_ID,
+      // Clears an earlier void: Google issued this token again, so whatever
+      // the refund sweep marked is no longer true.
+      voided_at:  null,
     }, { onConflict: 'token' });
     if (recErr) return json({ error: recErr.message }, 500);
 

@@ -25,6 +25,13 @@ it likes; the column does not move.
                                      Stripe → stripe-webhook (edge fn)
                                               ↓  signature checked
                                      profiles.is_premium = true
+
+  Refunds             Stripe  →  webhook, within seconds
+                      Play    →  nightly sweep asks Google
+                                              ↓
+                                     void_purchase(token)
+                                              ↓  no live purchase left?
+                                     profiles.is_premium = false
 ```
 
 Both paths end at the same column, so everything downstream — pack unlocks,
@@ -41,6 +48,7 @@ restore, the admin screen — is unchanged.
 | `play-verify` edge function | Deployed to `Function Plane Main`, `verify_jwt` on |
 | `stripe-webhook` edge function | Deployed, `verify_jwt` **off** — Stripe has no Supabase JWT, so the signature check is the authentication |
 | Client purchase + restore | `billing.js` (Play) and `PremiumView` (both channels) |
+| Refund revocation | Stripe refunds and disputes revoke within seconds; Play refunds are caught by a daily sweep (`play-refunds` + the `play-refund-sweep` cron job, both live). One rule for both: `void_purchase()` drops premium only when no live purchase is left, so someone who bought on both channels keeps it when one is refunded |
 | Premium entry point | Appears by itself once billing is really installed — no flag to remember |
 
 Both functions are inert until their secrets exist. Until then the buy button
@@ -91,6 +99,16 @@ seen a build that declares the billing permission.
 6. **Supabase secret.** Dashboard → Edge Functions → Secrets → add
    `GOOGLE_SERVICE_ACCOUNT`, value = the whole JSON key file, as one line.
 
+   While you are there, the refund sweep needs a shared secret in two places.
+   Generate one (`openssl rand -hex 32`), then:
+   - add it as the Edge Function secret **`REFUND_SWEEP_SECRET`**, and
+   - put the same value in the database's vault, so the cron job can pose it:
+     ```sql
+     select vault.create_secret('<the same value>', 'refund_sweep_secret');
+     ```
+   Until both exist the nightly job returns without calling anything, which is
+   why installing this before you have a Play product is harmless.
+
 7. **Test without paying.** Play Console → Setup → **License testing** → add
    your tester Google accounts. Their purchases complete for free and can be
    refunded from the Orders page, so you can run the flow repeatedly.
@@ -111,7 +129,10 @@ Two things worth knowing before you start:
    `function-plane/src/premium-config.js`.
 3. Developers → **Webhooks** → Add endpoint:
    - URL `https://miuxqxllxjvxddolpzno.supabase.co/functions/v1/stripe-webhook`
-   - Event: **`checkout.session.completed`** (that one only)
+   - Events: **`checkout.session.completed`** (grants),
+     **`charge.refunded`** and **`charge.dispute.created`** (revoke). Those
+     three only — anything else is acknowledged and ignored, but sending
+     fewer means a refund silently leaves the player premium.
 4. Copy the endpoint's **signing secret** (`whsec_…`) → Supabase → Edge
    Functions → Secrets → `STRIPE_WEBHOOK_SECRET`.
 5. Test with Stripe's test mode and card `4242 4242 4242 4242`. The webhook
@@ -142,11 +163,17 @@ signed-out player to sign in first.
    `profiles.is_premium` is true.
 3. Sign in on a second device and press **Restore purchases** — premium
    without paying again.
-4. Refund the test order in Play Console. Note that nothing revokes the flag
-   today: a refund leaves the player premium. That is a deliberate v1 choice
-   (Google sends a voided-purchase notification; acting on it needs a
-   Pub/Sub subscription and another endpoint). At this price it is cheaper to
-   revoke by hand from the admin screen if it ever happens.
+4. Refund the test order in Play Console, then run the sweep by hand rather
+   than waiting for 03:40 UTC:
+   ```sql
+   select public.sweep_play_refunds();
+   ```
+   Within a few seconds the `purchases` row has a `voided_at` and
+   `is_premium` is false again. The `play-refunds` logs say how many voided
+   purchases Google reported and how many were new to us.
+
+   For the Stripe side, refund the payment in the Stripe Dashboard — that one
+   arrives as a webhook and revokes immediately, no waiting.
 5. Kill the app mid-purchase and reopen it: `billing.js` starts at launch and
    picks up anything Play is still holding, so the purchase completes.
 
@@ -159,3 +186,4 @@ signed-out player to sign in first.
 | Purchase succeeds, premium never arrives | Look at the `play-verify` logs in the Supabase dashboard — every failure path logs |
 | Player paid on Stripe, no premium | `client_reference_id` missing — the webhook logs it loudly. Grant by hand from the admin screen |
 | Money taken, then refunded a few days later | The transaction was never finished. That is the deliberate order: we acknowledge only after granting |
+| A refunded player still has premium | Play refunds are swept nightly, not instantly — run `select public.sweep_play_refunds();` to check now. If that does nothing, the two halves of `REFUND_SWEEP_SECRET` disagree, or the player has a second live purchase on the other channel (`select * from purchases where user_id = …`) |
