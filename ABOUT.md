@@ -627,8 +627,19 @@ If you change fonts, update the `document.fonts.load(...)` calls in
 
 ## Supabase & entitlement model
 
-- Table `profiles` holds `id` (PK, FK to `auth.users`), `name` (unique,
-  case-insensitive), `avatar`, `total_stars`, and **`is_premium`**.
+- Table `profiles` holds `id` (PK, FK to `auth.users`), `name` (unique on
+  `lower(name)`, matching `checkNameAvailable`'s `ilike` test), `avatar`,
+  `total_stars`, and **`is_premium`**. The client can read it and delete its
+  own row; it cannot write a single column. `name` and `avatar` are set once
+  by `handle_new_user` at signup, `total_stars` is derived (below), and
+  `is_premium` belongs to the edge functions.
+- **`total_stars` is derived, not reported.** It is what the stars
+  leaderboard ranks on, so it is summed from the guarded `level_scores` rows
+  by `sync_total_stars()` on every insert, update and delete
+  (`20260912_star_integrity.sql`). The client computes the same number locally
+  for the header, but what the database stores is its own. Before that, a
+  player could PATCH themselves to the top of the table with the publishable
+  key.
 - `FP_AUTH.isPremium()` reads that flag; `data.jsx`/`computePackLocked`
   unlocks **all packs** when it's true (admins also get full access for
   testing).
@@ -712,6 +723,24 @@ old guard, every run solved with a horizontal line is rejected outright.
 `20260912_level_objects.sql` (applied) adds `level_overrides.objects`,
 `level_overrides.materials` and `pack_overrides.modifier` — additive, with
 defaults, so rows from before it still read.
+
+`20260912_star_integrity.sql` closes the gap the guard never covered: the
+**star leaderboard didn't read these rows at all**. It ranked
+`profiles.total_stars`, which the client simply asserted — one PATCH with the
+publishable key and a player sat at the top with 999, no forged score rows
+needed. That column is now summed from the guarded rows by `sync_total_stars()`
+(statement-level triggers on insert, update and delete — one sync upserts every
+completed level at once, so recomputing per statement beats per row), and no
+client role can write it. The same migration gives the guard a **pack id
+allow-list**: nothing checked `pack_id` beyond "not empty" while these rows
+only fed per-level boards queried by real id, but summing them makes an
+invented pack free stars. Adding a pack to `data.jsx` means adding it there
+too. It also gives `profiles` a DELETE policy — RLS was on with none, so
+`deleteAccount()` removed progress and scores, reported success, and left the
+profile behind with its name and its leaderboard place — and makes the name
+constraint case-insensitive, which is what `checkNameAvailable` always assumed
+and what keeps `Test Account`, the admin gate, from being claimed in another
+case.
 
 **The app catches the plausible-but-false.** Scoring runs through the
 classifier, which SQL has no access to, so each row also carries the

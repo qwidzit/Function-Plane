@@ -102,6 +102,13 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   same numbers baked in (`supabase/migrations/`). If the cheapest winning run
   gets cheaper and the guard isn't migrated with it, every run at the new
   price is rejected on sync and the player silently loses the record.
+- Added a pack to `data.jsx` → the same trigger has an allow-list of pack ids,
+  because `profiles.total_stars` is summed from those rows. A pack it doesn't
+  know is rejected on sync, which looks like "my scores stopped saving".
+- `profiles` is read-only to the client. Anything that needs to write it wants
+  a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
+  adding a column and PATCHing it from the app will fail with a permission
+  error that names the table, not the column.
 - A slider parameter doesn't move the curve, or moves it a frame late →
   `parseEquation` writes `window.FP_PARAMS` synchronously on purpose, and
   compiled curves read it at call time. Don't move either into an effect, and

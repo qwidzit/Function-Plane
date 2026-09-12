@@ -141,11 +141,20 @@ users who can no longer sign in — and itemises what is deleted against what
 survives in backups. Deleting the account deletes all of its data; there is no
 partial-deletion path to declare.
 
-Worth confirming in Supabase before you rely on this answer: the in-app delete
-removes the `progress`, `level_scores` and `profiles` rows and trusts
-`profiles.id -> auth.users` to be `ON DELETE CASCADE` for the auth row itself.
-If that FK does not cascade, the email address outlives the deletion and this
-answer stops being true.
+Confirmed against the live database, and it was half wrong:
+
+- The `progress` and `level_scores` rows do go.
+- The `profiles` row **did not** — RLS was on with no DELETE policy, so the
+  delete matched zero rows and reported success, leaving the display name and
+  the leaderboard entry behind. Fixed in
+  `supabase/migrations/20260912_star_integrity.sql` and verified.
+- The **auth row still survives**, so the email address outlives the deletion.
+  The cascade runs the other way (`profiles.id -> auth.users ON DELETE
+  CASCADE` removes the profile when the *user* goes, not the reverse), and a
+  client cannot delete an auth user — that needs the admin API from a
+  server-side function. Until that exists, finish a deletion request by
+  removing the user in Supabase → Authentication → Users, or narrow this
+  answer.
 
 ### The rest of the screen
 

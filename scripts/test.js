@@ -795,7 +795,7 @@ it('bounds every network call with a timeout', () => {
   const guarded = [
     [/_withTimeout\(fetchLive\(\)/,            'leaderboard fetches'],
     [/_withTimeout\(_sb\.from\('level_scores'\)\s*\n?\s*\.select/, 'the audit query'],
-    [/_withTimeout\(Promise\.all\(\[/,         'the progress upload'],
+    [/_withTimeout\(\n?\s*_sb\.from\('progress'\)\.upsert/, 'the progress upload'],
     [/_withTimeout\(_sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
     [/_withTimeout\(Promise\.all\(\[\n\s*_sb\.from\('pack_overrides'\)/, 'the override fetch'],
   ];
@@ -930,6 +930,38 @@ it('sells one lifetime unlock through Google Play only', () => {
   const onPlay  = acct.search(/const onPlay\s*=/);
   ok(onPlay > 0 && buy > onPlay, 'the buy button must sit behind the channel check');
   ok(/'Restore purchases'/.test(acct), 'restore stays reachable on both channels');
+});
+
+it('derives the star total instead of believing it', () => {
+  // total_stars is what the stars leaderboard ranks on. While the client
+  // asserted it, one PATCH with the publishable key put anyone at the top.
+  const mig = read(path.join(__dirname, '..', 'supabase', 'migrations',
+                             '20260912_star_integrity.sql'));
+  ok(!/total_stars:/.test(accountsJs),
+    'the client must not write total_stars — the database sums it from level_scores');
+  ok(/create or replace function public\.sync_total_stars/.test(mig),
+    'the total must be derived in the database');
+  for (const ev of ['insert', 'update', 'delete']) {
+    ok(new RegExp(`after ${ev} on public\\.level_scores`).test(mig),
+      `the total must follow a level_scores ${ev}`);
+  }
+  ok(/revoke update on public\.profiles from anon, authenticated/.test(mig),
+    'nothing about a profile may be client-writable');
+
+  // Those rows are only as good as the guard on them, and the guard did not
+  // care what pack_id said until the total started being summed from it.
+  ok(/pack_id !~/.test(mig), 'an invented pack_id must be rejected');
+  ok(/r-\(I\|II\|/.test(mig) && /s-\(lin\|qua\|trig\|exp\|flip\)/.test(mig),
+    'the allow-list must name every pack the game ships');
+
+  // RLS was on with no delete policy, so Delete account reported success and
+  // removed nothing: the profile kept its name and its leaderboard place.
+  ok(/create policy profiles_delete/.test(mig),
+    'a player must be able to delete their own profile row');
+  ok(/profiles_name_lower_key/.test(mig),
+    'display names must be unique case-insensitively, as checkNameAvailable assumes');
+  ok(/revoke all on function public\.sync_total_stars\(\)/.test(mig),
+    'a trigger function has no business being callable as an RPC');
 });
 
 it('explains an empty leaderboard rather than implying there are no scores', () => {

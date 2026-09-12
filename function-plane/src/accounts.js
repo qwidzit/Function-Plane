@@ -232,7 +232,9 @@
   async function deleteAccount() {
     if (!_sb || !_currentUser) throw new Error('Not signed in');
     const id = _currentUser.id;
-    // RLS lets a user delete their own rows
+    // Each of these needs its own delete policy. `profiles` had none until
+    // 20260912_star_integrity.sql, so this reported success and removed
+    // nothing — the account kept its name and its leaderboard place.
     const errs = [];
     const r1 = await _sb.from('progress').delete().eq('user_id', id);
     if (r1.error) errs.push(r1.error.message);
@@ -321,12 +323,10 @@
 
       // A stall here would leave progress neither saved nor queued; the
       // timeout throws instead, so the catch below queues it for the next try.
-      const [pRes, profRes] = await _withTimeout(Promise.all([
+      const pRes = await _withTimeout(
         _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
-        _sb.from('profiles').update({ total_stars: totalStars }).eq('id', userId),
-      ]), 'Progress upload');
-      if (pRes.error)    console.warn('FP_AUTH: progress upsert error', pRes.error);
-      if (profRes.error) console.warn('FP_AUTH: profile update error',  profRes.error);
+        'Progress upload');
+      if (pRes.error) console.warn('FP_AUTH: progress upsert error', pRes.error);
 
       // Upsert individual completed level rows (drives per-level leaderboards).
       // A database that hasn't had the latest migration applied is missing
@@ -367,6 +367,10 @@
         }
       }
 
+      // The stored total is derived by the database from the level_scores rows
+      // upserted above — the client has no write on that column
+      // (20260912_star_integrity.sql). This is the same number, kept locally so
+      // the header updates without waiting for a round trip.
       if (_currentUser) _currentUser.totalStars = totalStars;
     } catch (e) {
       console.warn('FP_AUTH: upload error', e);
