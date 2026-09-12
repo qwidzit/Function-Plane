@@ -41,7 +41,10 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_set_premium(uuid, boolean) from public;
+-- `public` covers anon too, and PostgREST exposes every function in this
+-- schema as an RPC endpoint. The body rejects a non-admin caller anyway, but a
+-- signed-out request has no business reaching it at all.
+revoke all on function public.admin_set_premium(uuid, boolean) from public, anon;
 grant execute on function public.admin_set_premium(uuid, boolean) to authenticated;
 
 drop policy if exists profiles_premium_admin on public.profiles;
