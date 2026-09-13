@@ -113,11 +113,15 @@ function WordmarkSmall({ c = 'currentColor' }) {
 }
 
 // Stars row — used everywhere
-function Stars({ count = 0, total = 3, size = 12, gap = 2, c = 'var(--fp-star)', empty = 'var(--fp-star-empty)' }) {
+// `bits` fills the stars a level actually earned, which need not be the first
+// N of them — the middle star can be dark with the third lit. `count` fills
+// the first N and is what the aggregate displays (a pack's progress, a run's
+// tally) still want.
+function Stars({ count = 0, bits = null, total = 3, size = 12, gap = 2, c = 'var(--fp-star)', empty = 'var(--fp-star-empty)' }) {
   return (
     <span style={{ display: 'inline-flex', gap, alignItems: 'center', color: c }}>
       {Array.from({ length: total }).map((_, i) => (
-        <Icon.Star key={i} size={size} filled={i < count} c={c} empty={empty} />
+        <Icon.Star key={i} size={size} filled={bits == null ? i < count : !!(bits & (1 << i))} c={c} empty={empty} />
       ))}
     </span>
   );

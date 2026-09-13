@@ -320,8 +320,13 @@ function WordmarkSmall({
 }
 
 // Stars row — used everywhere
+// `bits` fills the stars a level actually earned, which need not be the first
+// N of them — the middle star can be dark with the third lit. `count` fills
+// the first N and is what the aggregate displays (a pack's progress, a run's
+// tally) still want.
 function Stars({
   count = 0,
+  bits = null,
   total = 3,
   size = 12,
   gap = 2,
@@ -340,7 +345,7 @@ function Stars({
   }).map((_, i) => /*#__PURE__*/React.createElement(Icon.Star, {
     key: i,
     size: size,
-    filled: i < count,
+    filled: bits == null ? i < count : !!(bits & 1 << i),
     c: c,
     empty: empty
   })));

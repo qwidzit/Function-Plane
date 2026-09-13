@@ -238,10 +238,33 @@ it('leaves slider definitions out of the score and the equation count', () => {
   eq(scoring.computeScore(rows), 30, 'a parameterised line costs exactly one line');
 });
 
-it('rates stars by equation count first, then score', () => {
-  eq(scoring.starRating(1, 30, 1, 40), 3, 'within the equation goal');
-  eq(scoring.starRating(3, 40, 1, 40), 2, 'over on equations, within score');
-  eq(scoring.starRating(3, 90, 1, 40), 1, 'over on both');
+it('awards each star on its own, not as a ladder', () => {
+  // Clearing lights the first, the score goal the second, the equation goal
+  // the third — independently. Beating the equation goal while missing the
+  // score goal used to return 3, handing over a star the run never earned.
+  const CLEAR = 1, SCORE = 2, EQS = 4;
+  const bits = scoring.starRating(1, 90, 1, 40);
+  eq(bits, CLEAR | EQS, 'equation goal met, score goal missed: first and third');
+  eq(bits & SCORE, 0, 'the middle star stays dark');
+  eq(scoring.starRating(1, 30, 1, 40), CLEAR | SCORE | EQS, 'both goals: all three');
+  eq(scoring.starRating(3, 40, 1, 40), CLEAR | SCORE, 'score goal only');
+  eq(scoring.starRating(3, 90, 1, 40), CLEAR, 'neither goal still clears the level');
+});
+
+it('parses a negated power whose base has nested parentheses', () => {
+  // -(5*(x+1))^3 came back as a broken equation: maths reads -x^2 as -(x^2)
+  // and JS rejects that spelling outright, so the source is rewritten before
+  // it compiles — but the old rewrite only recognised flat parentheses.
+  const at = (expr, x) => { const r = scoring.parseEquation(expr); return r.fn ? r.fn(x) : null; };
+  eq(at('y=-(5*(x+1))^3', 1), -1000, 'the reported case');
+  eq(at('-(2(x+1))^3', 1),    -64,   'with implicit multiplication inside');
+  eq(at('-(sin(x)+1)^2', 0),  -1,    'with a call inside');
+  eq(at('-(x+1)^-2', 1),      -0.25, 'negative exponent');
+  // and the cases the old rewrite got right must stay right
+  eq(at('-x^2', 3),   -9,   'unary minus still binds outside the power');
+  eq(at('(-x)^2', 3),  9,   'explicit parens still square the negative');
+  eq(at('3-x^2', 2),  -1,   'binary minus is left alone');
+  eq(at('-x^2^3', 2), -256, '** stays right-associative');
 });
 
 it('recomputes a forged submission to a different score', () => {
@@ -251,8 +274,8 @@ it('recomputes a forged submission to a different score', () => {
   const honest = scoring.computeScore(parse(exprs));
   eq(honest, 90, 'baseline');
   ok(honest !== 30, 'a 3-equation run cannot score what a 1-equation run scores');
-  ok(scoring.starRating(exprs.length, 30, 1, 40) < 3,
-    'claiming 3 stars with 3 equations against an eq_goal of 1 must not verify');
+  ok(!(scoring.starRating(exprs.length, 30, 1, 40) & 4),
+    'three equations against an eq_goal of 1 must not earn the equation star');
 });
 
 // ── 1c. Achievements ───────────────────────────────────────────────────────
@@ -1001,6 +1024,28 @@ it('reads objects and materials off a level, ignoring kinds it does not know', (
   const flip = w.SPECIAL_PACKS.find(p => p.id === 's-flip');
   ok(flip && flip.modifier === 'gravityFlip', 'the Inversion pack flips gravity');
   for (const p of w.SPECIAL_PACKS) ok(p.id in w.SPECIAL_UNLOCK_STARS, `${p.id} has an unlock threshold`);
+});
+
+it('keeps the star count and the lit stars in step', () => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w; global.React = w.React; global.document = { createElement: () => ({}) };
+  for (const f of ['level-objects.js', 'data.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  // Progress saved before stars became slots has no bits, and back then they
+  // really were a ladder — so a stored count maps onto the first N.
+  eq(w.starBitsOf(3, undefined), 7, 'a legacy 3 lit all three');
+  eq(w.starBitsOf(2, undefined), 3, 'a legacy 2 lit the first two');
+  eq(w.starBitsOf(1, undefined), 1, 'a legacy 1 lit the first');
+  eq(w.starBitsOf(0, undefined), 0, 'an uncleared level lit none');
+  eq(w.starBitsOf(2, 5), 5, 'stored bits win over the count');
+  // The count every total and threshold adds up has to follow the bits.
+  eq(w.starCount(5), 2, 'first and third is two stars');
+  eq(w.starCount(7), 3);
+  eq(w.starCount(1), 1);
+  eq(w.starCount(0), 0);
 });
 
 it('ships a parseable override snapshot', () => {

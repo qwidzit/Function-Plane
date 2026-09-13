@@ -94,6 +94,14 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   where they shouldn't (earned/possible header) or excluded where they
   should be counted (unlock thresholds) — these are two different totals,
   see *Level & pack data* in `ABOUT.md`.
+- A level shows the wrong stars → `stars[i]` is *how many* and `starBits[i]`
+  is *which*, and they are separate fields (see *Stars* in `ABOUT.md`). Draw
+  from the bits via `starBitsOf(count, bits)`; count from the count. Writing
+  one without the other is how they drift.
+- Wrote a maths expression that JS won't accept → `normExpr` rewrites it
+  before compiling, and `fixUnaryPow` is the part that matches parentheses
+  rather than patterns. `-(5*(x+1))^3` was broken for exactly that reason:
+  the pattern it replaced only understood parens with nothing nested inside.
 - A themed pack lets through an equation it shouldn't (or blocks one it
   should allow) → the classifier is AST-based; check `detectClass()` in
   `equation-classifier.js` directly against the expression before assuming

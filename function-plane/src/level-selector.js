@@ -195,6 +195,7 @@ function LevelSelector({
     length: 10
   }).map((_, i) => {
     const stars = data.stars[i];
+    const bits = stars > 0 ? starBitsOf(stars, data.starBits?.[i]) : null;
     const best = data.best[i];
     const unlocked = isLevelUnlocked(i);
     const attempted = stars !== null && stars >= 0;
@@ -204,6 +205,7 @@ function LevelSelector({
       index: i,
       pack: pack,
       stars: stars,
+      starBits: bits,
       best: best,
       unlocked: unlocked,
       attempted: attempted,
@@ -216,6 +218,7 @@ function LevelRow({
   index,
   pack,
   stars,
+  starBits,
   best,
   unlocked,
   attempted,
@@ -341,7 +344,7 @@ function LevelRow({
       color: 'var(--fp-ink-4)'
     }
   }, "\u2014")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Stars, {
-    count: stars,
+    bits: starBits,
     total: 3,
     size: 10
   }), /*#__PURE__*/React.createElement("span", {

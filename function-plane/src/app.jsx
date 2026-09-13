@@ -262,7 +262,14 @@ function App() {
           // leaderboard row so a submission can be audited against the
           // classifier. Only meaningful next to the score it produced.
           const bestEqs  = pd.bestEqs   ? [...pd.bestEqs]   : Array(10).fill(null);
-          stars[levelIndex] = Math.max(stars[levelIndex] ?? -1, rating);
+          // starBits: which of the three stars are lit, accumulated across
+          // attempts — earning the score goal in one run and the equation goal
+          // in another keeps both. `stars` stays the count the rest of the app
+          // adds up.
+          const starBits = pd.starBits  ? [...pd.starBits]  : Array(10).fill(null);
+          const bits = starBitsOf(stars[levelIndex] ?? 0, starBits[levelIndex]) | rating;
+          starBits[levelIndex] = bits;
+          stars[levelIndex]    = starCount(bits);
           if (best[levelIndex] == null || score < best[levelIndex]) {
             best[levelIndex]    = score;
             bestEqs[levelIndex] = exprs ?? null;
@@ -275,6 +282,7 @@ function App() {
             stars[levelIndex + 1] = -1;
           }
           pd.stars    = stars;
+          pd.starBits = starBits;
           pd.best     = best;
           pd.bestTime = bestTime;
           pd.maxScore = maxScore;

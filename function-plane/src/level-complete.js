@@ -7,7 +7,7 @@ const {
 function LevelCompletePopup({
   pack,
   levelIndex,
-  starsRating,
+  starBits,
   score,
   prevBest,
   isNewBest,
@@ -21,6 +21,9 @@ function LevelCompletePopup({
   // Level 10 has no next level — onNext returns to the level list there, so
   // the label has to say so.
   const isLastLevel = levelIndex >= 9;
+  // Which stars lit, not how many — the middle one can be dark with the third
+  // on, when a run beat the equation goal but not the score goal.
+  const earnedCount = starCount(starBits);
   const [revealed, setRevealed] = useLCState(false);
   const [tab, setTab] = useLCState('score'); // 'score' | 'scoreboard' | 'timeboard'
   const [scoreboard, setScoreboard] = useLCState(null);
@@ -141,7 +144,7 @@ function LevelCompletePopup({
       color: 'var(--fp-ink)',
       marginBottom: 16
     }
-  }, starsRating === 3 ? 'Perfect!' : starsRating === 2 ? 'Nice work' : 'Level clear'), /*#__PURE__*/React.createElement("div", {
+  }, earnedCount === 3 ? 'Perfect!' : earnedCount === 2 ? 'Nice work' : 'Level clear'), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-end',
@@ -150,7 +153,7 @@ function LevelCompletePopup({
       marginBottom: 18
     }
   }, [0, 1, 2].map(i => {
-    const earned = i < starsRating;
+    const earned = !!(starBits & 1 << i);
     const size = i === 1 ? 52 : 42;
     return /*#__PURE__*/React.createElement("div", {
       key: i,
@@ -265,7 +268,7 @@ function LevelCompletePopup({
       fontSize: 22,
       color: 'var(--fp-ink)'
     }
-  }, starsRating, "/3"))), prevBest != null && !isNewBest && /*#__PURE__*/React.createElement("div", {
+  }, earnedCount, "/3"))), prevBest != null && !isNewBest && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       paddingTop: 10,

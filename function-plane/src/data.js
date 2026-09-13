@@ -213,6 +213,21 @@ function buildProgress(state) {
   }
   return out;
 }
+
+// Stars earned per level are stored two ways on purpose: `stars[i]` is how
+// many (what every total, threshold and leaderboard row counts) and
+// `starBits[i]` is which ones (what the level screens draw), because the
+// second star can be dark while the third is lit. Keeping the count as its own
+// field means nothing downstream has to learn about bits, and progress saved
+// before this — which has no starBits — still reads correctly: back then the
+// stars really were a ladder.
+function starBitsOf(count, bits) {
+  if (bits != null) return bits;
+  return count >= 3 ? 7 : count === 2 ? 3 : count >= 1 ? 1 : 0;
+}
+function starCount(bits) {
+  return (bits & 1 ? 1 : 0) + (bits & 2 ? 1 : 0) + (bits & 4 ? 1 : 0);
+}
 function packTotalStars(progress, packId) {
   return (progress[packId]?.stars || []).reduce((a, v) => a + (v > 0 ? v : 0), 0);
 }
@@ -313,6 +328,8 @@ Object.assign(window, {
   packIsLocked,
   packIsComplete,
   totalStarsAll,
+  starBitsOf,
+  starCount,
   computePackLocked,
   findContinuePoint,
   LEVEL_NAMES,

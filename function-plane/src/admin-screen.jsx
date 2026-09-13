@@ -140,7 +140,8 @@ function auditRow(row) {
     }
   }
   const data     = getLevelData(row.pack_id, row.level_index);
-  const expected = starRating(curves.length, score, data.eqGoal, data.scoreGoal);
+  // The row stores how many stars, so compare counts — starRating says which.
+  const expected = starCount(starRating(curves.length, score, data.eqGoal, data.scoreGoal));
   if (row.stars > expected) {
     // Not proof: a row holds a personal best, and a 3-star run with more
     // equations can score worse than a 2-star run with fewer, in which case

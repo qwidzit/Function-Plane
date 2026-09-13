@@ -625,6 +625,41 @@ last one).
 If you change fonts, update the `document.fonts.load(...)` calls in
 `fontsReady()`.
 
+## Stars
+
+Three separate awards, not a ladder:
+
+| Star | Earned by |
+|---|---|
+| 1 | clearing the level |
+| 2 | finishing at or under the level's `score_goal` |
+| 3 | using at most `eq_goal` equations |
+
+`starRating()` in `level-screen.jsx` returns them as bits (1, 2, 4), and they
+accumulate across attempts — take the score star in one run and the equation
+star in another and both stay lit. **The second can be dark while the third is
+lit**, which is the whole point: a run that beat the equation goal but missed
+the score goal used to be handed all three, including one it never earned.
+
+Two fields carry this, on purpose:
+
+- `progress[pack].stars[i]` — **how many**, which is what every total,
+  threshold, achievement and leaderboard row counts. Also `-1` for "attempted,
+  never cleared" and `null` for "not reached".
+- `progress[pack].starBits[i]` — **which ones**, which is what the level
+  screens draw. Absent on progress saved before this existed, and
+  `starBitsOf(count, bits)` in `data.jsx` maps a legacy count onto the first N
+  — back then they really were a ladder, so that reads correctly.
+
+`starCount(bits)` goes the other way. Keeping the count as its own field is
+what stops the rest of the app having to learn about bits at all. `npm test`
+checks the two agree.
+
+**This changed what a run is worth.** A run that clears the equation goal and
+misses the score goal now scores 2 stars where it scored 3, so pack totals,
+`SPECIAL_UNLOCK_STARS` thresholds and the `stars_200` target are all worth a
+re-look against real play. Records already stored keep their stars.
+
 ## Supabase & entitlement model
 
 - Table `profiles` holds `id` (PK, FK to `auth.users`), `name` (unique on
@@ -707,9 +742,9 @@ time outside
 0.05–30 s (`TIME_LIMIT` is 28). It also makes the **server** decide what
 "best" means — `least`/`greatest` against the stored row — so a client cannot
 walk a record backwards and a stale offline sync cannot clobber a better
-result. A 2-star claim whose score misses `score_goal` is *clamped* to 1 star
-rather than rejected, because rejecting would make retuning a level's goals
-lock every existing record holder out of syncing. RLS restricts writes to
+result. It used to *clamp* a 2-star claim whose score missed `score_goal` down
+to 1 star; `20260913_star_slots.sql` drops that (see below). RLS restricts
+writes to
 `auth.uid() = user_id`, keeps reads public (the leaderboard is public by
 design), and lets the `Test Account` delete anyone's row.
 
@@ -723,6 +758,16 @@ old guard, every run solved with a horizontal line is rejected outright.
 `20260912_level_objects.sql` (applied) adds `level_overrides.objects`,
 `level_overrides.materials` and `pack_overrides.modifier` — additive, with
 defaults, so rows from before it still read.
+
+`20260913_star_slots.sql` removes the goal-relative clamp, because with stars
+awarded individually (below) a 2-star row whose score misses `score_goal` is
+the ordinary shape of a first-and-third run — the clamp would have quietly
+undone that on every sync. Nothing replaces it, and nothing sound could: a row
+is a personal best accumulated across attempts, so its stored score and
+equations, which belong to the best-scoring run alone, cannot say what the row
+is entitled to. Goal-relative checking stays where it flags rather than
+rejects, in the admin audit. Existing records are safe either way —
+`greatest(old, new)` means a 3 earned under the old rule is never walked back.
 
 `20260912_star_integrity.sql` closes the gap the guard never covered: the
 **star leaderboard didn't read these rows at all**. It ranked

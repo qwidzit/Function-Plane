@@ -4,7 +4,7 @@ const { useState: useLCState, useEffect: useLCEffect } = React;
 
 function LevelCompletePopup({
   pack, levelIndex,
-  starsRating, score,
+  starBits, score,
   prevBest, isNewBest,
   time, prevBestTime, isNewBestTime,
   onReplay, onNext, onClose,
@@ -12,6 +12,9 @@ function LevelCompletePopup({
   // Level 10 has no next level — onNext returns to the level list there, so
   // the label has to say so.
   const isLastLevel = levelIndex >= 9;
+  // Which stars lit, not how many — the middle one can be dark with the third
+  // on, when a run beat the equation goal but not the score goal.
+  const earnedCount = starCount(starBits);
   const [revealed, setRevealed] = useLCState(false);
   const [tab, setTab] = useLCState('score'); // 'score' | 'scoreboard' | 'timeboard'
   const [scoreboard, setScoreboard] = useLCState(null);
@@ -103,7 +106,7 @@ function LevelCompletePopup({
             fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.02em',
             color: 'var(--fp-ink)', marginBottom: 16,
           }}>
-            {starsRating === 3 ? 'Perfect!' : starsRating === 2 ? 'Nice work' : 'Level clear'}
+            {earnedCount === 3 ? 'Perfect!' : earnedCount === 2 ? 'Nice work' : 'Level clear'}
           </div>
 
           {/* Stars row */}
@@ -112,7 +115,7 @@ function LevelCompletePopup({
             gap: 6, marginBottom: 18,
           }}>
             {[0, 1, 2].map(i => {
-              const earned = i < starsRating;
+              const earned = !!(starBits & (1 << i));
               const size = i === 1 ? 52 : 42;
               return (
                 <div key={i} style={{
@@ -187,7 +190,7 @@ function LevelCompletePopup({
                       Rating
                     </div>
                     <div className="fp-mono" style={{ fontSize: 22, color: 'var(--fp-ink)' }}>
-                      {starsRating}/3
+                      {earnedCount}/3
                     </div>
                   </div>
                 </div>

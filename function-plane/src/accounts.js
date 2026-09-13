@@ -137,11 +137,23 @@
     for (const k of keys) {
       const pa = a[k] || { stars: [], best: [] };
       const pb = b[k] || { stars: [], best: [] };
+      // Which stars are lit merges as a union, not a maximum: one device may
+      // hold the score goal and the other the equation goal, and taking the
+      // higher count would drop one of them. The count follows from the union
+      // so the two can never disagree.
+      const bits = Array.from({ length: 10 }, (_, i) => {
+        const na = pa.stars?.[i] ?? null, nb = pb.stars?.[i] ?? null;
+        if (na === null && nb === null) return null;
+        return starBitsOf(na ?? 0, pa.starBits?.[i]) | starBitsOf(nb ?? 0, pb.starBits?.[i]);
+      });
       out[k] = {
+        starBits: bits,
         stars: Array.from({ length: 10 }, (_, i) => {
           const sa = pa.stars?.[i] ?? null, sb = pb.stars?.[i] ?? null;
           if (sa === null && sb === null) return null;
-          return Math.max(sa ?? -1, sb ?? -1);
+          // -1 is "attempted, never cleared", which has no bits to union.
+          if (!bits[i]) return Math.max(sa ?? -1, sb ?? -1);
+          return starCount(bits[i]);
         }),
         best: Array.from({ length: 10 }, (_, i) => {
           const ba = pa.best?.[i] ?? null, bb = pb.best?.[i] ?? null;

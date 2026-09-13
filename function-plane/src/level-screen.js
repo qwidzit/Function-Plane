@@ -62,10 +62,17 @@ function computeScore(equations) {
   const complexity = active.reduce((s, e) => s + classifyEquation(e.expr, window.FP_PARAMS), 0);
   return complexity + active.length * 20;
 }
+
+// Which stars a run earns, as bits: 1 clearing the level, 2 the score goal,
+// 4 the equation goal. Three separate awards, not a ladder — beating the
+// equation goal while missing the score goal lights the first and the third
+// and leaves the middle one dark. It used to return 3 for that, handing out a
+// star the run had not earned.
+const STAR_CLEAR = 1,
+  STAR_SCORE = 2,
+  STAR_EQS = 4;
 function starRating(eqsUsed, score, eqGoal, scoreGoal) {
-  if (eqsUsed <= eqGoal) return 3;
-  if (score <= scoreGoal) return 2;
-  return 1;
+  return STAR_CLEAR | (score <= scoreGoal ? STAR_SCORE : 0) | (eqsUsed <= eqGoal ? STAR_EQS : 0);
 }
 
 // ─── Equation parser — explicit y=f(x) or implicit F(x,y)=G(x,y) ────
@@ -131,6 +138,58 @@ function freeParams(code) {
 }
 
 // Returns { code, params } — the JS source and the parameters it reads.
+// JS forbids unary minus directly before ** ("-x**2" is a SyntaxError), while
+// maths reads -x^2 as -(x^2). Rewriting those spans to -(base**exp) needs the
+// base found by matching parentheses rather than by pattern: the regex this
+// replaced only understood flat ones, so -(5*(x+1))^3 was handed to JS as
+// written, threw, and came back as a broken equation.
+function fixUnaryPow(s) {
+  const WORD = /[\w.$]/;
+  // Where the term ending at i begins: a balanced group, plus the name of the
+  // call in front of it if there is one, or a bare identifier or number.
+  const termStart = i => {
+    let j = i;
+    if (s[j - 1] === ')') {
+      let depth = 0;
+      while (--j >= 0) {
+        if (s[j] === ')') depth++;else if (s[j] === '(' && --depth === 0) break;
+      }
+    }
+    while (j > 0 && WORD.test(s[j - 1])) j--;
+    return j;
+  };
+  // Where the term starting at i ends, following the whole ** chain: ** is
+  // right-associative, so all of 2**3 belongs inside the parens of -x**2**3.
+  const termEnd = i => {
+    let j = i;
+    while (s[j] === '-' || s[j] === '+') j++;
+    while (WORD.test(s[j] || '')) j++;
+    if (s[j] === '(') {
+      for (let depth = 0; j < s.length; j++) {
+        if (s[j] === '(') depth++;else if (s[j] === ')' && --depth === 0) {
+          j++;
+          break;
+        }
+      }
+    }
+    return s[j] === '*' && s[j + 1] === '*' ? termEnd(j + 2) : j;
+  };
+
+  // Right to left, so a span just rewritten is never rescanned.
+  for (let i = s.length - 2; i >= 1; i--) {
+    if (s[i] !== '*' || s[i + 1] !== '*') continue;
+    const b = termStart(i);
+    if (b === 0 || s[b - 1] !== '-') continue;
+    // Binary minus if a value can sit to its left; only a unary one is the
+    // syntax error, and only it means -(x^2) rather than a subtraction.
+    const before = s[b - 2];
+    if (before !== undefined && (WORD.test(before) || before === ')')) continue;
+    const end = termEnd(i + 2);
+    s = s.slice(0, b - 1) + '-(' + s.slice(b, end) + ')' + s.slice(end);
+    i = b;
+  }
+  return s;
+}
 function normExpr(s) {
   s = s.replace(/\s+/g, '');
   s = s.replace(/\bpi\b/g, 'π');
@@ -149,18 +208,7 @@ function normExpr(s) {
   s = s.replace(/\^/g, '**');
   s = s.replace(/[\uE000-\uE0FF]/g, ch => FN_CALLS[calls[ch.charCodeAt(0) - PH_BASE]] + '(');
   s = s.replace(/\be\b/g, '(Math.E)');
-  // JS forbids unary minus directly before ** ("-x**2" is a SyntaxError).
-  // Maths convention is that -x^2 means -(x^2), so rewrite the offending
-  // pattern as -(base**exp). Iterate so chained cases like "2*-x**2*-y**3"
-  // all get fixed. Covers simple identifiers, numbers, parenthesised
-  // groups and Math.fn(...) calls as the base/exponent.
-  const TERM = '(?:Math\\.[a-zA-Z]+\\([^()]*\\)|[a-zA-Z_]\\w*\\([^()]*\\)|[a-zA-Z_]\\w*|\\d+(?:\\.\\d+)?|\\([^()]*\\))';
-  const re = new RegExp(`(^|[^\\w)])-(${TERM})\\*\\*(${TERM})`, 'g');
-  let prev;
-  do {
-    prev = s;
-    s = s.replace(re, '$1-($2**$3)');
-  } while (s !== prev);
+  s = fixUnaryPow(s);
   // Higher-order operators — sum, deriv, integ. Expanded *after* all Math.*
   // substitutions so the inner body is already valid JS. Safe (no eval of
   // user-supplied identifiers): the body is wrapped inside a closure that
@@ -1213,7 +1261,7 @@ function PlaneFiller({
 
 // ─── HUD chips ────────────────────────────────────────────────
 function GoalChip({
-  stars,
+  bits,
   label
 }) {
   return /*#__PURE__*/React.createElement("div", {
@@ -1228,7 +1276,7 @@ function GoalChip({
       border: '1px solid var(--lv-line)'
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: stars,
+    bits: bits,
     total: 3,
     size: 7,
     c: "var(--lv-star)",
@@ -3099,6 +3147,7 @@ function LevelScreen({
   const best = progress?.[pack.id]?.best?.[levelIndex] ?? null;
   const bestTime = progress?.[pack.id]?.bestTime?.[levelIndex] ?? null;
   const prevStars = progress?.[pack.id]?.stars?.[levelIndex] ?? -1;
+  const prevBits = prevStars > 0 ? starBitsOf(prevStars, progress?.[pack.id]?.starBits?.[levelIndex]) : 0;
   // Pre-placed equations don't count toward score / equation-budget.
   const userEquations = equations.filter(e => !e.preplaced);
   const eqsUsed = userEquations.filter(e => e.fn).length;
@@ -3259,7 +3308,8 @@ function LevelScreen({
             mats: curves.map(e => e.material || null),
             score: sc,
             time: finishT,
-            stars: rating,
+            stars: starCount(rating),
+            bits: rating,
             ts: Date.now()
           };
           const filtered = prev.filter(p => (p.exprs || []).join('||') !== sig);
@@ -3268,7 +3318,7 @@ function LevelScreen({
         } catch {}
         setCompleted({
           score: sc,
-          starsRating: rating,
+          starBits: rating,
           prevBest: best,
           isNewBest: isNew,
           time: finishT,
@@ -3369,7 +3419,7 @@ function LevelScreen({
       background: 'var(--lv-surface)'
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: Math.max(0, prevStars),
+    bits: prevBits,
     total: 3,
     size: 11
   }))), /*#__PURE__*/React.createElement("div", {
@@ -3438,10 +3488,10 @@ function LevelScreen({
       alignItems: 'center'
     }
   }, /*#__PURE__*/React.createElement(GoalChip, {
-    stars: 2,
+    bits: STAR_SCORE,
     label: `score ≤ ${scoreGoal}`
   }), /*#__PURE__*/React.createElement(GoalChip, {
-    stars: 3,
+    bits: STAR_EQS,
     label: `≤ ${eqGoal} eq`
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => setHistoryOpen(true),
@@ -3522,7 +3572,7 @@ function LevelScreen({
   }), completed && /*#__PURE__*/React.createElement(LevelCompletePopup, {
     pack: pack,
     levelIndex: levelIndex,
-    starsRating: completed.starsRating,
+    starBits: completed.starBits,
     score: completed.score,
     prevBest: completed.prevBest,
     isNewBest: completed.isNewBest,
@@ -3634,7 +3684,7 @@ function HistoryPopup({
       marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: e.stars,
+    bits: starBitsOf(e.stars, e.bits),
     total: 3,
     size: 11
   }), /*#__PURE__*/React.createElement("span", {

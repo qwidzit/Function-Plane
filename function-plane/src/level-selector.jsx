@@ -117,6 +117,7 @@ function LevelSelector({ pack, progress, onBack, onPickLevel, density = 'comfort
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {Array.from({ length: 10 }).map((_, i) => {
             const stars = data.stars[i];
+            const bits  = stars > 0 ? starBitsOf(stars, data.starBits?.[i]) : null;
             const best = data.best[i];
             const unlocked = isLevelUnlocked(i);
             const attempted = stars !== null && stars >= 0;
@@ -124,7 +125,7 @@ function LevelSelector({ pack, progress, onBack, onPickLevel, density = 'comfort
             return (
               <LevelRow
                 key={i} index={i} pack={pack}
-                stars={stars} best={best}
+                stars={stars} starBits={bits} best={best}
                 unlocked={unlocked} attempted={attempted} cleared={cleared}
                 onClick={() => unlocked && onPickLevel(pack, i)}
               />
@@ -136,7 +137,7 @@ function LevelSelector({ pack, progress, onBack, onPickLevel, density = 'comfort
   );
 }
 
-function LevelRow({ index, pack, stars, best, unlocked, attempted, cleared, onClick }) {
+function LevelRow({ index, pack, stars, starBits, best, unlocked, attempted, cleared, onClick }) {
   const num = String(index + 1).padStart(2, '0');
   const status = !unlocked ? 'locked' : !attempted ? 'fresh' : cleared ? 'cleared' : 'inprogress';
 
@@ -197,7 +198,7 @@ function LevelRow({ index, pack, stars, best, unlocked, attempted, cleared, onCl
             </>
           ) : (
             <>
-              <Stars count={stars} total={3} size={10} />
+              <Stars bits={starBits} total={3} size={10} />
               <span className="fp-mono" style={{ color: 'var(--fp-ink-2)' }}>
                 best <span style={{ color: 'var(--fp-ink)' }}>{best}</span>
               </span>
