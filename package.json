@@ -1,12 +1,13 @@
 {
   "name": "function-plane",
   "version": "1.0.0",
-  "description": "Function Plane — mobile PWA puzzle game",
+  "description": "Function Plane \u2014 mobile PWA puzzle game",
   "private": true,
   "scripts": {
     "test": "node scripts/test.js",
     "build:jsx": "node scripts/build-jsx.js",
     "snapshot:data": "node scripts/snapshot-overrides.js",
+    "verify:levels": "node scripts/verify-levels.js",
     "cap:init": "cap init 'Function Plane' app.functionplane --web-dir=function-plane",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",

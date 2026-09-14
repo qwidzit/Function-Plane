@@ -121,6 +121,7 @@ android` / `npx cap add ios` (iOS needs a Mac).
 | `npm test` | Run `scripts/test.js` — no dependencies, ~1 s. Run before every commit. |
 | `npm run build:jsx` | Compile all `.jsx` → `.js`. Run after every `.jsx` edit. |
 | `npm run snapshot:data` | Pull Supabase override tables → `overrides-snapshot.js`. Run before every release. |
+| `npm run verify:levels` | Replay every authored level's intended solution through the real run loop. `--svg <dir>` draws each one, `--json <file>` dumps the results, `--trail` prints where the ball went. |
 | `npm run cap:sync` | build:jsx + copy web files into `android/` and `ios/` |
 | `npm run android:build` | build:jsx + sync android + open Android Studio |
 | `npm run ios:build` | build:jsx + sync ios + open Xcode (needs Mac + `ios/` folder) |
@@ -1103,6 +1104,12 @@ the game into a sandbox builder and makes scores incomparable).
   `overrides-store.js` — hand-written plain JS, **no `.jsx` source**. Edit
   them directly; there's no compile step to remember, but also no
   auto-regeneration to catch a hand-edit mistake.
+- `scripts/verify-levels.js` + `levels/*.json` — level drafts and the tool that
+  proves them. It loads `level-screen.js` headlessly (a `window` that *is* the
+  global object, plus a React stub the hook destructuring can read) and drives
+  the exported `parseEquation` / `makeWorld` / `drainTicks` / `outOfWorld`, so a
+  level that verifies is a level that plays. A draft lives in `levels/` until it
+  is written to Supabase; nothing in the app reads these files.
 - `function-plane/src/store-config.js` — the Play listing URL, the lifetime
   price as a display string, and `FP_PAY_CHANNEL`.
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.

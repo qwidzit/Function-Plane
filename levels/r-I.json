@@ -1,0 +1,379 @@
+{
+  "packId": "r-I",
+  "name": "Foundations",
+  "notes": "Beat 1 (1-3) write a curve. Beat 2 (4-5) hazards. Beat 3 (6-7) domain restriction. 8 combines everything.",
+  "levels": [
+    {
+      "index": 0,
+      "name": "Warm-up",
+      "beat": "write a curve",
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -2,
+          "y": 2
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 2,
+          "y": -2
+        }
+      ],
+      "objects": [],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        "y=-x"
+      ],
+      "intent": "Three stars on one line through the origin. The only thing to learn is that a curve is a track."
+    },
+    {
+      "index": 1,
+      "name": "First slope",
+      "beat": "write a curve",
+      "ball": {
+        "x": 2,
+        "y": 1.2
+      },
+      "stars": [
+        {
+          "x": -2,
+          "y": -2
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 2,
+          "y": 0
+        }
+      ],
+      "objects": [],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        "y=x/2-1"
+      ],
+      "intent": "Same idea, but the ball must travel left \u2014 the slope's sign is the puzzle."
+    },
+    {
+      "index": 2,
+      "name": "The valley",
+      "beat": "write a curve",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 4,
+          "y": 0
+        }
+      ],
+      "objects": [],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solution": [
+        "y=x^2/16-1"
+      ],
+      "intent": "No line touches all three. First curve, and the first time momentum carries the ball up the far side."
+    },
+    {
+      "index": 3,
+      "name": "Threading",
+      "beat": "hazards",
+      "ball": {
+        "x": -5,
+        "y": 4.6
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 3
+        },
+        {
+          "x": 0,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": -1
+        }
+      ],
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 0,
+          "y": 4.5,
+          "w": 1.2,
+          "h": 5
+        },
+        {
+          "kind": "hazard",
+          "x": 0,
+          "y": -3,
+          "w": 1.2,
+          "h": 6
+        }
+      ],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        "y=-2x/3+1"
+      ],
+      "intent": "First hazard. A gate with one gap; the stars name the line that threads it."
+    },
+    {
+      "index": 4,
+      "name": "Low ceiling",
+      "beat": "hazards",
+      "ball": {
+        "x": -5,
+        "y": 1.6
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 0.5
+        },
+        {
+          "x": 0,
+          "y": -1.5
+        },
+        {
+          "x": 3,
+          "y": -3
+        }
+      ],
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": 1.5,
+          "w": 8,
+          "h": 0.8
+        }
+      ],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        "y=-x/2-1.5"
+      ],
+      "intent": "A hazard slab overhead. A steep track bounces the ball into it; a gentle one carries it under."
+    },
+    {
+      "index": 5,
+      "name": "Cut it short",
+      "beat": "domain restriction",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 2
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 5.5,
+          "y": -4
+        }
+      ],
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 6.6,
+          "y": -2.7,
+          "w": 1.6,
+          "h": 1.2
+        }
+      ],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        {
+          "expr": "y=-x/2",
+          "domain": [
+            {
+              "xMin": -8,
+              "xMax": 2
+            }
+          ]
+        }
+      ],
+      "intent": "The track runs into a hazard. End it early: the ball leaves the line, sags under the red and drops onto the low star."
+    },
+    {
+      "index": 6,
+      "name": "Through the gap",
+      "beat": "domain restriction",
+      "ball": {
+        "x": -6,
+        "y": 2.5
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 1
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 4.8,
+          "y": -3.6
+        }
+      ],
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -2.4,
+          "y": -2,
+          "w": 11.2,
+          "h": 0.8
+        },
+        {
+          "kind": "hazard",
+          "x": 8,
+          "y": -2,
+          "w": 6,
+          "h": 0.8
+        }
+      ],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solution": [
+        {
+          "expr": "y=-x/4",
+          "domain": [
+            {
+              "xMin": -8,
+              "xMax": 2
+            }
+          ]
+        }
+      ],
+      "intent": "Where you leave the track decides where you land. Cut too early and you clip the floor; too late and you overshoot the gap."
+    },
+    {
+      "index": 7,
+      "name": "Foundations",
+      "beat": "finale",
+      "ball": {
+        "x": -6,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 3
+        },
+        {
+          "x": -1,
+          "y": 1.5
+        },
+        {
+          "x": 2.6,
+          "y": -1.1
+        },
+        {
+          "x": -1,
+          "y": -8.75
+        },
+        {
+          "x": 1,
+          "y": -8.75
+        }
+      ],
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -2.5,
+          "y": 5.7,
+          "w": 1.2,
+          "h": 4.6
+        },
+        {
+          "kind": "hazard",
+          "x": -2.5,
+          "y": -1.1,
+          "w": 1.2,
+          "h": 5.8
+        },
+        {
+          "kind": "hazard",
+          "x": -2.9,
+          "y": -2,
+          "w": 10.2,
+          "h": 0.8
+        },
+        {
+          "kind": "hazard",
+          "x": 7.5,
+          "y": -2,
+          "w": 7.0,
+          "h": 0.8
+        }
+      ],
+      "materials": false,
+      "preplaced": [],
+      "scoreGoal": 70,
+      "eqGoal": 2,
+      "solution": [
+        {
+          "expr": "y=-x/2+1",
+          "domain": [
+            {
+              "xMin": -8,
+              "xMax": 0
+            }
+          ]
+        },
+        {
+          "expr": "y=x^2/4-9",
+          "domain": [
+            {
+              "xMin": -5,
+              "xMax": 5
+            }
+          ]
+        }
+      ],
+      "intent": "Every idea in the pack at once: thread the gate, cut the track to launch, thread the floor in mid-air, and land on a second track that carries you home."
+    }
+  ]
+}
