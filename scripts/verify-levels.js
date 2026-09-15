@@ -11,9 +11,11 @@
 //   node scripts/verify-levels.js [spec.json ...] [--svg <dir>] [--json <file>] [--trail]
 //
 // Specs default to levels/*.json. Each holds { packId, modifier?, levels: [] },
-// and each level mirrors a level_overrides row plus a `solution` — the
-// equations the author intends the player to write. A level passes when the
-// solution clears it inside the time limit and earns all three stars.
+// and each level mirrors a level_overrides row plus `solutions` — the first is
+// what the author intends the player to write, the rest are other answers the
+// level is meant to accept. A level passes when the intended solution earns all
+// three stars AND every alternative still clears: a level only one curve can
+// solve is a level with no room for a better time on the leaderboard.
 
 const fs   = require('fs');
 const path = require('path');
@@ -50,7 +52,7 @@ const TIME_LIMIT = 28;   // mirrors level-screen; the run loop below is its rAF
 // Mirrors LevelScreen's animation frame: drain a frame's worth of time, then
 // test the same fail/succeed pair it tests. Timestamps are synthetic and
 // exactly one tick apart, so a verified run is bit-reproducible.
-function runLevel(level, modifier) {
+function runLevel(level, modifier, which = 0) {
   window.FP_PARAMS = {};
 
   const row = (expr, i, preplaced) => {
@@ -67,7 +69,7 @@ function runLevel(level, modifier) {
   };
 
   const pre  = (level.preplaced || []).map((e, i) => row(e, i, true));
-  const user = (level.solution  || []).map((e, i) => row(e, i, false));
+  const user = (level.solutions[which].eqs || []).map((e, i) => row(e, i, false));
   const equations = [...pre, ...user];
 
   const unparsed = equations.filter(e => !e.fn && !e.param);
@@ -111,6 +113,11 @@ function runLevel(level, modifier) {
     trail: ph.trail,
     equations,
   };
+}
+
+// Every answer a level is meant to accept, intended first.
+function runAll(level, modifier) {
+  return level.solutions.map((_, i) => runLevel(level, modifier, i));
 }
 
 // ── Rendering ──────────────────────────────────────────────────────────────
@@ -246,35 +253,48 @@ for (const file of files) {
   console.log('  #  name                 outcome        time   eqs  score/goal  stars');
   for (const level of spec.levels) {
     total++;
-    const res = runLevel(level, spec.modifier);
-    const tag = res.ok && res.stars === 3 ? '✓' : res.ok ? '~' : '✗';
-    if (!res.ok || res.stars !== 3) failures++;
+    const all = runAll(level, spec.modifier);
+    const res = all[0];
+    const brokenAlt = all.slice(1).some(r => !r.ok);
+    const tag = res.ok && res.stars === 3 && !brokenAlt ? '✓' : res.ok ? '~' : '✗';
+    if (!res.ok || res.stars !== 3 || brokenAlt) failures++;
     const goal = `${String(res.score ?? '—').padStart(3)}/${String(level.scoreGoal).padEnd(3)}`;
     console.log(`  ${tag} ${String(level.index).padStart(1)}. ${(level.name || '').padEnd(20).slice(0, 20)} ` +
       `${(res.why || '').padEnd(14)} ${String(res.time ?? '—').padStart(5)}  ` +
       `${String(res.eqs ?? '—').padStart(2)}/${level.eqGoal}  ${goal}  ${res.ok ? '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars) : '—'}`);
     if (res.ok && res.collected !== res.total) console.log(`      collected ${res.collected}/${res.total}`);
     if (!res.ok && res.why && res.collected != null) console.log(`      collected ${res.collected}/${res.total} before failing`);
+    all.forEach((r, i) => {
+      const name = level.solutions[i].name;
+      const mark = r.ok ? (r.stars === 3 ? '·' : '~') : '✗';
+      console.log(`      ${mark} ${name.padEnd(22).slice(0, 22)} ${(r.why || '').padEnd(14)} ` +
+        `${String(r.time ?? '—').padStart(5)}  ${String(r.eqs ?? '—').padStart(2)} eq  ` +
+        `${String(r.score ?? '—').padStart(3)}  ${r.ok ? '★'.repeat(r.stars) : ''}`);
+    });
     // Authoring aid: a star belongs where the ball actually goes, not where it
     // looked like it would.
     if (args.includes('--trail') && res.trail) {
       console.log('      trail: ' + res.trail.filter((_, i) => i % 4 === 0)
         .map(p => `(${p.x.toFixed(1)},${p.y.toFixed(1)})`).join(' '));
     }
-    report.push({ packId: spec.packId, level, result: {
-      ok: res.ok, why: res.why, time: res.time, eqs: res.eqs,
-      score: res.score, stars: res.stars, bounces: res.bounces,
-      collected: res.collected, total: res.total,
-    } });
+    report.push({
+      packId: spec.packId, level,
+      results: all.map((r, i) => ({
+        name: level.solutions[i].name,
+        ok: r.ok, why: r.why, time: r.time, eqs: r.eqs,
+        score: r.score, stars: r.stars, bounces: r.bounces,
+        collected: r.collected, total: r.total,
+      })),
+    });
     if (svgDir) {
       const name = `${spec.packId}-${level.index}.svg`;
-      const caption = `${spec.packId} · ${level.index}. ${level.name}   —   ${(level.solution || []).map(s => typeof s === 'string' ? s : s.expr).join('   ')}`;
+      const caption = `${spec.packId} · ${level.index}. ${level.name}   —   ${level.solutions[0].eqs.map(s => typeof s === 'string' ? s : s.expr).join('   ')}`;
       fs.writeFileSync(path.join(svgDir, name), renderSVG(level, res, caption));
     }
   }
 }
 
 if (jsonOut) fs.writeFileSync(jsonOut, JSON.stringify(report, null, 2));
-console.log(`\n${total - failures}/${total} levels verified at three stars.`);
+console.log(`\n${total - failures}/${total} levels verified: intended answer at three stars, every alternative clears.`);
 if (svgDir) console.log(`Renders in ${svgDir}`);
 process.exit(failures ? 1 : 0);
