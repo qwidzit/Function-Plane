@@ -95,7 +95,8 @@ function getLevelData(packId, levelIndex) {
     ...base,
     preplaced: [],
     objects: [],
-    materials: false
+    materials: false,
+    explain: null
   };
   return {
     ball: ov.ball_x != null && ov.ball_y != null ? {
@@ -111,7 +112,10 @@ function getLevelData(packId, levelIndex) {
     // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
     objects: Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
     // Whether players may set a curve's bounce (dead / perfectly elastic).
-    materials: !!ov.materials
+    materials: !!ov.materials,
+    // Which mechanic this level introduces — a key into FP_EXPLAINERS, shown
+    // once on the player's first visit. Null on levels that teach nothing new.
+    explain: ov.explain && window.FP_EXPLAINERS?.[ov.explain] ? ov.explain : null
   };
 }
 function getLevelName(packId, levelIndex) {

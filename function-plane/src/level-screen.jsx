@@ -1918,6 +1918,17 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
 
   const [autoZoomTrigger, setAutoZoomTrigger] = useSL(0);
   const [historyOpen, setHistoryOpen] = useSL(false);
+  // A level that introduces a mechanic explains it once, on the first visit.
+  // Seen-ness is per device and deliberately not part of progress: it is a
+  // reading state, not something worth syncing or restoring.
+  const [tipOpen, setTipOpen] = useSL(() => {
+    if (!levelData.explain) return false;
+    try { return !localStorage.getItem(`fp-tip-${levelData.explain}`); } catch { return true; }
+  });
+  const closeTip = () => {
+    setTipOpen(false);
+    try { localStorage.setItem(`fp-tip-${levelData.explain}`, '1'); } catch {}
+  };
 
   const loadFromHistory = (exprs, mats = []) => {
     setHistoryOpen(false);
@@ -2212,6 +2223,50 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           onClose={() => setHistoryOpen(false)}
           onLoad={loadFromHistory}/>
       )}
+
+      {tipOpen && <ExplainerPopup id={levelData.explain} onClose={closeTip}/>}
+    </div>
+  );
+}
+
+// ─── Explainer popup ──────────────────────────────────────────────────────
+// Shown once when a level introduces a mechanic. Tapping anywhere dismisses
+// it: a player who already knows what a hazard is should not have to aim.
+function ExplainerPopup({ id, onClose }) {
+  const tip = window.FP_EXPLAINERS?.[id];
+  if (!tip) return null;
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset:0, zIndex:85,
+      background:'rgba(0,0,0,0.5)',
+      display:'flex', alignItems:'flex-end',
+      backdropFilter:'blur(2px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:'100%', background:'var(--fp-bg)',
+        borderRadius:'22px 22px 0 0',
+        padding:'18px 22px max(18px, env(safe-area-inset-bottom, 0px))',
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.3)',
+      }}>
+        <div style={{ width:36, height:4, borderRadius:2, background:'var(--fp-ink-4)', margin:'0 auto 16px' }}/>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+          <div style={{
+            width:36, height:36, borderRadius:10, flex:'0 0 36px',
+            background:tip.color + '18', color:tip.color,
+            display:'flex', alignItems:'center', justifyContent:'center',
+          }}>{tip.icon}</div>
+          <div style={{
+            fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic',
+            fontSize:23, color:'var(--fp-ink)', letterSpacing:'-0.02em',
+          }}>{tip.title}</div>
+        </div>
+        <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.65 }}>{tip.body}</div>
+        <button onClick={onClose} style={{
+          width:'100%', height:44, borderRadius:12, marginTop:18,
+          background:'var(--fp-accent)', color:'var(--fp-accent-ink)',
+          fontSize:14, fontWeight:500,
+        }}>Got it</button>
+      </div>
     </div>
   );
 }

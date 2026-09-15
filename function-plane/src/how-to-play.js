@@ -342,4 +342,87 @@ function RatingRow({
     }
   }, children));
 }
+
+// ─── Level explainers ────────────────────────────────────────
+// A level that introduces a mechanic names one of these in its `explain`
+// column; the level screen shows it once, on the player's first visit. Kept
+// here beside How to Play because it is the same teaching copy, written
+// shorter — a player who is mid-level wants a sentence, not a chapter.
+const FP_EXPLAINERS = {
+  'how-to-play': {
+    title: 'Draw a track',
+    color: '#2d70b3',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: 6,
+      cy: 6,
+      r: 2.6,
+      fill: "currentColor"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M3 19C8 19 15 12 21 5",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round"
+    })),
+    body: /*#__PURE__*/React.createElement(React.Fragment, null, "Tap ", /*#__PURE__*/React.createElement("strong", null, "Add"), " and write an equation \u2014 ", /*#__PURE__*/React.createElement("code", null, "y=-x"), ", ", /*#__PURE__*/React.createElement("code", null, "y=x^2-3"), ", anything you can graph. The curve becomes a solid track, and the ball rolls along it under gravity. Collect every star to finish.", /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, "Fewer and simpler equations score better, so a line beats a parabola and one curve beats two."))
+  },
+  hazards: {
+    title: 'Mind the red',
+    color: '#d13b3b',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("rect", {
+      x: 4,
+      y: 7,
+      width: 16,
+      height: 10,
+      rx: 1.5,
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeDasharray: "3 2.5"
+    })),
+    body: /*#__PURE__*/React.createElement(React.Fragment, null, "The dashed red areas are hazards. Touch one and the run ends immediately \u2014 it does not matter how many stars you had already collected.", /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, "Your curve may cross a hazard; only the ", /*#__PURE__*/React.createElement("em", null, "ball"), " must not. Watch where it bounces, not just where the track goes."))
+  },
+  domain: {
+    title: 'Stop the track early',
+    color: '#6042a6',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M6 4v16M18 4v16",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M9 12h6",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round"
+    })),
+    body: /*#__PURE__*/React.createElement(React.Fragment, null, "The bracket button on an equation row restricts its ", /*#__PURE__*/React.createElement("strong", null, "domain"), " \u2014 the range of x where the curve exists at all.", /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, "End a track before an obstacle and the ball flies off it instead of riding into trouble. It costs nothing: a restricted curve scores exactly the same as a full one."))
+  }
+};
+window.FP_EXPLAINERS = FP_EXPLAINERS;
 window.HowToPlayScreen = HowToPlayScreen;

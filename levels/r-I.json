@@ -1,12 +1,15 @@
 {
   "packId": "r-I",
   "name": "Foundations",
-  "notes": "Beat 1 (1-3) write a curve. Beat 2 (4-5) hazards. Beat 3 (6-7) domain restriction. 8 is the first two-curve level. 9-10 finales. Every level lists the answers it is meant to accept, intended first — a level only one curve solves has no room for a better time.",
+  "notes": "Authored by hand; every listed answer replayed through the real run loop. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
   "levels": [
     {
+      "materials": false,
+      "preplaced": [],
+      "explain": "how-to-play",
+      "objects": [],
       "index": 0,
       "name": "Warm-up",
-      "beat": "write a curve",
       "ball": {
         "x": -4,
         "y": 5
@@ -25,9 +28,6 @@
           "y": -2
         }
       ],
-      "objects": [],
-      "materials": false,
-      "preplaced": [],
       "scoreGoal": 30,
       "eqGoal": 1,
       "solutions": [
@@ -42,22 +42,80 @@
           "eqs": [
             "x+y=0"
           ]
+        },
+        {
+          "name": "steeper, quicker",
+          "eqs": [
+            "y=-1.05x-0.6"
+          ]
         }
       ],
-      "intent": "Three stars on one line through the origin. The only thing to learn is that a curve is a track. Deliberately exact — the tutorial is the one place a single answer is the point."
+      "intent": "Three stars on one line through the origin, and the card that explains what a curve is for."
     },
     {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [],
       "index": 1,
       "name": "First slope",
-      "beat": "write a curve",
       "ball": {
-        "x": 4,
-        "y": 3
+        "x": 2,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": 2,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": -2,
+          "y": -2
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "steeper than the stars",
+          "eqs": [
+            "y=0.8x-1.2"
+          ]
+        },
+        {
+          "name": "a little less steep",
+          "eqs": [
+            "y=0.75x-1.2"
+          ]
+        },
+        {
+          "name": "shallower again",
+          "eqs": [
+            "y=0.7x-1.3"
+          ]
+        }
+      ],
+      "intent": "The ball drops four units onto the track and bounces hard before it settles, then rolls left."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [],
+      "index": 2,
+      "name": "Down and up",
+      "ball": {
+        "x": -3,
+        "y": 6
       },
       "stars": [
         {
           "x": -2,
-          "y": -2
+          "y": 3
         },
         {
           "x": 0,
@@ -65,281 +123,51 @@
         },
         {
           "x": 2,
-          "y": 0
+          "y": 3
         }
       ],
-      "objects": [],
-      "materials": false,
-      "preplaced": [],
       "scoreGoal": 40,
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "the line",
+          "name": "the bowl",
           "eqs": [
-            "y=x/2-1"
+            "y=0.7x^2-0.6"
           ]
         },
         {
-          "name": "a slight curve",
+          "name": "wider",
           "eqs": [
-            "y=x/2-1+x^2/50"
+            "y=0.75x^2-0.8"
+          ]
+        },
+        {
+          "name": "tilted slightly",
+          "eqs": [
+            "y=0.75x^2+0.1x-0.6"
           ]
         }
       ],
-      "intent": "The ball drops two units onto the track and bounces before it settles — the first time a run looks like physics rather than a slide. It then rolls left, which is the other half of the lesson: slope decides direction."
+      "intent": "Momentum carries the ball up the far side. The exact parabola through the three stars is too narrow for the spawn, so the answer is a slightly wider bowl."
     },
     {
-      "index": 2,
-      "name": "The valley",
-      "beat": "write a curve",
-      "ball": {
-        "x": -5,
-        "y": 4
-      },
-      "stars": [
-        {
-          "x": -4,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": -1
-        },
-        {
-          "x": 4,
-          "y": 0
-        }
-      ],
-      "objects": [],
       "materials": false,
       "preplaced": [],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "solutions": [
-        {
-          "name": "exact fit",
-          "eqs": [
-            "y=x^2/16-1"
-          ]
-        },
-        {
-          "name": "deeper, quicker",
-          "eqs": [
-            "y=x^2/12-1.35"
-          ]
-        },
-        {
-          "name": "deeper still",
-          "eqs": [
-            "y=x^2/10-1.6"
-          ]
-        }
-      ],
-      "intent": "No line touches all three. First curve, and the first level where the fit does not have to be exact: a deeper bowl misses each star by a few tenths, collects them anyway, and shaves a fifth of a second off the clock."
-    },
-    {
-      "index": 3,
-      "name": "Detour",
-      "beat": "hazards",
-      "ball": {
-        "x": -5,
-        "y": 5
-      },
-      "stars": [
-        {
-          "x": -4,
-          "y": 2
-        },
-        {
-          "x": 0,
-          "y": -2
-        },
-        {
-          "x": 4,
-          "y": 2
-        }
-      ],
+      "explain": "hazards",
       "objects": [
         {
           "kind": "hazard",
-          "x": 0,
-          "y": 2.5,
-          "w": 1.2,
-          "h": 6
-        }
-      ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "solutions": [
-        {
-          "name": "exact fit",
-          "eqs": [
-            "y=x^2/4-2"
-          ]
-        },
-        {
-          "name": "wider, quicker",
-          "eqs": [
-            "y=x^2/4.2-1.95"
-          ]
-        },
-        {
-          "name": "deeper",
-          "eqs": [
-            "y=x^2/3.4-2.6"
-          ]
-        }
-      ],
-      "intent": "First hazard, and it is a bar hanging in the middle of the plane. Anything flat enough to link the two outer stars runs into it; the track has to dive under and carry enough speed to climb out the far side."
-    },
-    {
-      "index": 4,
-      "name": "Low ceiling",
-      "beat": "hazards",
-      "ball": {
-        "x": -5,
-        "y": 1.6
-      },
-      "stars": [
-        {
-          "x": -4,
-          "y": 0.6
-        },
-        {
-          "x": 0,
-          "y": -1.5
-        },
-        {
-          "x": 3,
-          "y": -2.9
-        }
-      ],
-      "objects": [
-        {
-          "kind": "hazard",
-          "x": 1,
+          "x": -1,
           "y": 1.5,
-          "w": 8,
-          "h": 0.8
+          "w": 3,
+          "h": 1
         }
       ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "solutions": [
-        {
-          "name": "the shallow line",
-          "eqs": [
-            "y=-x/2-1.5"
-          ]
-        },
-        {
-          "name": "steeper, quicker",
-          "eqs": [
-            "y=-0.55x-1.6"
-          ]
-        },
-        {
-          "name": "a sagging curve",
-          "eqs": [
-            "y=-x/2-1.5-x^2/60"
-          ]
-        }
-      ],
-      "intent": "A slab overhead. The three stars do not quite lie on a line, so a line threads them on collection radius alone while a curve fits them exactly — and a steeper line gets under the slab sooner. All three are worth three stars."
-    },
-    {
-      "index": 5,
-      "name": "Cut it short",
-      "beat": "domain restriction",
+      "index": 3,
+      "name": "Low ceiling",
       "ball": {
-        "x": -5,
-        "y": 4
-      },
-      "stars": [
-        {
-          "x": -4,
-          "y": 2
-        },
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 5.5,
-          "y": -4
-        }
-      ],
-      "objects": [
-        {
-          "kind": "hazard",
-          "x": 6.6,
-          "y": -2.7,
-          "w": 1.6,
-          "h": 1.2
-        }
-      ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 30,
-      "eqGoal": 1,
-      "solutions": [
-        {
-          "name": "cut at x = 2",
-          "eqs": [
-            {
-              "expr": "y=-x/2",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "cut at x = 1",
-          "eqs": [
-            {
-              "expr": "y=-x/2",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 1
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "cut at x = 3",
-          "eqs": [
-            {
-              "expr": "y=-x/2",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 3
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "intent": "The track runs into a hazard. End it early and the ball leaves the line, sags under the red and drops onto the low star. Anywhere from x=1 to x=3 works, so the puzzle is the idea, not the number."
-    },
-    {
-      "index": 6,
-      "name": "Through the gap",
-      "beat": "domain restriction",
-      "ball": {
-        "x": -6,
-        "y": 2.5
+        "x": -4,
+        "y": 2
       },
       "stars": [
         {
@@ -347,410 +175,543 @@
           "y": 1
         },
         {
-          "x": 0,
-          "y": 0
+          "x": -1,
+          "y": -1
         },
         {
-          "x": 4.6,
-          "y": -3.4
+          "x": 2,
+          "y": -3
         }
       ],
-      "objects": [
-        {
-          "kind": "hazard",
-          "x": -2.9,
-          "y": -2,
-          "w": 10.2,
-          "h": 0.8
-        },
-        {
-          "kind": "hazard",
-          "x": 8.2,
-          "y": -2,
-          "w": 6.4,
-          "h": 0.8
-        }
-      ],
-      "materials": false,
-      "preplaced": [],
       "scoreGoal": 30,
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quarter slope, cut at 2",
+          "name": "the star line",
           "eqs": [
-            {
-              "expr": "y=-x/4",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 2
-                }
-              ]
-            }
+            "y=-2x/3-5/3"
           ]
         },
         {
-          "name": "third slope, cut at 1",
+          "name": "steeper, quicker",
           "eqs": [
-            {
-              "expr": "y=-x/3",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 1
-                }
-              ]
-            }
+            "y=-0.775x-2.2"
           ]
         },
         {
-          "name": "third slope, cut at 2",
+          "name": "steeper again",
           "eqs": [
-            {
-              "expr": "y=-x/3",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 2
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "fifth slope, cut at 2",
-          "eqs": [
-            {
-              "expr": "y=-x/5",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 2
-                }
-              ]
-            }
+            "y=-0.825x-2.1"
           ]
         }
       ],
-      "intent": "Now where you leave the track decides where you land. The floor has one gap, and four different slope-and-cut pairs thread it — the steepest is nearly a second quicker than the shallowest, which is the whole leaderboard in one level."
+      "intent": "A slab overhead: the track has to stay under it. Spawn and hazard both moved a little — see the note."
     },
     {
-      "index": 7,
-      "name": "Under the wall",
-      "beat": "two curves",
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 0,
+          "y": 2,
+          "w": 1,
+          "h": 5
+        }
+      ],
+      "index": 4,
+      "name": "Detour",
       "ball": {
         "x": -5,
-        "y": 4.5
+        "y": 5
       },
       "stars": [
         {
           "x": -4,
-          "y": 3
+          "y": 2
         },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 4,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "the bowl",
+          "eqs": [
+            "y=0.2x^2-1.2"
+          ]
+        },
+        {
+          "name": "deeper",
+          "eqs": [
+            "y=0.2x^2-1.4"
+          ]
+        },
+        {
+          "name": "tilted",
+          "eqs": [
+            "y=0.2x^2-0.1x-1.4"
+          ]
+        }
+      ],
+      "intent": "A bar hangs across the middle. Anything flat enough to link the outer stars runs into it, so the track dives under and climbs out."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": "domain",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 3,
+          "y": 0,
+          "w": 1,
+          "h": 1
+        }
+      ],
+      "index": 5,
+      "name": "Cut it short",
+      "ball": {
+        "x": -4,
+        "y": 4
+      },
+      "stars": [
         {
           "x": -2,
           "y": 2
         },
         {
-          "x": 4,
-          "y": -1
-        }
-      ],
-      "objects": [
-        {
-          "kind": "hazard",
-          "x": 1,
-          "y": 3.25,
-          "w": 0.8,
-          "h": 6.5
-        }
-      ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 70,
-      "eqGoal": 2,
-      "solutions": [
-        {
-          "name": "cut at −3, catch bowl",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": -3
-                }
-              ]
-            },
-            "y=(x-1)^2/6-2.5"
-          ]
-        },
-        {
-          "name": "cut at −2.5",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": -2.5
-                }
-              ]
-            },
-            "y=(x-1)^2/6-2.5"
-          ]
-        },
-        {
-          "name": "deeper bowl",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": -3
-                }
-              ]
-            },
-            "y=(x-1)^2/5-2.8"
-          ]
-        }
-      ],
-      "intent": "All three stars sit on one straight line, and a wall hangs across it. The line gets you the first two, but it has to end before the wall — early enough that the ball is already falling when it gets there — and a second curve underneath catches it and lifts it to the far star. The first level that needs two equations."
-    },
-    {
-      "index": 8,
-      "name": "The long way down",
-      "beat": "finale",
-      "ball": {
-        "x": -6,
-        "y": 5
-      },
-      "stars": [
-        {
-          "x": -4,
-          "y": 3
-        },
-        {
-          "x": -1,
-          "y": 1.5
-        },
-        {
-          "x": 2.6,
-          "y": -1.1
-        },
-        {
           "x": 0,
-          "y": -8.9
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": -3
         }
       ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "cut at x = 0",
+          "eqs": [
+            {
+              "expr": "y=-0.8x+0.2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "steeper",
+          "eqs": [
+            {
+              "expr": "y=-0.9x+0.2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "steeper, higher",
+          "eqs": [
+            {
+              "expr": "y=-0.85x+0.3",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "intent": "The track runs into a hazard. End it early and the ball leaves the line and drops past the red onto the low star."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
       "objects": [
         {
           "kind": "hazard",
-          "x": -2.5,
-          "y": 5.7,
-          "w": 1.2,
-          "h": 4.6
+          "x": 1.5,
+          "y": 5.25,
+          "w": 1,
+          "h": 3
         },
         {
           "kind": "hazard",
-          "x": -2.5,
-          "y": -1.1,
-          "w": 1.2,
-          "h": 5.8
+          "x": 1.5,
+          "y": 0.75,
+          "w": 1,
+          "h": 3
         }
       ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 70,
-      "eqGoal": 2,
-      "solutions": [
-        {
-          "name": "line + catch bowl",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 0
-                }
-              ]
-            },
-            {
-              "expr": "y=x^2/4-9",
-              "domain": [
-                {
-                  "xMin": -5,
-                  "xMax": 5
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "wider bowl",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
-                  "xMax": 0
-                }
-              ]
-            },
-            {
-              "expr": "y=x^2/6-9",
-              "domain": [
-                {
-                  "xMin": -6,
-                  "xMax": 6
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "intent": "First finale. Thread the gate on a line, cut it to launch, take the mid-air star and land in a bowl deep enough to catch you. Two stages, two equations, and the bowl's width is free."
-    },
-    {
-      "index": 9,
-      "name": "Foundations",
-      "beat": "finale",
+      "index": 6,
+      "name": "Hole in the wall",
       "ball": {
-        "x": -6,
+        "x": -4,
         "y": 5
       },
       "stars": [
         {
-          "x": -4,
+          "x": -3,
+          "y": 1
+        },
+        {
+          "x": -1,
+          "y": 1
+        },
+        {
+          "x": 3,
           "y": 3
-        },
-        {
-          "x": -1,
-          "y": 1.5
-        },
-        {
-          "x": 2.6,
-          "y": -1.1
-        },
-        {
-          "x": -1,
-          "y": -8.75
-        },
-        {
-          "x": 1,
-          "y": -8.75
         }
       ],
-      "objects": [
-        {
-          "kind": "hazard",
-          "x": -2.5,
-          "y": 5.7,
-          "w": 1.2,
-          "h": 4.6
-        },
-        {
-          "kind": "hazard",
-          "x": -2.5,
-          "y": -1.1,
-          "w": 1.2,
-          "h": 5.8
-        },
-        {
-          "kind": "hazard",
-          "x": -2.9,
-          "y": -2,
-          "w": 10.2,
-          "h": 0.8
-        },
-        {
-          "kind": "hazard",
-          "x": 7.5,
-          "y": -2,
-          "w": 7.0,
-          "h": 0.8
-        }
-      ],
-      "materials": false,
-      "preplaced": [],
-      "scoreGoal": 70,
-      "eqGoal": 2,
+      "scoreGoal": 40,
+      "eqGoal": 1,
       "solutions": [
         {
-          "name": "line + catch bowl",
+          "name": "launch through the hole",
           "eqs": [
             {
-              "expr": "y=-x/2+1",
+              "expr": "y=0.43x^2+1.35x+1.8",
               "domain": [
                 {
-                  "xMin": -8,
-                  "xMax": 0
-                }
-              ]
-            },
-            {
-              "expr": "y=x^2/4-9",
-              "domain": [
-                {
-                  "xMin": -5,
-                  "xMax": 5
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "cut sooner",
-          "eqs": [
-            {
-              "expr": "y=-x/2+1",
-              "domain": [
-                {
-                  "xMin": -8,
+                  "xMin": -12,
                   "xMax": -0.5
                 }
               ]
-            },
+            }
+          ]
+        },
+        {
+          "name": "steeper launch",
+          "eqs": [
             {
-              "expr": "y=x^2/4-9",
+              "expr": "y=0.46x^2+1.45x+1.8",
               "domain": [
                 {
-                  "xMin": -6,
-                  "xMax": 6
+                  "xMin": -12,
+                  "xMax": -0.5
                 }
               ]
             }
           ]
         },
         {
-          "name": "wider bowl",
+          "name": "steeper again",
           "eqs": [
             {
-              "expr": "y=-x/2+1",
+              "expr": "y=0.48x^2+1.5x+1.8",
               "domain": [
                 {
-                  "xMin": -8,
-                  "xMax": 0
-                }
-              ]
-            },
-            {
-              "expr": "y=x^2/6-9",
-              "domain": [
-                {
-                  "xMin": -6,
-                  "xMax": 6
+                  "xMin": -12,
+                  "xMax": -0.5
                 }
               ]
             }
           ]
         }
       ],
-      "intent": "Every idea in the pack at once: gate, cut, a floor to thread in mid-air, and a bowl to land in. Five stars, the mid-air gap is the narrowest in the pack, and the two low stars sit either side of the bowl's floor so the ball has to swing through rather than settle."
+      "intent": "A wall with one hole in it, above head height. The bowl has to throw the ball up through the gap and across to the far star."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -2,
+          "y": 6,
+          "w": 1,
+          "h": 3
+        },
+        {
+          "kind": "hazard",
+          "x": -2,
+          "y": 2,
+          "w": 1,
+          "h": 3
+        },
+        {
+          "kind": "hazard",
+          "x": -2,
+          "y": -2,
+          "w": 1,
+          "h": 3
+        }
+      ],
+      "index": 7,
+      "name": "The ladder",
+      "ball": {
+        "x": -4,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -2,
+          "y": 4
+        },
+        {
+          "x": -2,
+          "y": 0
+        },
+        {
+          "x": -2,
+          "y": -4
+        }
+      ],
+      "scoreGoal": 90,
+      "eqGoal": 3,
+      "solutions": [
+        {
+          "name": "three ramps",
+          "eqs": [
+            {
+              "expr": "y=-0.34x+3",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.4
+                }
+              ]
+            },
+            {
+              "expr": "y=0.18x+0.28",
+              "domain": [
+                {
+                  "xMin": -3,
+                  "xMax": 12
+                }
+              ]
+            },
+            "y=-0.55x-6"
+          ]
+        },
+        {
+          "name": "lower last ramp",
+          "eqs": [
+            {
+              "expr": "y=-0.34x+3",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.4
+                }
+              ]
+            },
+            {
+              "expr": "y=0.18x+0.28",
+              "domain": [
+                {
+                  "xMin": -3,
+                  "xMax": 12
+                }
+              ]
+            },
+            "y=-0.5x-5.6"
+          ]
+        },
+        {
+          "name": "shallower last ramp",
+          "eqs": [
+            {
+              "expr": "y=-0.34x+3",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.4
+                }
+              ]
+            },
+            {
+              "expr": "y=0.18x+0.28",
+              "domain": [
+                {
+                  "xMin": -3,
+                  "xMax": 12
+                }
+              ]
+            },
+            "y=-0.45x-5.6"
+          ]
+        }
+      ],
+      "intent": "Three slots in a wall, one above the other, and the ball has to come back to the wall three times. Three ramps, exactly the 90-point budget."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 0,
+          "y": 0,
+          "w": 1,
+          "h": 1
+        }
+      ],
+      "index": 8,
+      "name": "Imposter",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 2
+        },
+        {
+          "x": -2,
+          "y": 1
+        },
+        {
+          "x": 2,
+          "y": -1
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "sag under it",
+          "eqs": [
+            "y=0.09x^2-0.5x-1.3"
+          ]
+        },
+        {
+          "name": "sag harder",
+          "eqs": [
+            "y=0.12x^2-0.425x-1.25"
+          ]
+        },
+        {
+          "name": "arc over it",
+          "eqs": [
+            "y=-0.04x^2-0.475x+0.75"
+          ]
+        }
+      ],
+      "intent": "The three stars sit on a perfect line and the line is a trap. Sag under the block or arc over it — both score the same, and the sag is more than twice as quick."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -2,
+          "y": 6,
+          "w": 1,
+          "h": 3
+        },
+        {
+          "kind": "hazard",
+          "x": -1,
+          "y": 3,
+          "w": 3,
+          "h": 1
+        },
+        {
+          "kind": "hazard",
+          "x": 3,
+          "y": 3,
+          "w": 3,
+          "h": 1
+        }
+      ],
+      "index": 9,
+      "name": "Cave diving",
+      "ball": {
+        "x": -4,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -2,
+          "y": 4
+        },
+        {
+          "x": 1,
+          "y": 3
+        },
+        {
+          "x": -1,
+          "y": 1
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "solutions": [
+        {
+          "name": "creep to the edge and drop",
+          "eqs": [
+            {
+              "expr": "y=-0.05x+3.55",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.7
+                }
+              ]
+            },
+            "y=0.1x+0.8"
+          ]
+        },
+        {
+          "name": "slightly higher shelf",
+          "eqs": [
+            {
+              "expr": "y=-0.05x+3.6",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.7
+                }
+              ]
+            },
+            "y=0.1x+0.8"
+          ]
+        },
+        {
+          "name": "lower catch",
+          "eqs": [
+            {
+              "expr": "y=-0.05x+3.55",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.7
+                }
+              ]
+            },
+            "y=0.1x+0.4"
+          ]
+        }
+      ],
+      "intent": "A near-level shelf carries the ball slowly along the roof of the cave; cut it at the lip and the ball drops straight down the shaft onto a floor that returns it."
     }
   ]
 }

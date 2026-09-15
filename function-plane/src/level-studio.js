@@ -96,6 +96,7 @@ function LevelStudio({
   const [scoreGoal, setScoreGoal] = useLS(admin ? String(level.scoreGoal) : '');
   const [eqGoal, setEqGoal] = useLS(admin ? String(level.eqGoal) : '');
   const [materials, setMaterials] = useLS(admin ? !!level.materials : true);
+  const [explain, setExplain] = useLS(admin ? level.explain || '' : '');
   const [busy, setBusy] = useLS(false);
   const [msg, setMsg] = useLS('');
 
@@ -279,7 +280,8 @@ function LevelStudio({
         eq_goal: parseInt(eqGoal, 10),
         preplaced: equations.map(e => e.expr.trim()).filter(Boolean),
         objects,
-        materials
+        materials,
+        explain: explain || null
       };
       if (!patch.stars.length) throw new Error('At least one star is required');
       if (!isFinite(patch.score_goal) || !isFinite(patch.eq_goal)) throw new Error('Both star goals are required');
@@ -333,7 +335,42 @@ function LevelStudio({
       value: eqGoal,
       onChange: setEqGoal,
       numeric: true
-    }))), /*#__PURE__*/React.createElement("label", {
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--fp-ink-3)',
+        marginBottom: 5
+      }
+    }, "Introduces"), /*#__PURE__*/React.createElement("select", {
+      value: explain,
+      onChange: e => setExplain(e.target.value),
+      style: {
+        width: '100%',
+        height: 38,
+        borderRadius: 10,
+        padding: '0 10px',
+        background: 'var(--fp-surface)',
+        border: '1px solid var(--lv-line)',
+        color: 'var(--fp-ink)',
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Nothing \u2014 no popup"), Object.entries(window.FP_EXPLAINERS || {}).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.title))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--fp-ink-4)',
+        marginTop: 4,
+        lineHeight: 1.5
+      }
+    }, "Shown once, the first time a player opens this level.")), /*#__PURE__*/React.createElement("label", {
       style: {
         display: 'flex',
         alignItems: 'center',

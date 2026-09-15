@@ -43,7 +43,7 @@ const LEVELS = {
 function getLevelData(packId, levelIndex) {
   const base = LEVELS[`${packId}-${levelIndex}`] || LEVELS._default;
   const ov   = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];
-  if (!ov) return { ...base, preplaced: [], objects: [], materials: false };
+  if (!ov) return { ...base, preplaced: [], objects: [], materials: false, explain: null };
   return {
     ball:      (ov.ball_x != null && ov.ball_y != null) ? { x: ov.ball_x, y: ov.ball_y } : base.ball,
     stars:     Array.isArray(ov.stars) ? ov.stars : base.stars,
@@ -56,6 +56,9 @@ function getLevelData(packId, levelIndex) {
     objects:   Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
     // Whether players may set a curve's bounce (dead / perfectly elastic).
     materials: !!ov.materials,
+    // Which mechanic this level introduces — a key into FP_EXPLAINERS, shown
+    // once on the player's first visit. Null on levels that teach nothing new.
+    explain:   (ov.explain && window.FP_EXPLAINERS?.[ov.explain]) ? ov.explain : null,
   };
 }
 

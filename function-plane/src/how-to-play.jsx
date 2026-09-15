@@ -242,4 +242,61 @@ function RatingRow({ n, children }) {
   );
 }
 
+// ─── Level explainers ────────────────────────────────────────
+// A level that introduces a mechanic names one of these in its `explain`
+// column; the level screen shows it once, on the player's first visit. Kept
+// here beside How to Play because it is the same teaching copy, written
+// shorter — a player who is mid-level wants a sentence, not a chapter.
+const FP_EXPLAINERS = {
+  'how-to-play': {
+    title: 'Draw a track',
+    color: '#2d70b3',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <circle cx={6} cy={6} r={2.6} fill="currentColor"/>
+      <path d="M3 19C8 19 15 12 21 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+    </svg>,
+    body: <>
+      Tap <strong>Add</strong> and write an equation — <code>y=-x</code>, <code>y=x^2-3</code>,
+      anything you can graph. The curve becomes a solid track, and the ball rolls along it
+      under gravity. Collect every star to finish.
+      <div style={{ marginTop: 8 }}>
+        Fewer and simpler equations score better, so a line beats a parabola and one curve
+        beats two.
+      </div>
+    </>,
+  },
+  hazards: {
+    title: 'Mind the red',
+    color: '#d13b3b',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <rect x={4} y={7} width={16} height={10} rx={1.5} stroke="currentColor" strokeWidth={2} strokeDasharray="3 2.5"/>
+    </svg>,
+    body: <>
+      The dashed red areas are hazards. Touch one and the run ends immediately — it does not
+      matter how many stars you had already collected.
+      <div style={{ marginTop: 8 }}>
+        Your curve may cross a hazard; only the <em>ball</em> must not. Watch where it bounces,
+        not just where the track goes.
+      </div>
+    </>,
+  },
+  domain: {
+    title: 'Stop the track early',
+    color: '#6042a6',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M6 4v16M18 4v16" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+      <path d="M9 12h6" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+    </svg>,
+    body: <>
+      The bracket button on an equation row restricts its <strong>domain</strong> — the range of
+      x where the curve exists at all.
+      <div style={{ marginTop: 8 }}>
+        End a track before an obstacle and the ball flies off it instead of riding into trouble.
+        It costs nothing: a restricted curve scores exactly the same as a full one.
+      </div>
+    </>,
+  },
+};
+
+window.FP_EXPLAINERS = FP_EXPLAINERS;
 window.HowToPlayScreen = HowToPlayScreen;

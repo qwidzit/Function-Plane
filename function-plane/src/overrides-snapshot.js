@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-07-16T09:59:18.719Z
+// Generated: 2026-09-15T17:57:39.459Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -10,6 +10,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-I",
     "name": "Foundations",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T07:58:52.194+00:00",
     "is_hidden": false
    },
@@ -17,6 +18,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-IV",
     "name": "Geometry",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T07:24:43.472+00:00",
     "is_hidden": false
    },
@@ -24,6 +26,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-IX",
     "name": "Transforms",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T04:04:13.324+00:00",
     "is_hidden": true
    },
@@ -31,6 +34,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-V",
     "name": "Mastery",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T07:42:55.582+00:00",
     "is_hidden": false
    },
@@ -38,6 +42,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-VI",
     "name": "Asymptotes",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T04:04:27.357+00:00",
     "is_hidden": true
    },
@@ -45,6 +50,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-VII",
     "name": "Compositions",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T04:04:22.394+00:00",
     "is_hidden": true
    },
@@ -52,6 +58,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-VIII",
     "name": "Discontinuities",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T04:04:17.685+00:00",
     "is_hidden": true
    },
@@ -59,6 +66,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-X",
     "name": "Mastery",
     "allowed_class": null,
+    "modifier": null,
     "updated_at": "2026-05-05T04:04:06.242+00:00",
     "is_hidden": true
    },
@@ -66,6 +74,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "s-exp",
     "name": "Exponential",
     "allowed_class": "exp",
+    "modifier": null,
     "updated_at": "2026-05-08T16:29:59.47+00:00",
     "is_hidden": true
    },
@@ -73,6 +82,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "s-qua",
     "name": "Quadratic",
     "allowed_class": "quadratic",
+    "modifier": null,
     "updated_at": "2026-05-08T16:30:07.069+00:00",
     "is_hidden": true
    }
@@ -100,8 +110,11 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T04:05:29.355+00:00",
-    "preplaced": []
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": "how-to-play"
    },
    {
     "pack_id": "r-I",
@@ -111,234 +124,340 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "ball_y": 4,
     "stars": [
      {
-      "x": -2,
-      "y": -2
+      "x": 2,
+      "y": 0
      },
      {
       "x": 0,
       "y": -1
      },
      {
-      "x": 2,
-      "y": 0
+      "x": -2,
+      "y": -2
      }
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T04:06:51.673+00:00",
-    "preplaced": []
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-I",
     "level_index": 2,
-    "name": "Slope II",
+    "name": "Down and up",
     "ball_x": -3,
     "ball_y": 6,
     "stars": [
      {
-      "x": -3,
+      "x": -2,
+      "y": 3
+     },
+     {
+      "x": 0,
       "y": -1
      },
      {
-      "x": -1,
-      "y": -2
-     },
-     {
-      "x": 1,
-      "y": -3
+      "x": 2,
+      "y": 3
      }
     ],
-    "score_goal": 30,
+    "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T07:47:04.867+00:00",
-    "preplaced": []
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-I",
     "level_index": 3,
-    "name": "Down and Up",
-    "ball_x": -3,
-    "ball_y": 5,
-    "stars": [
-     {
-      "x": -2,
-      "y": 3
-     },
-     {
-      "x": 0,
-      "y": -1
-     },
-     {
-      "x": 2,
-      "y": 3
-     }
-    ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-05-05T07:54:04.361+00:00",
-    "preplaced": null
-   },
-   {
-    "pack_id": "r-I",
-    "level_index": 4,
-    "name": "Fly Away",
-    "ball_x": -3,
-    "ball_y": 7,
-    "stars": [
-     {
-      "x": -2,
-      "y": 3
-     },
-     {
-      "x": -1,
-      "y": -1
-     },
-     {
-      "x": 3,
-      "y": 1
-     }
-    ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-05-05T07:55:21.931+00:00",
-    "preplaced": null
-   },
-   {
-    "pack_id": "r-I",
-    "level_index": 5,
-    "name": "The Valley",
-    "ball_x": -5,
-    "ball_y": 3,
+    "name": "Low ceiling",
+    "ball_x": -4,
+    "ball_y": 2,
     "stars": [
      {
       "x": -4,
-      "y": 0
-     },
-     {
-      "x": 0,
-      "y": -1
-     },
-     {
-      "x": 4,
-      "y": 0
-     }
-    ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-05-05T07:58:07.801+00:00",
-    "preplaced": null
-   },
-   {
-    "pack_id": "r-I",
-    "level_index": 6,
-    "name": "Curveball",
-    "ball_x": -2,
-    "ball_y": 5,
-    "stars": [
-     {
-      "x": -1,
-      "y": 2
-     },
-     {
-      "x": 2,
       "y": 1
      },
      {
-      "x": 4,
-      "y": -2
+      "x": -1,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": -3
      }
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T07:48:56.803+00:00",
-    "preplaced": null
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 1,
+      "w": 3,
+      "x": -1,
+      "y": 1.5,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": "hazards"
    },
    {
     "pack_id": "r-I",
-    "level_index": 7,
-    "name": "Hole in the wall",
-    "ball_x": -2,
+    "level_index": 4,
+    "name": "Detour",
+    "ball_x": -5,
     "ball_y": 5,
     "stars": [
      {
-      "x": -1,
-      "y": 3
+      "x": -4,
+      "y": 2
      },
      {
       "x": 0,
-      "y": 0
+      "y": -1
      },
      {
       "x": 4,
-      "y": 0
+      "y": 2
      }
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T07:50:08.91+00:00",
-    "preplaced": null
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 5,
+      "w": 1,
+      "x": 0,
+      "y": 2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-I",
-    "level_index": 8,
-    "name": "Escalator",
-    "ball_x": -3,
-    "ball_y": 5,
+    "level_index": 5,
+    "name": "Cut it short",
+    "ball_x": -4,
+    "ball_y": 4,
     "stars": [
      {
       "x": -2,
       "y": 2
      },
      {
-      "x": 1,
+      "x": 0,
       "y": 1
      },
      {
-      "x": 2,
-      "y": -1
-     },
-     {
-      "x": -3,
+      "x": 3,
       "y": -3
      }
     ],
-    "score_goal": 60,
+    "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T07:56:37.432+00:00",
-    "preplaced": null
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 1,
+      "w": 1,
+      "x": 3,
+      "y": 0,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": "domain"
    },
    {
     "pack_id": "r-I",
-    "level_index": 9,
-    "name": "The summit",
+    "level_index": 6,
+    "name": "Hole in the wall",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -3,
+      "y": 1
+     },
+     {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": 3,
+      "y": 3
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 1,
+      "x": 1.5,
+      "y": 5.25,
+      "kind": "hazard"
+     },
+     {
+      "h": 3,
+      "w": 1,
+      "x": 1.5,
+      "y": 0.75,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 7,
+    "name": "The ladder",
+    "ball_x": -4,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -2,
+      "y": 4
+     },
+     {
+      "x": -2,
+      "y": 0
+     },
+     {
+      "x": -2,
+      "y": -4
+     }
+    ],
+    "score_goal": 90,
+    "eq_goal": 3,
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 1,
+      "x": -2,
+      "y": 6,
+      "kind": "hazard"
+     },
+     {
+      "h": 3,
+      "w": 1,
+      "x": -2,
+      "y": 2,
+      "kind": "hazard"
+     },
+     {
+      "h": 3,
+      "w": 1,
+      "x": -2,
+      "y": -2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 8,
+    "name": "Imposter",
     "ball_x": -5,
     "ball_y": 4,
     "stars": [
      {
       "x": -4,
-      "y": -1
-     },
-     {
-      "x": -1,
-      "y": -1
-     },
-     {
-      "x": 0,
       "y": 2
      },
      {
-      "x": 1,
-      "y": -1
+      "x": -2,
+      "y": 1
      },
      {
-      "x": 4,
+      "x": 2,
       "y": -1
      }
     ],
-    "score_goal": 60,
+    "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-05-05T07:57:24.397+00:00",
-    "preplaced": null
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 1,
+      "w": 1,
+      "x": 0,
+      "y": 0,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null
+   },
+   {
+    "pack_id": "r-I",
+    "level_index": 9,
+    "name": "Cave diving",
+    "ball_x": -4,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -2,
+      "y": 4
+     },
+     {
+      "x": 1,
+      "y": 3
+     },
+     {
+      "x": -1,
+      "y": 1
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 1,
+      "x": -2,
+      "y": 6,
+      "kind": "hazard"
+     },
+     {
+      "h": 1,
+      "w": 3,
+      "x": -1,
+      "y": 3,
+      "kind": "hazard"
+     },
+     {
+      "h": 1,
+      "w": 3,
+      "x": 3,
+      "y": 3,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -363,7 +482,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 40,
     "eq_goal": 1,
     "updated_at": "2026-05-06T05:49:57.452+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -388,7 +510,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 30,
     "eq_goal": 1,
     "updated_at": "2026-05-06T05:51:03.724+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -413,7 +538,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 30,
     "eq_goal": 1,
     "updated_at": "2026-05-06T05:51:42.225+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -442,7 +570,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 320,
     "eq_goal": 1,
     "updated_at": "2026-05-06T05:52:51.923+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -463,7 +594,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 60,
     "eq_goal": 2,
     "updated_at": "2026-05-06T05:54:32.095+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -488,7 +622,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 60,
     "eq_goal": 2,
     "updated_at": "2026-05-06T05:58:40.44+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -510,10 +647,13 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 1
      }
     ],
-    "score_goal": 320,
+    "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T05:59:20.765+00:00",
-    "preplaced": []
+    "updated_at": "2026-09-11T09:35:21.439+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -530,7 +670,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 30,
     "eq_goal": 1,
     "updated_at": "2026-05-06T06:00:12.668+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -559,7 +702,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 90,
     "eq_goal": 3,
     "updated_at": "2026-05-06T06:01:16.504+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    },
    {
     "pack_id": "r-II",
@@ -588,7 +734,10 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "score_goal": 60,
     "eq_goal": 2,
     "updated_at": "2026-05-06T06:02:41.998+00:00",
-    "preplaced": []
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null
    }
   ],
   "achievements": []
