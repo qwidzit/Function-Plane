@@ -165,6 +165,18 @@ function renderSVG(level, res, title) {
                    [o.x - px * hw + ux * o.len, o.y - py * hw + uy * o.len], [o.x - px * hw, o.y - py * hw]];
       out.push(`<polygon points="${pts.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ')}" fill="${c}" fill-opacity="0.09" stroke="${c}" stroke-width="1.6" stroke-dasharray="6 4"/>`);
       out.push(`<line x1="${X(pts[0][0])}" y1="${Y(pts[0][1])}" x2="${X(pts[3][0])}" y2="${Y(pts[3][1])}" stroke="${c}" stroke-width="5" stroke-linecap="round"/>`);
+      // Which way the wind blows is the whole point of a fan; without an arrow
+      // the box says nothing.
+      // Sized in world units, not as a fraction of `len`: a long fan is not a
+      // fan with a bigger arrow, and two fans facing each other must not have
+      // their heads overlap into a blob.
+      const hl = 0.42, hw2 = Math.min(0.26, o.w * 0.22), tail = Math.min(1.1, o.len * 0.3);
+      const mx = o.x + ux * (o.len * 0.5), my = o.y + uy * (o.len * 0.5);
+      out.push(`<line x1="${X(mx - ux * tail).toFixed(1)}" y1="${Y(my - uy * tail).toFixed(1)}" x2="${X(mx).toFixed(1)}" y2="${Y(my).toFixed(1)}" stroke="${c}" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`);
+      const head = [[mx + ux * hl, my + uy * hl],
+                    [mx + px * hw2, my + py * hw2],
+                    [mx - px * hw2, my - py * hw2]];
+      out.push(`<polygon points="${head.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ')}" fill="${c}" opacity="0.85"/>`);
     } else {
       out.push(`<rect x="${X(o.x - o.w / 2).toFixed(1)}" y="${Y(o.y + o.h / 2).toFixed(1)}" width="${(o.w * k).toFixed(1)}" height="${(o.h * k).toFixed(1)}" fill="${c}" fill-opacity="0.1" stroke="${c}" stroke-width="1.6" stroke-dasharray="6 4"/>`);
     }

@@ -42,21 +42,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "roll into the wind",
           "eqs": [
-            "y=-0.575x+0.1"
+            "y=-0.6x-0.3"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=-0.6x+-0.1"
+            "y=-0.575x+0.1"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=-0.6x+-0.3"
+            "y=-0.6x+-0.1"
           ]
         }
       ],
@@ -101,21 +101,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "steep enough to push through",
           "eqs": [
-            "y=-0.7x+-1.1"
+            "y=-0.7x-1.1"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=-0.725x+-0.95"
+            "y=-0.7x+-1.1"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=-0.75x+-0.9"
+            "y=-0.725x+-0.95"
           ]
         }
       ],
@@ -160,21 +160,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "drop into the stream",
           "eqs": [
-            "y=-1.025x+-1.6"
+            "y=-1x-1.9"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=-0.875x+-2.15"
+            "y=-1.025x+-1.6"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=-0.975x+-2.05"
+            "y=-0.875x+-2.15"
           ]
         }
       ],
@@ -219,21 +219,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "land on the housing",
           "eqs": [
-            "y=0.2x^2+0.2x+-0.6"
+            "y=0.2x^2+0.1x-0.6"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=0.15x^2+0x+-0.6"
+            "y=0.2x^2+0.2x+-0.6"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=0.2x^2+0x+-1.2"
+            "y=0.15x^2+0x+-0.6"
           ]
         }
       ],
@@ -285,7 +285,7 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "ride the column up",
           "eqs": [
             "y=-0.325x+0.05"
           ]
@@ -297,7 +297,7 @@
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
             "y=-0.3x+-0.05"
           ]
@@ -351,21 +351,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "aim into the wind",
           "eqs": [
-            "y=-0.8x+-1.45"
+            "y=-0.8x-1.4"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=-0.85x+-1.4"
+            "y=-0.8x+-1.45"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=-0.9x+-1.35"
+            "y=-0.85x+-1.4"
           ]
         }
       ],
@@ -410,21 +410,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "creep in and ride",
           "eqs": [
-            "y=0.25x^2+1.1x+0"
+            "y=-0.2x-0.6"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=0.2x^2+0.9x+0"
+            "y=0.25x^2+1.1x+0"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=0.15x^2+0.6x+-0.2"
+            "y=0.2x^2+0.9x+0"
           ]
         }
       ],
@@ -478,21 +478,21 @@
       "eqGoal": 1,
       "solutions": [
         {
-          "name": "quickest",
+          "name": "drop in and let it swing",
           "eqs": [
-            "y=0.05x^2+-0.6x+-1.6"
+            "y=-0.8x-0.6"
           ]
         },
         {
           "name": "a shade different",
           "eqs": [
-            "y=0.05x^2+-0.7x+-1.6"
+            "y=0.05x^2+-0.6x+-1.6"
           ]
         },
         {
-          "name": "another way",
+          "name": "another line",
           "eqs": [
-            "y=-1.175x+-4"
+            "y=0.05x^2+-0.7x+-1.6"
           ]
         }
       ],
