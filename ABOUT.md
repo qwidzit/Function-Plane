@@ -714,10 +714,11 @@ Two different kinds of help, deliberately not the same mechanism.
 *kind* of function the level was built around and nothing about the numbers:
 a hint should shorten the search, not end it. `LEVEL_HINTS` in `data.jsx`
 carries the ten for pack I; everywhere else `getHint` returns null and the
-popup says so. A `level_overrides.hint` column wins over the table wherever
-one exists, the way every other authored field does — and because the app only
-reads keys off the override row, the feature works whether or not that column
-has been added to the database yet.
+popup says so. `level_overrides.hint` (`20260916_level_hints.sql`, additive)
+wins over the table wherever it is set, and the studio's Level tab edits it —
+the same shape `explain` has. The app only reads keys off the override row, so
+the built-in hints work whether or not that migration has been applied; only
+authoring one per level needs it.
 
 **Tutorials** — three-page decks in `how-to-play.jsx`, shown once each, with
 an X that closes on page one for a player who already knows and a **Got it**

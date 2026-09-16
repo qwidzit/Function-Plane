@@ -57,6 +57,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
   const [eqGoal,    setEqGoal]    = useLS(admin ? String(level.eqGoal) : '');
   const [materials, setMaterials] = useLS(admin ? !!level.materials : true);
   const [explain,   setExplain]   = useLS(admin ? (level.explain || '') : '');
+  const [hint,      setHint]      = useLS(admin ? (level.hint || '') : '');
   const [busy,      setBusy]      = useLS(false);
   const [msg,       setMsg]       = useLS('');
 
@@ -219,6 +220,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
         preplaced:  equations.map(e => e.expr.trim()).filter(Boolean),
         objects, materials,
         explain: explain || null,
+        hint: hint.trim() || null,
       };
       if (!patch.stars.length) throw new Error('At least one star is required');
       if (!isFinite(patch.score_goal) || !isFinite(patch.eq_goal)) throw new Error('Both star goals are required');
@@ -242,6 +244,21 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}><StudioField label="Score goal (≤ for 2★)" value={scoreGoal} onChange={setScoreGoal} numeric/></div>
           <div style={{ flex: 1 }}><StudioField label="Equation goal (≤ for 3★)" value={eqGoal} onChange={setEqGoal} numeric/></div>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--fp-ink-3)', marginBottom: 5 }}>Hint</div>
+          <textarea value={hint} onChange={e => setHint(e.target.value)} rows={2}
+            placeholder={window.getHint?.(pack.id, levelIndex) || 'No hint — the button says so'}
+            style={{
+              width: '100%', borderRadius: 10, padding: '8px 10px', resize: 'vertical',
+              boxSizing: 'border-box', background: 'var(--fp-surface)',
+              border: '1px solid var(--lv-line)', color: 'var(--fp-ink)',
+              fontSize: 13, lineHeight: 1.5, outline: 'none', fontFamily: 'inherit',
+            }}/>
+          <div style={{ fontSize: 11, color: 'var(--fp-ink-4)', marginTop: 4, lineHeight: 1.5 }}>
+            What <em>kind</em> of function this level wants — never the numbers. Overrides
+            the built-in hint for this level; leave empty to fall back to it.
+          </div>
         </div>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--fp-ink-3)', marginBottom: 5 }}>Introduces</div>
