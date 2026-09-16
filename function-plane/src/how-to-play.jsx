@@ -118,6 +118,7 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
             marginBottom: 8,
           }}>
             {[
+              ['Constant (y = c)',       ' 0 pts'],
               ['Linear   (mx + b)',      '10 pts'],
               ['Quadratic (x²)',         '20 pts'],
               ['Piecewise (|x|, ⌊x⌋)',   '20 pts'],

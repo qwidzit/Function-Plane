@@ -766,7 +766,15 @@ It sits on the plane rather than in the HUD because the HUD row was full: two
 goal chips and History already filled it, and a fourth chip wrapped the row
 onto a second line.
 
-`LEVEL_HINTS` in `data.jsx` carries the ten for pack I; everywhere else
+**A hint follows from the level's own goals, not from taste.** A run scores
+complexity plus 20 per equation, so `score_goal − 20 × eq_goal` is the
+complexity the author left room for: 0 a constant, 10 a line, 20 a parabola.
+A domain restriction costs nothing, so a level solved by a *cut* line is still
+`Linear`. That makes writing one bookkeeping rather than judgement — and it
+doubles as a check on the level, because a goal no curve of the implied family
+can reach is a goal that needs re-tuning.
+
+`LEVEL_HINTS` in `data.jsx` carries packs I and II; everywhere else
 `getHint` returns null and the popup says so. `level_overrides.hint`
 (`20260916_level_hints.sql`, applied) wins over the table wherever it is set,
 and the studio's Level tab edits it — the same shape `explain` has.

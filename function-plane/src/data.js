@@ -95,8 +95,14 @@ const LEVELS = {
 // can give without solving the level, and a sentence of advice reads as the
 // answer even when it isn't. Where the answer is several curves the count is
 // the thing worth knowing, so it says that instead: which families they are
-// would be most of the solution. Only the first pack is written; everywhere
-// else a hint is simply absent and the button says so. A `hint` column on
+// would be most of the solution.
+//
+// Each one follows from the level's own goals, not from taste: a run scores
+// complexity + 20 per equation, so `score_goal - 20 * eq_goal` is the
+// complexity the author left room for — 0 a constant, 10 a line, 20 a
+// parabola. A domain restriction costs nothing, so a level solved by a
+// *cut* line is still Linear. Packs I and II are written; everywhere else a
+// hint is simply absent and the button says so. A `hint` column on
 // level_overrides wins over this table wherever one exists, the way every
 // other authored field does.
 const LEVEL_HINTS = {
@@ -109,7 +115,17 @@ const LEVEL_HINTS = {
   'r-I-6': 'Quadratic',
   'r-I-7': 'Use 3 functions',
   'r-I-8': 'Quadratic',
-  'r-I-9': 'Use 2 functions'
+  'r-I-9': 'Use 2 functions',
+  'r-II-0': 'Linear',
+  'r-II-1': 'Linear',
+  'r-II-2': 'Constant',
+  'r-II-3': 'Linear',
+  'r-II-4': 'Quadratic',
+  'r-II-5': 'Quadratic',
+  'r-II-6': 'Linear',
+  'r-II-7': 'Linear',
+  'r-II-8': 'Use 2 functions',
+  'r-II-9': 'Use 2 functions'
 };
 function getHint(packId, levelIndex) {
   const ov = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];

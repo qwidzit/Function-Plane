@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-16T12:38:35.928Z
+// Generated: 2026-09-16T15:04:40.101Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -122,7 +122,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [],
     "materials": false,
-    "explain": "how-to-play"
+    "explain": "how-to-play",
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -150,7 +151,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -178,7 +180,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -202,19 +205,20 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-16T06:26:17.020Z",
+    "updated_at": "2026-09-16T06:26:02.271733+00:00",
     "preplaced": [],
     "objects": [
      {
-      "kind": "hazard",
+      "h": 1,
+      "w": 3,
       "x": -1,
       "y": 1,
-      "w": 3,
-      "h": 1
+      "kind": "hazard"
      }
     ],
     "materials": false,
-    "explain": "hazards"
+    "explain": "hazards",
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -250,7 +254,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -286,7 +291,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": "domain"
+    "explain": "domain",
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -329,7 +335,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -379,7 +386,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -415,7 +423,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-I",
@@ -465,7 +474,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -493,17 +503,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": 0,
       "y": -1,
-      "angle": 90,
       "len": 4,
-      "w": 2,
+      "kind": "fan",
+      "angle": 90,
       "strength": 20
      }
     ],
     "materials": false,
-    "explain": "fans"
+    "explain": "fans",
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -531,17 +542,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": -3,
       "y": 0,
-      "angle": 0,
       "len": 4,
-      "w": 2,
+      "kind": "fan",
+      "angle": 0,
       "strength": 20
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -569,17 +581,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": 2,
       "y": -2,
-      "angle": 135,
       "len": 4,
-      "w": 2,
+      "kind": "fan",
+      "angle": 135,
       "strength": 30
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -607,26 +620,27 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 4,
       "x": 2,
       "y": 0,
-      "angle": 180,
       "len": 4,
-      "w": 4,
+      "kind": "fan",
+      "angle": 180,
       "strength": 30
      },
      {
-      "kind": "fan",
+      "w": 4,
       "x": 2,
       "y": -4,
-      "angle": 0,
       "len": 4,
-      "w": 4,
+      "kind": "fan",
+      "angle": 0,
       "strength": 30
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -654,17 +668,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": 3,
       "y": 3,
-      "angle": -90,
       "len": 4,
-      "w": 2,
+      "kind": "fan",
+      "angle": -90,
       "strength": 20
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -692,17 +707,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": 4.5,
       "y": -1,
-      "angle": 90,
       "len": 4,
-      "w": 2,
+      "kind": "fan",
+      "angle": 90,
       "strength": 30
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -730,24 +746,25 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 2,
       "x": 2.5,
       "y": 0,
-      "angle": 90,
       "len": 3,
-      "w": 2,
+      "kind": "fan",
+      "angle": 90,
       "strength": 20
      },
      {
-      "kind": "hazard",
+      "h": 3,
+      "w": 1,
       "x": 4,
       "y": 1.5,
-      "w": 1,
-      "h": 3
+      "kind": "hazard"
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -775,24 +792,25 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 4,
       "x": 3,
       "y": -2,
-      "angle": 180,
       "len": 2,
-      "w": 4,
+      "kind": "fan",
+      "angle": 180,
       "strength": 30
      },
      {
-      "kind": "hazard",
+      "h": 1,
+      "w": 2,
       "x": -1,
       "y": -6.5,
-      "w": 2,
-      "h": 1
+      "kind": "hazard"
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -828,17 +846,18 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 12,
       "x": -10,
       "y": 0,
-      "angle": 0,
       "len": 20,
-      "w": 12,
+      "kind": "fan",
+      "angle": 0,
       "strength": 5
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    },
    {
     "pack_id": "r-II",
@@ -874,26 +893,27 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "preplaced": [],
     "objects": [
      {
-      "kind": "fan",
+      "w": 10,
       "x": 5,
       "y": -10,
-      "angle": 90,
       "len": 20,
-      "w": 10,
+      "kind": "fan",
+      "angle": 90,
       "strength": 5
      },
      {
-      "kind": "fan",
+      "w": 10,
       "x": -5,
       "y": 10,
-      "angle": -90,
       "len": 20,
-      "w": 10,
+      "kind": "fan",
+      "angle": -90,
       "strength": 5
      }
     ],
     "materials": false,
-    "explain": null
+    "explain": null,
+    "hint": null
    }
   ],
   "achievements": []

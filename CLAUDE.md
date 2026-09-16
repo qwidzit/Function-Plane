@@ -156,6 +156,13 @@ believing it.
   same numbers baked in (`supabase/migrations/`). If the cheapest winning run
   gets cheaper and the guard isn't migrated with it, every run at the new
   price is rejected on sync and the player silently loses the record.
+- `overrides-snapshot.js` disagrees with the database → someone hand-edited it
+  rather than running `npm run snapshot:data`. Two tells: an `updated_at` in
+  `Z` form (the file's own format is `+00:00`) and object keys in insertion
+  order (Postgres normalises `jsonb` key order, so a real fetch always sorts
+  them). It reads by key either way, but the version signature the app
+  compares against the server is built from `updated_at`, so a fabricated one
+  makes the check lie. Regenerate it; do not patch it.
 - Added a pack to `data.jsx` → the same trigger has an allow-list of pack ids,
   because `profiles.total_stars` is summed from those rows. A pack it doesn't
   know is rejected on sync, which looks like "my scores stopped saving".
