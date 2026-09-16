@@ -398,6 +398,31 @@ const FP_EXPLAINERS = {
       }
     }, "Your curve may cross a hazard; only the ", /*#__PURE__*/React.createElement("em", null, "ball"), " must not. Watch where it bounces, not just where the track goes."))
   },
+  fans: {
+    title: 'Mind the wind',
+    color: '#1f9aa8',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M4 8h10a3 3 0 1 0-3-3",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M4 14h13a3 3 0 1 1-3 3",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round"
+    })),
+    body: /*#__PURE__*/React.createElement(React.Fragment, null, "A fan pushes the ball the way its arrow points, the whole time the ball is inside the shaded box. It does not care what your track is doing \u2014 wind and gravity simply add up.", /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8
+      }
+    }, "The solid bar at the fan's base is part of it. That edge is a wall: the ball lands on it, and cannot be rolled into the fan from behind."))
+  },
   domain: {
     title: 'Stop the track early',
     color: '#6042a6',

@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-15T17:57:39.459Z
+// Generated: 2026-09-16T10:02:02.083Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -12,6 +12,14 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "allowed_class": null,
     "modifier": null,
     "updated_at": "2026-05-05T07:58:52.194+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "r-II",
+    "name": "Crosswinds",
+    "allowed_class": null,
+    "modifier": null,
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "is_hidden": false
    },
    {
@@ -462,280 +470,428 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "r-II",
     "level_index": 0,
-    "name": "Reverse",
-    "ball_x": -3,
-    "ball_y": 4,
+    "name": "Updraft",
+    "ball_x": -4,
+    "ball_y": 5,
     "stars": [
      {
       "x": -2,
-      "y": -2
+      "y": 2
      },
      {
       "x": 0,
-      "y": 0
+      "y": 1
      },
      {
       "x": 2,
       "y": 2
      }
     ],
-    "score_goal": 40,
+    "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T05:49:57.452+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 0,
+      "y": -1,
+      "angle": 90,
+      "len": 4,
+      "w": 2,
+      "strength": 20
+     }
+    ],
     "materials": false,
-    "explain": null
+    "explain": "fans"
    },
    {
     "pack_id": "r-II",
     "level_index": 1,
-    "name": "Falling Down",
-    "ball_x": -1,
-    "ball_y": 5,
+    "name": "Tailwind",
+    "ball_x": -2,
+    "ball_y": 4,
     "stars": [
      {
-      "x": -1,
-      "y": 2
-     },
-     {
-      "x": 0,
+      "x": -2,
       "y": 0
      },
      {
-      "x": 1,
-      "y": -2
+      "x": 0,
+      "y": 1
+     },
+     {
+      "x": 2,
+      "y": 2
      }
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T05:51:03.724+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": -3,
+      "y": 0,
+      "angle": 0,
+      "len": 4,
+      "w": 2,
+      "strength": 20
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 2,
-    "name": "Falling Up",
-    "ball_x": 0,
-    "ball_y": 4,
+    "name": "Cannonball",
+    "ball_x": 2,
+    "ball_y": 5,
     "stars": [
      {
       "x": 2,
       "y": 2
      },
      {
-      "x": 2,
+      "x": 0,
       "y": 0
      },
      {
-      "x": 2,
-      "y": -2
+      "x": -2,
+      "y": 2
      }
     ],
-    "score_goal": 30,
+    "score_goal": 20,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T05:51:42.225+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 2,
+      "y": -2,
+      "angle": 135,
+      "len": 4,
+      "w": 2,
+      "strength": 30
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 3,
-    "name": "On the edge",
-    "ball_x": -3,
+    "name": "Wind tunnel",
+    "ball_x": 2,
     "ball_y": 4,
     "stars": [
      {
-      "x": -3,
+      "x": -1,
       "y": 1
      },
      {
       "x": -1,
-      "y": 0
-     },
-     {
-      "x": 1,
       "y": -1
      },
      {
-      "x": 2,
+      "x": -1,
       "y": -3
      }
     ],
-    "score_goal": 320,
+    "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T05:52:51.923+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 2,
+      "y": 0,
+      "angle": 180,
+      "len": 4,
+      "w": 4,
+      "strength": 30
+     },
+     {
+      "kind": "fan",
+      "x": 2,
+      "y": 0,
+      "angle": 0,
+      "len": 4,
+      "w": 4,
+      "strength": 30
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 4,
-    "name": "Scattered",
+    "name": "Downforce",
     "ball_x": -2,
-    "ball_y": 5,
+    "ball_y": 3,
     "stars": [
      {
-      "x": -3,
-      "y": -1
+      "x": -1,
+      "y": 0
      },
      {
-      "x": 2,
-      "y": 2
+      "x": 1,
+      "y": -2
+     },
+     {
+      "x": 3,
+      "y": 1
      }
     ],
-    "score_goal": 60,
-    "eq_goal": 2,
-    "updated_at": "2026-05-06T05:54:32.095+00:00",
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 3,
+      "y": 3,
+      "angle": -90,
+      "len": 4,
+      "w": 2,
+      "strength": 20
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 5,
-    "name": "Downhill",
-    "ball_x": -1,
+    "name": "Elevator",
+    "ball_x": -2,
     "ball_y": 4,
     "stars": [
      {
-      "x": -3,
-      "y": 3
-     },
-     {
-      "x": -1,
+      "x": -2,
       "y": 1
      },
      {
-      "x": 1,
-      "y": -1
+      "x": 4.5,
+      "y": 2.5
+     },
+     {
+      "x": 4.5,
+      "y": 5.5
      }
     ],
-    "score_goal": 60,
-    "eq_goal": 2,
-    "updated_at": "2026-05-06T05:58:40.44+00:00",
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 4.5,
+      "y": -1,
+      "angle": 90,
+      "len": 4,
+      "w": 2,
+      "strength": 30
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 6,
-    "name": "The Line",
-    "ball_x": 0,
-    "ball_y": 5,
+    "name": "Above the wall",
+    "ball_x": -3,
+    "ball_y": 3,
     "stars": [
      {
-      "x": -4,
+      "x": -2,
       "y": 1
      },
      {
       "x": 0,
-      "y": 1
+      "y": 2
      },
      {
-      "x": -4,
-      "y": 1
+      "x": 6,
+      "y": 2
      }
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-11T09:35:21.439+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 2.5,
+      "y": 0,
+      "angle": 90,
+      "len": 3,
+      "w": 2,
+      "strength": 20
+     },
+     {
+      "kind": "hazard",
+      "x": 4,
+      "y": 1.5,
+      "w": 1,
+      "h": 3
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 7,
-    "name": "Emptiness",
-    "ball_x": -1,
-    "ball_y": 4,
+    "name": "Trickshot",
+    "ball_x": -2,
+    "ball_y": 5,
     "stars": [
      {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": -1,
+      "y": -5
+     },
+     {
       "x": 2,
-      "y": 0
+      "y": -2
      }
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-05-06T06:00:12.668+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 3,
+      "y": -2,
+      "angle": 180,
+      "len": 2,
+      "w": 4,
+      "strength": 30
+     },
+     {
+      "kind": "hazard",
+      "x": -1,
+      "y": -6.5,
+      "w": 2,
+      "h": 1
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 8,
-    "name": "Crossroads",
-    "ball_x": 0,
-    "ball_y": 6,
+    "name": "Windy landscape",
+    "ball_x": -8,
+    "ball_y": 5,
     "stars": [
      {
-      "x": 0,
+      "x": -6,
       "y": 2
      },
      {
+      "x": -4,
+      "y": -0.5
+     },
+     {
       "x": 0,
+      "y": 4
+     },
+     {
+      "x": 4,
       "y": -2
      },
      {
-      "x": 2,
-      "y": 0
-     },
-     {
-      "x": -2,
-      "y": 0
+      "x": 8,
+      "y": 2
      }
     ],
-    "score_goal": 90,
-    "eq_goal": 3,
-    "updated_at": "2026-05-06T06:01:16.504+00:00",
+    "score_goal": 70,
+    "eq_goal": 2,
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": -10,
+      "y": 0,
+      "angle": 0,
+      "len": 20,
+      "w": 12,
+      "strength": 5
+     }
+    ],
     "materials": false,
     "explain": null
    },
    {
     "pack_id": "r-II",
     "level_index": 9,
-    "name": "Loneliness",
-    "ball_x": -4,
-    "ball_y": 7,
+    "name": "To the moon and back",
+    "ball_x": 1,
+    "ball_y": 6,
     "stars": [
      {
-      "x": -3,
+      "x": -7,
+      "y": -4
+     },
+     {
+      "x": -5,
+      "y": 4
+     },
+     {
+      "x": 2,
+      "y": 0
+     },
+     {
+      "x": 4,
+      "y": -7
+     },
+     {
+      "x": 7.5,
       "y": 3
-     },
-     {
-      "x": -1,
-      "y": 1
-     },
-     {
-      "x": 1,
-      "y": -1
-     },
-     {
-      "x": 5,
-      "y": 2
      }
     ],
-    "score_goal": 60,
+    "score_goal": 70,
     "eq_goal": 2,
-    "updated_at": "2026-05-06T06:02:41.998+00:00",
+    "updated_at": "2026-09-16T10:01:32.546051+00:00",
     "preplaced": [],
-    "objects": [],
+    "objects": [
+     {
+      "kind": "fan",
+      "x": 5,
+      "y": -10,
+      "angle": 90,
+      "len": 20,
+      "w": 10,
+      "strength": 5
+     },
+     {
+      "kind": "fan",
+      "x": -5,
+      "y": -10,
+      "angle": -90,
+      "len": 20,
+      "w": 10,
+      "strength": 5
+     }
+    ],
     "materials": false,
     "explain": null
    }

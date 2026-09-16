@@ -11,7 +11,7 @@
 //   node scripts/verify-levels.js [spec.json ...] [--svg <dir>] [--json <file>] [--trail]
 //
 // Specs default to levels/*.json. Each holds { packId, modifier?, levels: [] },
-// and each level mirrors a level_overrides row plus `solutions` — the first is
+// and each level mirrors a level_overrides row plus optional `solutions` — the first is
 // what the author intends the player to write, the rest are other answers the
 // level is meant to accept. A level passes when the intended solution earns all
 // three stars AND every alternative still clears: a level only one curve can
@@ -264,6 +264,13 @@ for (const file of files) {
   console.log(`\n${spec.packId}${spec.modifier ? ` (${spec.modifier})` : ''} — ${path.basename(file)}`);
   console.log('  #  name                 outcome        time   eqs  score/goal  stars');
   for (const level of spec.levels) {
+    // A level authored and playtested by hand carries no `solutions`. Say so and
+    // move on: pretending to verify it would be worse than admitting we didn't.
+    if (!level.solutions || !level.solutions.length) {
+      console.log(`  – ${level.index}. ${(level.name || '').padEnd(20).slice(0, 20)} author-tested, no replay`);
+      report.push({ packId: spec.packId, level, results: [] });
+      continue;
+    }
     total++;
     const all = runAll(level, spec.modifier);
     const res = all[0];

@@ -280,6 +280,22 @@ const FP_EXPLAINERS = {
       </div>
     </>,
   },
+  fans: {
+    title: 'Mind the wind',
+    color: '#1f9aa8',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M4 8h10a3 3 0 1 0-3-3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+      <path d="M4 14h13a3 3 0 1 1-3 3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+    </svg>,
+    body: <>
+      A fan pushes the ball the way its arrow points, the whole time the ball is inside the shaded
+      box. It does not care what your track is doing — wind and gravity simply add up.
+      <div style={{ marginTop: 8 }}>
+        The solid bar at the fan's base is part of it. That edge is a wall: the ball lands on it, and
+        cannot be rolled into the fan from behind.
+      </div>
+    </>,
+  },
   domain: {
     title: 'Stop the track early',
     color: '#6042a6',
