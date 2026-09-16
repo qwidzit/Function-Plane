@@ -160,6 +160,9 @@ for not running it before a commit.
   like (`y=sin(x`), a surplus one is still an error, `pi` glued to a digit is
   π, a name before `(` that is not callable is a product (`x(x+1)` is a
   quadratic and priced as one), and a hidden row costs nothing.
+- **The typeset layer** — `MathExpr` rendered at *every* offset of a few
+  expressions, counting the cursors it draws and the brackets. Two caret bugs
+  shipped from that file while it was only ever checked by eye.
 - **Level data** — the snapshot parses, every authored level has a ball, stars
   and positive goals, and `_default`'s goal stays on the authored scale.
 - **Build parity** — recompiles every `.jsx` and compares to the committed
@@ -765,10 +768,17 @@ onto a second line.
 
 `LEVEL_HINTS` in `data.jsx` carries the ten for pack I; everywhere else
 `getHint` returns null and the popup says so. `level_overrides.hint`
-(`20260916_level_hints.sql`, additive) wins over the table wherever it is set,
-and the studio's Level tab edits it — the same shape `explain` has. The app
-only reads keys off the override row, so the built-in hints work whether or
-not that migration has been applied; only authoring one per level needs it.
+(`20260916_level_hints.sql`, applied) wins over the table wherever it is set,
+and the studio's Level tab edits it — the same shape `explain` has.
+
+**Reading a hint and saving one are not the same dependency.** `getHint` only
+looks a key up on the override row, so the built-in table works with or
+without the column. The studio's save is the opposite: its patch names every
+column it writes, `hint` among them and always — `null` when the box is empty
+— and PostgREST refuses an upsert naming a column that does not exist. So
+between shipping the field and applying the migration, **every** level save
+failed, not just one with a hint in it. Adding a field to that patch means
+applying its migration in the same breath.
 
 **Tutorials** — three-page decks in `how-to-play.jsx`, shown once each, with
 an X that closes on page one for a player who already knows and a **Got it**
@@ -958,9 +968,10 @@ re-look against real play. Records already stored keep their stars.
   blob, `updated_at`), `level_scores` (`(user_id, pack_id, level_index)`
   composite PK, `best_score`, `stars`, `best_time` — drives per-level
   leaderboards), `pack_overrides` (`pack_id` PK, `name`, `allowed_class`,
-  `is_hidden`), `level_overrides` (`(pack_id, level_index)` composite PK,
-  `ball_x`, `ball_y`, `stars` JSON, `score_goal`, `eq_goal`, `preplaced` JSON,
-  `name`), `achievement_overrides` (`id` PK, `kind` — one of `ACH_KINDS` in
+  `is_hidden`, `modifier`), `level_overrides` (`(pack_id, level_index)`
+  composite PK, `ball_x`, `ball_y`, `stars` JSON, `score_goal`, `eq_goal`,
+  `preplaced` JSON, `name`, `objects` JSON, `materials`, `explain`, `hint`),
+  `achievement_overrides` (`id` PK, `kind` — one of `ACH_KINDS` in
   `achievements.jsx` — `name`, `description`, `threshold`, `pack_id`,
   `level_index`, `is_hidden`), `push_subscriptions` (`endpoint` PK,
   `user_id`, `keys`). Schemas live in the Supabase dashboard, not this repo.
@@ -1001,7 +1012,10 @@ per-equation floor is `20 × n_eqs`, where `n_eqs` skips slider definitions
 old guard, every run solved with a horizontal line is rejected outright.
 `20260912_level_objects.sql` (applied) adds `level_overrides.objects`,
 `level_overrides.materials` and `pack_overrides.modifier` — additive, with
-defaults, so rows from before it still read.
+defaults, so rows from before it still read. `20260915_level_explainers.sql`
+and `20260916_level_hints.sql` (both applied) add `level_overrides.explain`
+and `level_overrides.hint` the same way. None of these four touch the guard;
+they are columns the studio writes.
 
 `20260913_star_slots.sql` removes the goal-relative clamp, because with stars
 awarded individually (below) a 2-star row whose score misses `score_goal` is

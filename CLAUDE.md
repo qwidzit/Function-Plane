@@ -159,6 +159,12 @@ believing it.
 - Added a pack to `data.jsx` → the same trigger has an allow-list of pack ids,
   because `profiles.total_stars` is summed from those rows. A pack it doesn't
   know is rejected on sync, which looks like "my scores stopped saving".
+- Every level save from the studio fails at once → a field was added to
+  `saveLevelOverride`'s patch without its migration being applied. The patch
+  names every column it writes, including the ones left `null`, and PostgREST
+  refuses an upsert naming a column the table does not have. Reading an
+  override is the opposite — a missing key just reads `undefined` — so the
+  feature looks fine until someone tries to save.
 - `profiles` is read-only to the client. Anything that needs to write it wants
   a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
   adding a column and PATCHing it from the app will fail with a permission

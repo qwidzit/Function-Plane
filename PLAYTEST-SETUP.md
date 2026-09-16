@@ -117,7 +117,7 @@ folder — run `dir` and check you can see `package.json`.
 
    ```
    ────────────────────────────────────────────────────────────
-   73 passed
+   76 passed
    ```
 
    That is the whole check — no browser, no build, nothing to click. The count
