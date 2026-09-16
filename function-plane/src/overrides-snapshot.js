@@ -177,7 +177,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "level_index": 3,
     "name": "Low ceiling",
     "ball_x": -4,
-    "ball_y": 2,
+    "ball_y": 5,
     "stars": [
      {
       "x": -4,
@@ -194,15 +194,15 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-15T17:55:10.473548+00:00",
+    "updated_at": "2026-09-16T06:26:17.020Z",
     "preplaced": [],
     "objects": [
      {
-      "h": 1,
-      "w": 3,
+      "kind": "hazard",
       "x": -1,
-      "y": 1.5,
-      "kind": "hazard"
+      "y": 1,
+      "w": 3,
+      "h": 1
      }
     ],
     "materials": false,
