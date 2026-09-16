@@ -2014,21 +2014,39 @@ function buildMath(toks, src, caret) {
     }
     return base;
   }
-  function args() {
-    if (!peek() || peek().t !== '(') return [slot()];
+
+  // A call's parentheses. The glyphs say how to draw them — an ordinary call
+  // shows them, a fence draws its own bars, √ draws an overbar and shows
+  // neither — but they are always *built*, here, in source order, because a
+  // bracket is a place the caret can sit. The closer used to be consumed with
+  // its caret element thrown away, so the cursor vanished at the end of
+  // sin(x) and there was nowhere to put it back.
+  function args(openGlyph, closeGlyph) {
+    if (!peek() || peek().t !== '(') return {
+      list: [slot()],
+      open: null,
+      close: null
+    };
+    const ot = peek();
     i++;
+    const open = tokEl(ot, openGlyph);
     const list = [rel()];
     while (peek() && peek().t === ',') {
       const tk = peek();
       i++;
       list.push(/*#__PURE__*/React.createElement(React.Fragment, null, cut(tk.j), rel()));
     }
+    let close = null;
     if (peek() && peek().t === ')') {
-      const tk = peek();
+      const ct = peek();
       i++;
-      cut(tk.j);
+      close = tokEl(ct, closeGlyph);
     }
-    return list;
+    return {
+      list,
+      open,
+      close
+    };
   }
   function atom() {
     const tk = peek();
@@ -2070,40 +2088,43 @@ function buildMath(toks, src, caret) {
     }
     if (tk.t === 'fn') {
       i++;
-      const list = args();
-      if (tk.v === 'sqrt' && list.length === 1) {
+      const fence = FN_FENCE[tk.v];
+      const isSqrt = tk.v === 'sqrt';
+      // Built before its arguments: the name comes first in the source, and
+      // `cut` places the caret in build order, not in layout order.
+      const head = tokEl(tk, isSqrt ? '√' : fence ? fence[0] : FN_LABEL[tk.v] || tk.v);
+      const a = args(isSqrt || fence ? '' : '(', isSqrt ? '' : fence ? fence[1] : ')');
+      if (isSqrt) {
         return {
           el: seq([/*#__PURE__*/React.createElement("span", {
             style: {
               fontSize: '1.1em'
             }
-          }, tokEl(tk, '√')), /*#__PURE__*/React.createElement("span", {
+          }, head), a.open, /*#__PURE__*/React.createElement("span", {
             style: {
               borderTop: '1px solid currentColor',
               padding: '1px 2px 0',
               marginTop: 1
             }
-          }, list[0])]),
+          }, seq(a.list)), a.close]),
           bare: null
         };
       }
-      const fence = FN_FENCE[tk.v];
-      if (fence && list.length === 1) {
-        return {
-          el: seq([/*#__PURE__*/React.createElement("span", null, tokEl(tk, fence[0])), list[0], /*#__PURE__*/React.createElement("span", null, fence[1])]),
-          bare: null
-        };
-      }
-      const parts = [/*#__PURE__*/React.createElement("span", null, tokEl(tk, FN_LABEL[tk.v] || tk.v)), /*#__PURE__*/React.createElement("span", null, "(")];
-      list.forEach((a, k) => {
+      const parts = [/*#__PURE__*/React.createElement("span", null, head), a.open];
+      a.list.forEach((x, k) => {
         if (k) parts.push(/*#__PURE__*/React.createElement("span", {
           style: {
             padding: '0 2px 0 0'
           }
         }, ","));
-        parts.push(a);
+        parts.push(x);
       });
-      parts.push(/*#__PURE__*/React.createElement("span", null, ")"));
+      // Nothing closed it: draw the closer faded, the way a bare group does.
+      parts.push(a.close || /*#__PURE__*/React.createElement("span", {
+        style: {
+          opacity: 0.4
+        }
+      }, fence ? fence[1] : ')'));
       return {
         el: seq(parts),
         bare: null
@@ -2111,12 +2132,14 @@ function buildMath(toks, src, caret) {
     }
     // An operator is not an atom: leave it for whoever called us, so "/" with
     // nothing in front of it still builds a fraction — empty on both halves —
-    // rather than being shown as a stray slash.
-    if (tk.t === 'op') return {
+    // rather than being shown as a stray slash. A ")" or a "," is left for the
+    // same reason: swallowing the ")" of an empty sin() took the call's own
+    // closer away, and the branch below then drew a second one — sin(().
+    if (tk.t === 'op' || tk.t === ')' || tk.t === ',') return {
       el: slot(),
       bare: null
     };
-    // A stray ")" or "," with nothing to attach to — show it, don't stall.
+    // Anything else with nothing to attach to — show it, don't stall.
     i++;
     return {
       el: /*#__PURE__*/React.createElement("span", {

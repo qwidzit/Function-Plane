@@ -323,18 +323,16 @@ const TRACK_B = 'M16 18 C 58 18, 104 54, 192 66';
 // light at the moment the ball reaches it.
 const TRACK_STARS = [[49, 30, 0.18], [87, 43, 0.35], [144, 62, 0.55]];
 
-// A star the ball has reached fills and *stays* filled — the reset happens in
-// the last breath of the cycle, with nothing else on screen to watch it. It
-// used to empty out slowly during the pause, which looked like the ball had
-// taken the star away rather than collected it.
-const artStar = (cx, cy, k = 0.74, lit = null) => (
+// A collected star is *gone*, which is what the game does with one. It stays
+// gone through the pause and comes back in the last breath of the cycle, with
+// nothing else on screen to watch it return.
+const artStar = (cx, cy, k = 0.74, taken = null) => (
   <path transform={`translate(${cx},${cy}) scale(${k})`}
     d="M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z"
-    fill="var(--lv-star)" fillOpacity={0}
-    stroke="var(--lv-star)" strokeWidth={2 / k}>
-    {lit != null && (
-      <animate attributeName="fill-opacity" dur="3.2s" repeatCount="indefinite"
-        values="0;0;1;1;0" keyTimes={`0;${lit};${Math.min(lit + 0.05, 0.9)};0.97;1`}/>
+    fill="none" stroke="var(--lv-star)" strokeWidth={2 / k}>
+    {taken != null && (
+      <animate attributeName="opacity" dur="3.2s" repeatCount="indefinite"
+        values="1;1;0;0;1" keyTimes={`0;${taken};${Math.min(taken + 0.03, 0.9)};0.97;1`}/>
     )}
   </path>
 );
@@ -380,7 +378,7 @@ const FP_EXPLAINERS = {
         art: (
           <Art>
             <path d={TRACK} fill="none" stroke={CURVE_C} strokeWidth={2.4} strokeLinecap="round"/>
-            {/* Each star fills as the ball reaches it — the track and the
+            {/* Each star goes as the ball reaches it — the track and the
                 collecting are one motion, which is what the level is. */}
             {TRACK_STARS.map(([cx, cy, at]) => <React.Fragment key={cx}>{artStar(cx, cy, 0.74, at)}</React.Fragment>)}
             <ArtBall path={TRACK_B}/>

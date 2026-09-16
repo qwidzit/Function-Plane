@@ -1314,13 +1314,21 @@ function buildMath(toks, src, caret) {
     return base;
   }
 
-  function args() {
-    if (!peek() || peek().t !== '(') return [slot()];
-    i++;
+  // A call's parentheses. The glyphs say how to draw them — an ordinary call
+  // shows them, a fence draws its own bars, √ draws an overbar and shows
+  // neither — but they are always *built*, here, in source order, because a
+  // bracket is a place the caret can sit. The closer used to be consumed with
+  // its caret element thrown away, so the cursor vanished at the end of
+  // sin(x) and there was nowhere to put it back.
+  function args(openGlyph, closeGlyph) {
+    if (!peek() || peek().t !== '(') return { list: [slot()], open: null, close: null };
+    const ot = peek(); i++;
+    const open = tokEl(ot, openGlyph);
     const list = [rel()];
     while (peek() && peek().t === ',') { const tk = peek(); i++; list.push(<>{cut(tk.j)}{rel()}</>); }
-    if (peek() && peek().t === ')') { const tk = peek(); i++; cut(tk.j); }
-    return list;
+    let close = null;
+    if (peek() && peek().t === ')') { const ct = peek(); i++; close = tokEl(ct, closeGlyph); }
+    return { list, open, close };
   }
 
   function atom() {
@@ -1340,26 +1348,30 @@ function buildMath(toks, src, caret) {
     }
     if (tk.t === 'fn') {
       i++;
-      const list = args();
-      if (tk.v === 'sqrt' && list.length === 1) {
-        return { el: seq([<span style={{ fontSize:'1.1em' }}>{tokEl(tk, '√')}</span>,
-          <span style={{ borderTop:'1px solid currentColor', padding:'1px 2px 0', marginTop:1 }}>{list[0]}</span>]),
-          bare: null };
-      }
       const fence = FN_FENCE[tk.v];
-      if (fence && list.length === 1) {
-        return { el: seq([<span>{tokEl(tk, fence[0])}</span>, list[0], <span>{fence[1]}</span>]), bare: null };
+      const isSqrt = tk.v === 'sqrt';
+      // Built before its arguments: the name comes first in the source, and
+      // `cut` places the caret in build order, not in layout order.
+      const head = tokEl(tk, isSqrt ? '√' : fence ? fence[0] : (FN_LABEL[tk.v] || tk.v));
+      const a = args(isSqrt || fence ? '' : '(', isSqrt ? '' : fence ? fence[1] : ')');
+      if (isSqrt) {
+        return { el: seq([<span style={{ fontSize:'1.1em' }}>{head}</span>, a.open,
+          <span style={{ borderTop:'1px solid currentColor', padding:'1px 2px 0', marginTop:1 }}>{seq(a.list)}</span>,
+          a.close]), bare: null };
       }
-      const parts = [<span>{tokEl(tk, FN_LABEL[tk.v] || tk.v)}</span>, <span>(</span>];
-      list.forEach((a, k) => { if (k) parts.push(<span style={{ padding:'0 2px 0 0' }}>,</span>); parts.push(a); });
-      parts.push(<span>)</span>);
+      const parts = [<span>{head}</span>, a.open];
+      a.list.forEach((x, k) => { if (k) parts.push(<span style={{ padding:'0 2px 0 0' }}>,</span>); parts.push(x); });
+      // Nothing closed it: draw the closer faded, the way a bare group does.
+      parts.push(a.close || <span style={{ opacity:0.4 }}>{fence ? fence[1] : ')'}</span>);
       return { el: seq(parts), bare: null };
     }
     // An operator is not an atom: leave it for whoever called us, so "/" with
     // nothing in front of it still builds a fraction — empty on both halves —
-    // rather than being shown as a stray slash.
-    if (tk.t === 'op') return { el: slot(), bare: null };
-    // A stray ")" or "," with nothing to attach to — show it, don't stall.
+    // rather than being shown as a stray slash. A ")" or a "," is left for the
+    // same reason: swallowing the ")" of an empty sin() took the call's own
+    // closer away, and the branch below then drew a second one — sin(().
+    if (tk.t === 'op' || tk.t === ')' || tk.t === ',') return { el: slot(), bare: null };
+    // Anything else with nothing to attach to — show it, don't stall.
     i++;
     return { el: <span style={{ opacity:0.55 }}>{tokEl(tk, tk.v)}</span>, bare: null };
   }

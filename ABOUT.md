@@ -629,6 +629,25 @@ Three things make that work:
   near or far edge. Hit-testing the hidden input instead would put the caret
   where the *raw string* would have been, which stops matching the moment a
   fraction stacks anything.
+- **The blank to the right of the expression is the end of it.** The row keeps
+  a stretched `data-pos={expr.length}` target after the typeset layer, so a tap
+  past the last glyph lands at the end rather than on whatever token happens to
+  be nearest — the base underneath an exponent, say.
+- **A bracket is a place the cursor can sit.** `args()` builds a call's
+  parentheses through `tokEl` like any other token, so they carry a `data-pos`
+  and emit the caret when it belongs to them. The closer used to be consumed
+  with `cut()` and its caret element *discarded* — `cut` marks the caret
+  placed, so throwing the element away loses the cursor — and it vanished at
+  exactly the offset a player types next, the end of `sin(x)`. The glyphs are
+  an argument (`''` where √ draws an overbar instead) precisely so every shape
+  still goes through the one function that knows about the caret.
+- **`)` and `,` are not atoms.** Like an operator, `atom()` returns a slot for
+  them *without consuming*, so the `args()` that opened the bracket can close
+  it. Swallowing the `)` of an empty `sin()` as a stray token took the call's
+  own closer away and left the fallback to draw a second one — `sin((`.
+- `npm test` renders `MathExpr` at **every offset** of a few expressions and
+  counts the cursors, and counts the brackets it draws. Both of those bugs
+  shipped because this layer was only ever checked by eye.
 
 The math keyboard moves the selection directly on the DOM node, which React's
 `onSelect` does not reliably see, so `setCaret()` in `keyboard.jsx` dispatches
@@ -771,10 +790,10 @@ Two rules keep the diagrams honest:
   not snap back the instant it arrives. Ambient texture (a fan's wind streaks,
   the speck drifting in a zero-g box) stays continuous: that is weather, not a
   replay, and pausing it would read as broken.
-- **What the run achieved holds until the very end.** A star the ball reached
-  stays filled through the pause and resets in the last breath of the cycle,
-  with nothing else on screen to watch it. Emptying it gradually during the
-  pause read as the ball taking the star away rather than collecting it.
+- **A collected star is gone**, the way the game removes one — not filled in,
+  which is a thing the game never does. It stays gone through the pause and
+  comes back in the last breath of the cycle, with nothing else on screen to
+  watch it return.
 - **A diagram must not imply a rule the game does not have.** The page
   comparing a cheap answer with an expensive one shows the two *equations* and
   their scores. Drawing them as two tracks through the same stars said the

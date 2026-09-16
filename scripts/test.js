@@ -322,6 +322,85 @@ it('recomputes a forged submission to a different score', () => {
     'three equations against an eq_goal of 1 must not earn the equation star');
 });
 
+// ── 1b2. The typeset layer ─────────────────────────────────────────────────
+
+describe('Typeset equation layer');
+
+// MathExpr is a plain function component, so a createElement that builds
+// objects instead of DOM is enough to inspect what it would draw. Two caret
+// bugs have shipped from this file by eye; this looks.
+const typeset = (() => {
+  const h = (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) });
+  const React = {
+    createElement: h,
+    Fragment: 'fragment',
+    isValidElement: x => !!x && typeof x === 'object' && 'type' in x,
+    useState: () => [null, () => {}], useRef: () => ({ current: null }),
+    useEffect: () => {}, useMemo: fn => fn(),
+  };
+  const w = { React };
+  global.window = w;
+  global.React = React;
+  global.document = { createElement: () => ({}) };
+  for (const f of ['equation-classifier.js', 'level-screen.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  return w;
+})();
+
+// Every node, depth first — text kids included as raw strings.
+function flatten(node, out = []) {
+  if (node == null || node === false) return out;
+  if (typeof node === 'string' || typeof node === 'number') { out.push(String(node)); return out; }
+  if (Array.isArray(node)) { node.forEach(n => flatten(n, out)); return out; }
+  if (typeof node !== 'object') return out;
+  out.push(node);
+  flatten(node.kids, out);
+  if (node.props && node.props.children != null) flatten(node.props.children, out);
+  return out;
+}
+const draw  = (src, caret) => flatten(typeset.MathExpr({ src, caret }));
+const text  = (src, caret) => draw(src, caret).filter(n => typeof n === 'string').join('');
+const carets = (src, caret) => draw(src, caret).filter(n => n && n.props && n.props.className === 'fp-caret').length;
+const positions = src => draw(src, null)
+  .filter(n => n && n.props && n.props['data-pos'] != null)
+  .map(n => Number(n.props['data-pos']));
+
+it('draws the cursor wherever it is put, including after a call', () => {
+  // The closing bracket of a call used to be consumed with its caret element
+  // discarded, so the cursor simply disappeared at the end of sin(x) — the one
+  // place a player types next.
+  for (let c = 0; c <= 'y=sin(x)'.length; c++) {
+    eq(carets('y=sin(x)', c), 1, `one cursor at offset ${c} of y=sin(x)`);
+  }
+  for (let c = 0; c <= 'y=abs(x)+1'.length; c++) {
+    eq(carets('y=abs(x)+1', c), 1, `one cursor at offset ${c} of y=abs(x)+1`);
+  }
+  for (let c = 0; c <= 'y=sqrt(x)'.length; c++) {
+    eq(carets('y=sqrt(x)', c), 1, `one cursor at offset ${c} of y=sqrt(x)`);
+  }
+  eq(carets('y=x^2', 5), 1, 'and at the end of a power');
+});
+
+it('draws one bracket per bracket', () => {
+  // An empty sin() had its ")" swallowed as a stray by the atom rule, so the
+  // call lost its own closer and drew a second one: sin((.
+  eq(text('y=sin()', null).split('(').length - 1, 1, 'one "(" in y=sin()');
+  eq(text('y=sin()', null).split(')').length - 1, 1, 'one ")" in y=sin()');
+  eq(text('y=sin(x)', null).split(')').length - 1, 1, 'one ")" in y=sin(x)');
+  eq(text('y=(x+1)', null).split(')').length - 1, 1, 'one ")" in a bare group');
+  eq(text('y=min(x,2)', null).split(')').length - 1, 1, 'one ")" in a two-argument call');
+});
+
+it('gives every bracket a position to put the cursor at', () => {
+  // A tap has to be able to land on a bracket, not only beside one.
+  const p = positions('y=sin(x)');
+  ok(p.includes(5), `the "(" of sin( is a target, got ${p}`);
+  ok(p.includes(7), `and so is its ")", got ${p}`);
+});
+
 // ── 1c. Achievements ───────────────────────────────────────────────────────
 
 describe('Achievements');

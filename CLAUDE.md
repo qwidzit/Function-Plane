@@ -91,9 +91,14 @@ believing it.
   quadratic; `2pi` folded to a constant in one and to `p*i` in the other. If
   you change one, put the expression in `npm test` against both.
 - You cannot type after the end of an expression → the typeset layer only
-  hit-tests things that carry a `data-pos`, and a call's parentheses are drawn
-  without one. The row keeps a stretched target after the expression whose
-  `data-pos` is `expr.length`; anything that replaces that layer has to keep it.
+  hit-tests things that carry a `data-pos`. The row keeps a stretched target
+  after the expression whose `data-pos` is `expr.length`; anything that
+  replaces that layer has to keep it.
+- The cursor disappears somewhere → something consumed a token with `cut()`
+  and threw the returned element away. `cut` marks the caret *placed*, so
+  discarding it loses the cursor entirely. Build every token through `tokEl`,
+  in source order, even where it draws nothing. `npm test` renders `MathExpr`
+  at every offset of a few expressions and counts the cursors.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.
