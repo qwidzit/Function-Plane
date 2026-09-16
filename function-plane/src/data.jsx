@@ -44,8 +44,10 @@ const LEVELS = {
 // The *kind* of function a level was built around, and nothing else — no
 // form, no coefficients, no reasoning. Naming the family is the most a hint
 // can give without solving the level, and a sentence of advice reads as the
-// answer even when it isn't. Only the first pack is written; everywhere else
-// a hint is simply absent and the button says so. A `hint` column on
+// answer even when it isn't. Where the answer is several curves the count is
+// the thing worth knowing, so it says that instead: which families they are
+// would be most of the solution. Only the first pack is written; everywhere
+// else a hint is simply absent and the button says so. A `hint` column on
 // level_overrides wins over this table wherever one exists, the way every
 // other authored field does.
 const LEVEL_HINTS = {
@@ -56,9 +58,9 @@ const LEVEL_HINTS = {
   'r-I-4': 'Quadratic',
   'r-I-5': 'Linear',
   'r-I-6': 'Quadratic',
-  'r-I-7': 'Linear',
+  'r-I-7': 'Use 3 functions',
   'r-I-8': 'Quadratic',
-  'r-I-9': 'Linear',
+  'r-I-9': 'Use 2 functions',
 };
 
 function getHint(packId, levelIndex) {

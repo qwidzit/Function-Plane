@@ -4064,7 +4064,7 @@ function HintPopup({
       color: 'var(--fp-ink-3)',
       marginBottom: 3
     }
-  }, "Try a function of type"), /*#__PURE__*/React.createElement("div", {
+  }, "Hint"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Instrument Serif', Georgia, serif",
       fontStyle: 'italic',

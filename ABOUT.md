@@ -285,12 +285,12 @@ Two rules keep that rewrite honest, and both exist because they were broken:
   two undeclared parameters — and silently drew nothing while the classifier
   read the same string as a constant. It is now matched wherever it is not
   glued to other letters.
-- **An unclosed bracket is closed, not rejected.** The math keyboard's function
-  keys type `sin(` and leave the closer to the player, and the typeset layer
-  draws `y=sin(x` as finished maths — so the most ordinary expression in the
-  game came back red and drew nothing, with the display insisting it was fine.
-  `closeParens` appends whatever was left open. A *surplus* `)` is still an
-  error: only the forgiving direction is forgiving.
+- **An unclosed bracket is closed, not rejected.** `closeParens` appends
+  whatever was left open, so `y=sin(x` graphs. A *surplus* `)` is still an
+  error: only the forgiving direction is forgiving. This covers hand-typed
+  text, a paste, and every half-finished state in between — but it is a
+  safety net, not the normal path. **The keyboard's job is to never need it**:
+  see *Balanced as you type* below.
 
 The display grammar has always been deliberately lenient (see *Equation field*
 below); the parser is now lenient in the same places, which is the only way the
@@ -667,6 +667,19 @@ as meaning.
 - The **comma is load-bearing**, not decoration: `min(x,2)`, `max(x,1)`,
   `pow(x,7)` and `sum(1,5,n*x)` all need it, and `min`/`max`/`Σ` are all on
   the functions page. It is not a decimal separator — `.` is.
+### Balanced as you type
+
+Every key that opens a bracket closes it and leaves the cursor inside — `sin`
+types `sin()`, `(` types `()`. Backspace between an empty pair takes both, and
+`)` over an existing one steps past it rather than doubling up.
+
+This is not a convenience. The parser forgives an unclosed bracket and the
+typeset layer draws the closer whether or not it is there, so `y=sin(x`
+*looked* exactly like `y=sin(x)` while the text was six characters short of
+it — and appending `+1` gave `y=sin(x+1)`, the term landing inside the sine.
+The display was telling the truth about the maths and lying about the text.
+Anything that types an opening bracket has to close it, or that gap comes back.
+
 - `a/b` and the keypad's `÷` are the **same action**, `frac()`: it types `/`,
   and leaves the cursor *before* it when there is no term to put on top, so
   pressing it on an empty field gives an empty fraction with the cursor in the
@@ -723,6 +736,10 @@ around — `Linear`, `Quadratic`, and so on. No form, no coefficients, no
 reasoning. Naming the family is the most a hint can give without solving the
 level, and a sentence of advice reads as the answer even when it isn't.
 
+Where the answer is several curves it names the **count** instead — `Use 3
+functions`. Which families those three are would be most of the solution, and
+the count is the part a stuck player is actually missing.
+
 It sits on the plane rather than in the HUD because the HUD row was full: two
 goal chips and History already filled it, and a fourth chip wrapped the row
 onto a second line.
@@ -754,6 +771,14 @@ Two rules keep the diagrams honest:
   not snap back the instant it arrives. Ambient texture (a fan's wind streaks,
   the speck drifting in a zero-g box) stays continuous: that is weather, not a
   replay, and pausing it would read as broken.
+- **What the run achieved holds until the very end.** A star the ball reached
+  stays filled through the pause and resets in the last breath of the cycle,
+  with nothing else on screen to watch it. Emptying it gradually during the
+  pause read as the ball taking the star away rather than collecting it.
+- **A diagram must not imply a rule the game does not have.** The page
+  comparing a cheap answer with an expensive one shows the two *equations* and
+  their scores. Drawing them as two tracks through the same stars said the
+  curve has to pass through a star, which is the ball's job, not the curve's.
 
 - `FP_OBJECT_TUTORIALS` is keyed by **object kind**. The level screen walks the
   level's objects and queues the deck for any kind the player has not met, so a

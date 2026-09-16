@@ -2480,7 +2480,7 @@ function HintPopup({ hint, onClose }) {
           </div>
           <div style={{ minWidth:0 }}>
             <div style={{ fontSize:10.5, letterSpacing:'0.1em', textTransform:'uppercase',
-              color:'var(--fp-ink-3)', marginBottom:3 }}>Try a function of type</div>
+              color:'var(--fp-ink-3)', marginBottom:3 }}>Hint</div>
             <div style={{
               fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic',
               fontSize:28, lineHeight:1.05, letterSpacing:'-0.02em',

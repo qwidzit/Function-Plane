@@ -55,6 +55,24 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     requestAnimationFrame(() => setCaret(inp, p));
   };
 
+  // Every key that opens a bracket closes it too, leaving the cursor inside.
+  // The parser will forgive an unclosed one, and the typeset layer draws the
+  // closer whether or not it is there — which together made "y=sin(x" *look*
+  // finished while the text was not, so appending "+1" landed inside the sine
+  // and gave y=sin(x+1). The text has to say what the picture says.
+  const call = name => ins(name + '()', 1);
+
+  // A ")" over one that is already there moves past it instead of doubling up.
+  const close = () => {
+    const inp = inputRef?.current;
+    if (!inp) return;
+    inp.focus();
+    const s = inp.selectionStart ?? inp.value.length;
+    if (inp.value[s] !== ')') { ins(')'); return; }
+    const p = s + 1;
+    requestAnimationFrame(() => setCaret(inp, p));
+  };
+
   // A fraction over whatever was just written — or, with nothing to put on
   // top, an empty one with the cursor in the numerator, since that is the
   // half you are about to fill in.
@@ -72,6 +90,8 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     const s = inp.selectionStart, e = inp.selectionEnd;
     let v, p;
     if (s !== e)  { v = inp.value.slice(0,s) + inp.value.slice(e); p = s; }
+    // Sitting between a pair this keyboard opened: take both.
+    else if (s>0 && inp.value[s-1] === '(' && inp.value[s] === ')') { v = inp.value.slice(0,s-1) + inp.value.slice(s+1); p = s-1; }
     else if (s>0) { v = inp.value.slice(0,s-1) + inp.value.slice(s); p = s-1; }
     else return;
     onChange(v);
@@ -113,11 +133,11 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   const LEFT = [
     [k(it('x'), ()=>ins('x'), 'var', 1, 'x'), k(it('y'), ()=>ins('y'), 'var', 1, 'y'),
      k(pow('a','2'), ()=>ins('^2'), 'op', 1, 'squared'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
-    [k('(', ()=>ins('('), 'op'), k(')', ()=>ins(')'), 'op'),
-     k('⌊a⌋', ()=>ins('floor('), 'fn'), k('⌈a⌉', ()=>ins('ceil('), 'fn')],
-    [k('|a|', ()=>ins('abs('), 'fn'), k(',', ()=>ins(','), 'op'),
-     k(FRAC, frac, 'op', 1, 'fraction'), k('sgn', ()=>ins('sgn('), 'fn')],
-    [k('ABC', ()=>setPage('abc'), 'ctrl'), k('√', ()=>ins('sqrt('), 'fn'),
+    [k('(', ()=>ins('()', 1), 'op'), k(')', close, 'op'),
+     k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn')],
+    [k('|a|', ()=>call('abs'), 'fn'), k(',', ()=>ins(','), 'op'),
+     k(FRAC, frac, 'op', 1, 'fraction'), k('sgn', ()=>call('sgn'), 'fn')],
+    [k('ABC', ()=>setPage('abc'), 'ctrl'), k('√', ()=>call('sqrt'), 'fn'),
      k(it('e'), ()=>ins('e'), 'const', 1, 'e'), k('π', ()=>ins('π'), 'const')],
   ];
 
@@ -129,14 +149,14 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   ];
 
   const FNS = [
-    [k('sin', ()=>ins('sin('), 'fn'), k('cos', ()=>ins('cos('), 'fn'), k('tan', ()=>ins('tan('), 'fn'),
-     k('ln', ()=>ins('ln('), 'fn'), k('log', ()=>ins('log('), 'fn')],
-    [k('sin⁻¹', ()=>ins('arcsin('), 'fn'), k('cos⁻¹', ()=>ins('arccos('), 'fn'), k('tan⁻¹', ()=>ins('arctan('), 'fn'),
-     k(pow('e','x'), ()=>ins('exp('), 'fn', 1, 'e to the x'), k('√', ()=>ins('sqrt('), 'fn')],
-    [k('⌊a⌋', ()=>ins('floor('), 'fn'), k('⌈a⌉', ()=>ins('ceil('), 'fn'), k('sgn', ()=>ins('sgn('), 'fn'),
-     k('|a|', ()=>ins('abs('), 'fn'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
-    [k('Σ', ()=>ins('sum(1,5,n*x)'), 'adv'), k('d/dx', ()=>ins('deriv('), 'adv'), k('∫', ()=>ins('integ('), 'adv'),
-     k('min', ()=>ins('min('), 'fn'), k('max', ()=>ins('max('), 'fn')],
+    [k('sin', ()=>call('sin'), 'fn'), k('cos', ()=>call('cos'), 'fn'), k('tan', ()=>call('tan'), 'fn'),
+     k('ln', ()=>call('ln'), 'fn'), k('log', ()=>call('log'), 'fn')],
+    [k('sin⁻¹', ()=>call('arcsin'), 'fn'), k('cos⁻¹', ()=>call('arccos'), 'fn'), k('tan⁻¹', ()=>call('arctan'), 'fn'),
+     k(pow('e','x'), ()=>call('exp'), 'fn', 1, 'e to the x'), k('√', ()=>call('sqrt'), 'fn')],
+    [k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn'), k('sgn', ()=>call('sgn'), 'fn'),
+     k('|a|', ()=>call('abs'), 'fn'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
+    [k('Σ', ()=>ins('sum(1,5,n*x)'), 'adv'), k('d/dx', ()=>call('deriv'), 'adv'), k('∫', ()=>call('integ'), 'adv'),
+     k('min', ()=>call('min'), 'fn'), k('max', ()=>call('max'), 'fn')],
   ];
 
   const letters = row => row.split('').map(c => k(it(c), ()=>ins(c), 'var', 1, c));

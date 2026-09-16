@@ -77,10 +77,14 @@ believing it.
 
 - Edited a `.jsx`, refreshed, no change → forgot `npm run build:jsx`.
 - A perfectly ordinary expression reads as invalid → check whether the bracket
-  is closed. The keyboard's function keys type `sin(` and the typeset layer
-  draws the result as finished maths, so the display and the parser have to be
-  forgiving in the *same* places. `normExpr` closes what was left open; a
-  surplus `)` is still an error.
+  is closed. `normExpr` closes what was left open; a surplus `)` is still an
+  error.
+- Typing after a function puts the text *inside* it → the row's text is
+  unbalanced. The parser forgives that and the typeset layer draws the closer
+  anyway, so `y=sin(x` looks exactly like `y=sin(x)` and `+1` lands in the
+  sine. Every key that opens a bracket must close it (`sin` types `sin()`,
+  `(` types `()`), or the gap between what the row shows and what it holds
+  comes straight back.
 - The classifier and the runtime parser disagree about an expression → they
   are two tokenizers over the same conventions and drift is a scoring bug, not
   a cosmetic one. `x(x+1)` priced as an unknown function while the game drew a

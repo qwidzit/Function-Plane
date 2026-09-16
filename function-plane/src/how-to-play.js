@@ -495,11 +495,16 @@ const TRACK_B = 'M16 18 C 58 18, 104 54, 192 66';
 // Points on TRACK, and roughly how far along it each one sits — so a star can
 // light at the moment the ball reaches it.
 const TRACK_STARS = [[49, 30, 0.18], [87, 43, 0.35], [144, 62, 0.55]];
+
+// A star the ball has reached fills and *stays* filled — the reset happens in
+// the last breath of the cycle, with nothing else on screen to watch it. It
+// used to empty out slowly during the pause, which looked like the ball had
+// taken the star away rather than collected it.
 const artStar = (cx, cy, k = 0.74, lit = null) => /*#__PURE__*/React.createElement("path", {
   transform: `translate(${cx},${cy}) scale(${k})`,
   d: "M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z",
   fill: "var(--lv-star)",
-  fillOpacity: lit == null ? 0 : undefined,
+  fillOpacity: 0,
   stroke: "var(--lv-star)",
   strokeWidth: 2 / k
 }, lit != null && /*#__PURE__*/React.createElement("animate", {
@@ -507,7 +512,7 @@ const artStar = (cx, cy, k = 0.74, lit = null) => /*#__PURE__*/React.createEleme
   dur: "3.2s",
   repeatCount: "indefinite",
   values: "0;0;1;1;0",
-  keyTimes: `0;${lit};${Math.min(lit + 0.06, 0.99)};${FADE};1`
+  keyTimes: `0;${lit};${Math.min(lit + 0.05, 0.9)};0.97;1`
 }));
 
 // ─── Level explainers ────────────────────────────────────────
@@ -583,49 +588,46 @@ const FP_EXPLAINERS = {
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "The run ends half a second after the last star. Miss one and the ball simply falls out of the world \u2014 press ", /*#__PURE__*/React.createElement("strong", null, "Play"), " again and adjust.")
     }, {
       heading: 'Keep it cheap',
-      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M14 30 C 44 30, 66 62, 92 70",
-        fill: "none",
-        stroke: CURVE_C,
-        strokeWidth: 2.2,
-        strokeLinecap: "round"
-      }), [[35, 35], [54, 47], [77, 63]].map(([cx, cy]) => /*#__PURE__*/React.createElement(React.Fragment, {
-        key: cx
-      }, artStar(cx, cy, 0.5))), /*#__PURE__*/React.createElement("text", {
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("text", {
         x: 53,
-        y: 88,
+        y: 44,
         textAnchor: "middle",
-        fontSize: 11.5,
-        fontWeight: 600,
+        fontSize: 13,
         fontFamily: "ui-monospace,monospace",
-        fill: "#388c46"
-      }, "30"), /*#__PURE__*/React.createElement("line", {
+        fill: "var(--fp-ink-2)"
+      }, "y=\u2212x"), /*#__PURE__*/React.createElement("line", {
         x1: 104,
-        y1: 16,
+        y1: 18,
         x2: 104,
-        y2: 80,
+        y2: 82,
         stroke: "var(--fp-ink)",
         strokeOpacity: 0.13,
         strokeWidth: 1
-      }), /*#__PURE__*/React.createElement("path", {
-        d: "M118 44 C 128 22, 142 22, 152 44 C 160 62, 172 64, 182 50",
-        fill: "none",
-        stroke: "#c74440",
-        strokeWidth: 2.2,
-        strokeLinecap: "round"
-      }), /*#__PURE__*/React.createElement("path", {
-        d: "M118 70 C 136 40, 166 40, 186 70",
-        fill: "none",
-        stroke: "#6042a6",
-        strokeWidth: 2.2,
-        strokeLinecap: "round"
-      }), [[135, 27], [151, 47], [176, 58]].map(([cx, cy]) => /*#__PURE__*/React.createElement(React.Fragment, {
-        key: cx
-      }, artStar(cx, cy, 0.5))), /*#__PURE__*/React.createElement("text", {
-        x: 152,
-        y: 88,
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 126,
+        y: 36,
+        fontSize: 13,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-2)"
+      }, "y=sin(x)"), /*#__PURE__*/React.createElement("text", {
+        x: 126,
+        y: 54,
+        fontSize: 13,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-2)"
+      }, "y=x\xB2"), /*#__PURE__*/React.createElement("text", {
+        x: 53,
+        y: 78,
         textAnchor: "middle",
-        fontSize: 11.5,
+        fontSize: 13,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "30"), /*#__PURE__*/React.createElement("text", {
+        x: 155,
+        y: 78,
+        textAnchor: "middle",
+        fontSize: 13,
         fontWeight: 600,
         fontFamily: "ui-monospace,monospace",
         fill: "#c74440"
