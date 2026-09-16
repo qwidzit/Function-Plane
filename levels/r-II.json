@@ -1,0 +1,658 @@
+{
+  "packId": "r-II",
+  "name": "Crosswinds",
+  "notes": "DRAFT — proposed, not written to Supabase. Fans are (x, y, angle, len, w, strength); a fan stands on its base at (x,y), reaches `len` along `angle` (0 = +x, 90 = +y), is `w` across, and its base bar is SOLID. Hazards are (x, y, w, h), centre-based. Every listed answer was replayed through the real run loop.",
+  "levels": [
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": "fans",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 2,
+          "y": -5,
+          "angle": 90,
+          "len": 7,
+          "w": 3,
+          "strength": 26
+        }
+      ],
+      "index": 0,
+      "name": "Updraft",
+      "ball": {
+        "x": -5,
+        "y": 3
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 1.5
+        },
+        {
+          "x": 2,
+          "y": -0.5
+        },
+        {
+          "x": 4,
+          "y": 1
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=-0.575x+0.1"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=-0.6x+-0.1"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-0.6x+-0.3"
+          ]
+        }
+      ],
+      "intent": "The wind picks the ball up off its own track and carries it to a star it could never have rolled to. One equation, nothing to aim."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 4,
+          "y": 0,
+          "angle": 180,
+          "len": 5,
+          "w": 3,
+          "strength": 16
+        }
+      ],
+      "index": 1,
+      "name": "Headwind",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 2
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": -2
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=-0.7x+-1.1"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=-0.725x+-0.95"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-0.75x+-0.9"
+          ]
+        }
+      ],
+      "intent": "A fan blowing back at you. A gentle track stalls in the wind; the answer is to come in steep enough to carry through it."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": -1,
+          "y": -2,
+          "angle": 0,
+          "len": 8,
+          "w": 3,
+          "strength": 22
+        }
+      ],
+      "index": 2,
+      "name": "Tailwind",
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 2
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 6,
+          "y": -2
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=-1.025x+-1.6"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=-0.875x+-2.15"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-0.975x+-2.05"
+          ]
+        }
+      ],
+      "intent": "The other half of the lesson: the same fan from behind. The track only has to reach the wind; the wind does the rest of the distance."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 1,
+          "y": -2,
+          "angle": 90,
+          "len": 5,
+          "w": 3,
+          "strength": 26
+        }
+      ],
+      "index": 3,
+      "name": "The back of the fan",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 2
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 3,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=0.2x^2+0.2x+-0.6"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=0.15x^2+0x+-0.6"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=0.2x^2+0x+-1.2"
+          ]
+        }
+      ],
+      "intent": "A fan's housing is solid — the bar at its base is a wall you can land on. Worth knowing before a level makes you rely on it."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 0,
+          "y": -3,
+          "angle": 90,
+          "len": 6,
+          "w": 2,
+          "strength": 28
+        },
+        {
+          "kind": "hazard",
+          "x": 2,
+          "y": -1,
+          "w": 1,
+          "h": 6
+        }
+      ],
+      "index": 4,
+      "name": "Over the wall",
+      "ball": {
+        "x": -5,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 0.5
+        },
+        {
+          "x": 2,
+          "y": 4.5
+        },
+        {
+          "x": 6,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=-0.325x+0.05"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=-0.325x+0.1"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-0.3x+-0.05"
+          ]
+        }
+      ],
+      "intent": "A wall too tall to roll past and a column of air beside it. Enter the column low and slow and it throws the ball clean over the top."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 6,
+          "y": -2,
+          "angle": 180,
+          "len": 6,
+          "w": 4,
+          "strength": 14
+        },
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": 2,
+          "w": 1,
+          "h": 4
+        }
+      ],
+      "index": 5,
+      "name": "Crosswind",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 2
+        },
+        {
+          "x": 1,
+          "y": -1
+        },
+        {
+          "x": 4,
+          "y": -4
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=-0.8x+-1.45"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=-0.85x+-1.4"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-0.9x+-1.35"
+          ]
+        }
+      ],
+      "intent": "The wind is sideways and constant, so every arc bends downwind. Aim upwind of where you want to land."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 1,
+          "y": -4,
+          "angle": 90,
+          "len": 9,
+          "w": 3,
+          "strength": 30
+        }
+      ],
+      "index": 6,
+      "name": "Elevator",
+      "ball": {
+        "x": -5,
+        "y": 1
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 0
+        },
+        {
+          "x": 1,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": 4
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=0.25x^2+1.1x+0"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=0.2x^2+0.9x+0"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=0.15x^2+0.6x+-0.2"
+          ]
+        }
+      ],
+      "intent": "A column strong enough to hold the ball against gravity. Roll in gently and it lifts you past two stars stacked above each other."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": -2,
+          "y": -3,
+          "angle": 0,
+          "len": 5,
+          "w": 3,
+          "strength": 18
+        },
+        {
+          "kind": "fan",
+          "x": 5,
+          "y": -3,
+          "angle": 180,
+          "len": 5,
+          "w": 3,
+          "strength": 18
+        }
+      ],
+      "index": 7,
+      "name": "Wind tunnel",
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 1.4
+        },
+        {
+          "x": 4.5,
+          "y": -3
+        },
+        {
+          "x": 1,
+          "y": -1.2
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "quickest",
+          "eqs": [
+            "y=0.05x^2+-0.6x+-1.6"
+          ]
+        },
+        {
+          "name": "a shade different",
+          "eqs": [
+            "y=0.05x^2+-0.7x+-1.6"
+          ]
+        },
+        {
+          "name": "another way",
+          "eqs": [
+            "y=-1.175x+-4"
+          ]
+        }
+      ],
+      "intent": "Two fans facing each other. The ball falls in and swings between them like a pendulum, losing a little each pass — the stars are placed on the swing, not on the track."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": -3,
+          "y": -3,
+          "angle": 90,
+          "len": 6,
+          "w": 2,
+          "strength": 28
+        },
+        {
+          "kind": "fan",
+          "x": 5,
+          "y": -2,
+          "angle": 90,
+          "len": 8,
+          "w": 2,
+          "strength": 30
+        }
+      ],
+      "index": 8,
+      "name": "Two lifts",
+      "ball": {
+        "x": -6,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 0.5
+        },
+        {
+          "x": -1,
+          "y": 4.5
+        },
+        {
+          "x": 6,
+          "y": 6
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "solutions": [
+        {
+          "name": "lift, catch, lift again",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-4"
+          ]
+        },
+        {
+          "name": "lower catcher",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-3.7"
+          ]
+        },
+        {
+          "name": "lower again",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-3.4"
+          ]
+        }
+      ],
+      "intent": "Two columns. The first fan throws the ball up and right; a second track catches it on the way down and feeds it into the second fan, which throws it higher still."
+    },
+    {
+      "materials": false,
+      "preplaced": [],
+      "explain": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": -3,
+          "y": -3,
+          "angle": 90,
+          "len": 6,
+          "w": 2,
+          "strength": 28
+        },
+        {
+          "kind": "fan",
+          "x": 5,
+          "y": -2,
+          "angle": 90,
+          "len": 8,
+          "w": 2,
+          "strength": 30
+        },
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": -1,
+          "w": 3,
+          "h": 1
+        }
+      ],
+      "index": 9,
+      "name": "Crosswinds",
+      "ball": {
+        "x": -6,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 0.5
+        },
+        {
+          "x": -1,
+          "y": 4.5
+        },
+        {
+          "x": 6,
+          "y": 6
+        },
+        {
+          "x": 9,
+          "y": -2
+        }
+      ],
+      "scoreGoal": 90,
+      "eqGoal": 3,
+      "solutions": [
+        {
+          "name": "three lines, quickest",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-4",
+            "y=-0.45x-1"
+          ]
+        },
+        {
+          "name": "a flat catcher",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-4",
+            "y=0.05x-3"
+          ]
+        },
+        {
+          "name": "flat catcher, lower",
+          "eqs": [
+            "y=-0.35x-1",
+            "y=-0.6x-4",
+            "y=0.05x-3.4"
+          ]
+        }
+      ],
+      "intent": "Both columns, a hazard shelf that rules out the low road, and a fourth star out past the second lift that only a third curve reaches. Exactly the 90-point budget, and the tightest level in the pack — see the note."
+    }
+  ]
+}
