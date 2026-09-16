@@ -1,5 +1,15 @@
 // Function Plane — How to Play screen
 
+// Maths inside the copy is typeset, not written out. The game asks players to
+// read x² and √x; showing them x^2 and sqrt(x) in its own explanations teaches
+// the wrong notation. MathExpr is resolved at render time because it lives in
+// level-screen.js, which loads after this file.
+function M({ e }) {
+  return <span className="fp-mono" style={{ whiteSpace: 'nowrap' }}>
+    {typeof MathExpr === 'function' ? <MathExpr src={e}/> : e}
+  </span>;
+}
+
 function HowToPlayScreen({ onBack, density = 'comfortable' }) {
   const padX = density === 'compact' ? 22 : 26;
 
@@ -53,9 +63,9 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           <div style={{ marginBottom: 8 }}>
             Tap <strong>Add</strong> in the panel and type an equation in any form:
           </div>
-          <CodeLine>y = sin(x)</CodeLine>
-          <CodeLine>x² + y² = 25</CodeLine>
-          <CodeLine>y = 0.5x − 1</CodeLine>
+          <CodeLine><M e="y=sin(x)"/></CodeLine>
+          <CodeLine><M e="x^2+y^2=25"/></CodeLine>
+          <CodeLine><M e="y=0.5x-1"/></CodeLine>
           <div style={{ marginTop: 8 }}>
             On mobile the custom math keyboard appears automatically.
             Tap the <strong>⌨</strong> button to show or hide it.
@@ -151,10 +161,10 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
             Switch the keyboard to the <strong>𝑓𝑥</strong> tab for inverse trig and higher-order operators.
             Each takes its body as the last argument, written as a normal expression in <span className="fp-mono">x</span> (and <span className="fp-mono">n</span> for sums).
           </div>
-          <CodeLine>y = arcsin(x)</CodeLine>
-          <CodeLine>y = sum(1, 5, n*x^n)        Σ from n=1..5</CodeLine>
-          <CodeLine>y = deriv(sin(x))           ≈ cos(x)</CodeLine>
-          <CodeLine>y = integ(x^2)              ∫₀ˣ t² dt = x³/3</CodeLine>
+          <CodeLine><M e="y=arcsin(x)"/></CodeLine>
+          <CodeLine><M e="y=sum(1,5,n*x^n)"/><Note>Σ from n=1..5</Note></CodeLine>
+          <CodeLine><M e="y=deriv(sin(x))"/><Note>≈ cos(x)</Note></CodeLine>
+          <CodeLine><M e="y=integ(x^2)"/><Note>∫₀ˣ t² dt = x³/3</Note></CodeLine>
           <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5, marginTop: 8 }}>
             Numerical operators — sums are capped at 200 terms, integrals use ~150 sample points.
             Powerful, but each one adds significant complexity to your score.
@@ -233,6 +243,11 @@ function CodeLine({ children }) {
   );
 }
 
+// The aside beside a worked example — what it comes out as, not part of it.
+function Note({ children }) {
+  return <span style={{ marginLeft: 10, color: 'var(--fp-ink-4)' }}>{children}</span>;
+}
+
 function RatingRow({ n, children }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
@@ -259,22 +274,33 @@ function Art({ children }) {
   );
 }
 
-// A ball that slides from a to b and starts over, so a page loops quietly
-// instead of playing once and leaving a still picture.
-function ArtBall({ from, to, dur = 2.6, r = 7, c = 'var(--fp-ink)', path }) {
+// A ball that runs a path and then waits before running it again. Two things
+// matter here. It follows the *drawn* path rather than sliding between two
+// points, because a ball cutting the corner off its own track is the one thing
+// a picture of this game must not show. And the cycle holds at the end and
+// hides itself on the way back, so a page that is read twice does not snap
+// back to the start the instant it arrives.
+//   0 → RUN     travelling
+//   RUN → FADE  arrived, holding
+//   FADE → 1    invisible, returning
+const RUN = 0.66, FADE = 0.8;
+function ArtBall({ path, dur = 3.2, r = 7, c = 'var(--fp-ink)' }) {
   return (
-    <circle r={r} fill={c} cx={path ? 0 : from[0]} cy={path ? 0 : from[1]}>
-      {path
-        ? <animateMotion path={path} dur={`${dur}s`} repeatCount="indefinite"/>
-        : <>
-            <animate attributeName="cx" from={from[0]} to={to[0]} dur={`${dur}s`} repeatCount="indefinite"/>
-            <animate attributeName="cy" from={from[1]} to={to[1]} dur={`${dur}s`} repeatCount="indefinite"/>
-          </>}
+    <circle r={r} fill={c} opacity={0}>
+      <animateMotion path={path} dur={`${dur}s`} repeatCount="indefinite"
+        calcMode="linear" keyPoints={`0;1;1;0`} keyTimes={`0;${RUN};${FADE};1`}/>
+      <animate attributeName="opacity" dur={`${dur}s`} repeatCount="indefinite"
+        values="0;1;1;0;0" keyTimes={`0;0.05;${RUN};${FADE};1`}/>
     </circle>
   );
 }
 
+// The same cadence for anything else that plays once and waits: a value that
+// holds where it lands rather than easing straight back.
+const holdTimes = `0;${RUN};1`;
+
 const FAN_C = '#1f9aa8', HAZ_C = '#d13b3b', ZG_C = '#7a4fd6', WELL_C = '#2f3e8f';
+const CURVE_C = '#2d70b3';
 
 // A fan box lying on its base at x, blowing +y (up the picture, so -y in SVG).
 const fanBox = (x, y, w, h, opts = {}) => (
@@ -287,6 +313,26 @@ const fanBox = (x, y, w, h, opts = {}) => (
         fill="none" stroke={FAN_C} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
     )}
   </>
+);
+
+// One track, drawn once and ridden once: the ball's path is the curve lifted by
+// its own radius, so it sits *on* the line instead of through it.
+const TRACK   = 'M16 24 C 58 24, 104 60, 192 72';
+const TRACK_B = 'M16 18 C 58 18, 104 54, 192 66';
+// Points on TRACK, and roughly how far along it each one sits — so a star can
+// light at the moment the ball reaches it.
+const TRACK_STARS = [[49, 30, 0.18], [87, 43, 0.35], [144, 62, 0.55]];
+
+const artStar = (cx, cy, k = 0.74, lit = null) => (
+  <path transform={`translate(${cx},${cy}) scale(${k})`}
+    d="M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z"
+    fill="var(--lv-star)" fillOpacity={lit == null ? 0 : undefined}
+    stroke="var(--lv-star)" strokeWidth={2 / k}>
+    {lit != null && (
+      <animate attributeName="fill-opacity" dur="3.2s" repeatCount="indefinite"
+        values="0;0;1;1;0" keyTimes={`0;${lit};${Math.min(lit + 0.06, 0.99)};${FADE};1`}/>
+    )}
+  </path>
 );
 
 // ─── Level explainers ────────────────────────────────────────
@@ -313,13 +359,15 @@ const FP_EXPLAINERS = {
         heading: 'Write an equation',
         art: (
           <Art>
-            <path d="M18 22 C 60 22, 110 62, 190 74" fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
-            <ArtBall from={[18, 15]} to={[190, 67]} dur={2.8}/>
+            <text x={104} y={17} textAnchor="middle" fontSize={12}
+              fontFamily="ui-monospace,monospace" fill={CURVE_C} opacity={0.75}>y=−x</text>
+            <path d={TRACK} fill="none" stroke={CURVE_C} strokeWidth={2.4} strokeLinecap="round"/>
+            <ArtBall path={TRACK_B}/>
           </Art>
         ),
         body: <>
-          Tap <strong>+</strong> and write anything you can graph — <code>y=-x</code>,
-          <code> y=x^2-3</code>, <code>y=sin(x)</code>. The curve becomes a solid track and
+          Tap <strong>+</strong> and write anything you can graph — <M e="y=-x"/>,{' '}
+          <M e="y=x^2-3"/>, <M e="y=sin(x)"/>. The curve becomes a solid track and
           the ball rolls along it under gravity.
         </>,
       },
@@ -327,13 +375,11 @@ const FP_EXPLAINERS = {
         heading: 'Collect every star',
         art: (
           <Art>
-            <path d="M18 26 C 70 26, 96 70, 190 70" fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
-            {[[62, 34], [116, 60], [168, 68]].map(([cx, cy], i) => (
-              <path key={i} transform={`translate(${cx},${cy}) scale(0.72)`}
-                d="M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z"
-                fill="none" stroke="var(--lv-star)" strokeWidth={2}/>
-            ))}
-            <ArtBall from={[18, 19]} to={[190, 63]} dur={2.8}/>
+            <path d={TRACK} fill="none" stroke={CURVE_C} strokeWidth={2.4} strokeLinecap="round"/>
+            {/* Each star fills as the ball reaches it — the track and the
+                collecting are one motion, which is what the level is. */}
+            {TRACK_STARS.map(([cx, cy, at]) => <React.Fragment key={cx}>{artStar(cx, cy, 0.74, at)}</React.Fragment>)}
+            <ArtBall path={TRACK_B}/>
           </Art>
         ),
         body: <>
@@ -345,12 +391,20 @@ const FP_EXPLAINERS = {
         heading: 'Keep it cheap',
         art: (
           <Art>
-            <text x={52} y={40} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=-x</text>
-            <text x={52} y={62} textAnchor="middle" fontSize={11} fontFamily="ui-monospace,monospace" fill="#388c46">30</text>
-            <line x1={104} y1={22} x2={104} y2={74} stroke="var(--fp-ink)" strokeOpacity={0.15} strokeWidth={1}/>
-            <text x={156} y={36} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=sin(x)</text>
-            <text x={156} y={52} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2</text>
-            <text x={156} y={70} textAnchor="middle" fontSize={11} fontFamily="ui-monospace,monospace" fill="#c74440">85</text>
+            {/* The same three stars reached two ways — one line against a sine
+                and a parabola — with what each answer costs underneath. */}
+            <path d="M14 30 C 44 30, 66 62, 92 70" fill="none" stroke={CURVE_C} strokeWidth={2.2} strokeLinecap="round"/>
+            {[[35, 35], [54, 47], [77, 63]].map(([cx, cy]) => <React.Fragment key={cx}>{artStar(cx, cy, 0.5)}</React.Fragment>)}
+            <text x={53} y={88} textAnchor="middle" fontSize={11.5} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">30</text>
+            <line x1={104} y1={16} x2={104} y2={80} stroke="var(--fp-ink)" strokeOpacity={0.13} strokeWidth={1}/>
+            <path d="M118 44 C 128 22, 142 22, 152 44 C 160 62, 172 64, 182 50"
+              fill="none" stroke="#c74440" strokeWidth={2.2} strokeLinecap="round"/>
+            <path d="M118 70 C 136 40, 166 40, 186 70" fill="none"
+              stroke="#6042a6" strokeWidth={2.2} strokeLinecap="round"/>
+            {[[135, 27], [151, 47], [176, 58]].map(([cx, cy]) => <React.Fragment key={cx}>{artStar(cx, cy, 0.5)}</React.Fragment>)}
+            <text x={152} y={88} textAnchor="middle" fontSize={11.5} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#c74440">85</text>
           </Art>
         ),
         body: <>
@@ -372,13 +426,21 @@ const FP_EXPLAINERS = {
         heading: 'The bracket button',
         art: (
           <Art>
-            <rect x={28} y={30} width={152} height={36} rx={9} fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
-            <text x={44} y={53} fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2-2</text>
-            <g transform="translate(150,48)" stroke="#6042a6" strokeWidth={1.8} strokeLinecap="round" fill="none">
-              <path d="M-7 -8v16M7 -8v16M-10 -3h20M-10 4h20"/>
-              <circle r={14} strokeWidth={1.4} strokeOpacity={0.55}>
-                <animate attributeName="r" values="11;15;11" dur="2s" repeatCount="indefinite"/>
-                <animate attributeName="stroke-opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite"/>
+            {/* An equation row, with the one button on it that matters here. */}
+            <rect x={22} y={30} width={164} height={36} rx={9}
+              fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
+            <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
+            <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#fff">1</text>
+            <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x²−2</text>
+            <g transform="translate(165,48)" stroke="#6042a6" strokeWidth={1.8} strokeLinecap="round" fill="none">
+              <path d="M-6 -7v14M6 -7v14M-9 -2.5h18M-9 3.5h18"/>
+              {/* One ring, expanding and gone — then a beat before the next. */}
+              <circle r={10} strokeWidth={1.4}>
+                <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
+                  values="9;19;19" keyTimes={holdTimes}/>
+                <animate attributeName="stroke-opacity" dur="2.6s" repeatCount="indefinite"
+                  values="0.75;0;0" keyTimes={holdTimes}/>
               </circle>
             </g>
           </Art>
@@ -392,11 +454,13 @@ const FP_EXPLAINERS = {
         heading: 'A track with an end',
         art: (
           <Art>
-            <path d="M14 70 C 50 70, 70 26, 104 24" fill="none" stroke="#6042a6" strokeWidth={2.4} strokeLinecap="round"/>
-            <path d="M104 24 C 138 22, 158 66, 194 66" fill="none" stroke="#6042a6" strokeWidth={2.4}
-              strokeLinecap="round" strokeDasharray="3 5" opacity={0.3}/>
-            <line x1={104} y1={12} x2={104} y2={84} stroke="#6042a6" strokeWidth={1.4} strokeDasharray="4 3" opacity={0.6}/>
-            <ArtBall from={[14, 62]} to={[104, 17]} dur={1.9}/>
+            {/* Solid to the limit, ghosted past it — and the ball leaves the
+                track where the track stops, instead of riding on round. */}
+            <path d="M14 76 C 46 76, 70 34, 100 28" fill="none" stroke="#6042a6" strokeWidth={2.4} strokeLinecap="round"/>
+            <path d="M100 28 C 130 22, 156 62, 192 74" fill="none" stroke="#6042a6" strokeWidth={2.4}
+              strokeLinecap="round" strokeDasharray="3 5" opacity={0.28}/>
+            <line x1={100} y1={10} x2={100} y2={88} stroke="#6042a6" strokeWidth={1.4} strokeDasharray="4 3" opacity={0.55}/>
+            <ArtBall dur={3.4} path="M14,69 C 46,69 70,27 100,21 C 124,16 148,30 176,74"/>
           </Art>
         ),
         body: <>
@@ -408,8 +472,17 @@ const FP_EXPLAINERS = {
         heading: 'It is free',
         art: (
           <Art>
-            <text x={104} y={44} textAnchor="middle" fontSize={12} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2  ·  −4 ≤ x ≤ 1</text>
-            <text x={104} y={66} textAnchor="middle" fontSize={11} fill="#388c46">same score as the full curve</text>
+            {/* The whole parabola, and the piece of it you kept. They cost the
+                same, which is the entire point of the page. */}
+            <path d="M22 26 C 60 92, 148 92, 186 26" fill="none"
+              stroke="#6042a6" strokeWidth={2.2} strokeLinecap="round" strokeDasharray="3 5" opacity={0.3}/>
+            <path d="M22 26 C 44 64, 72 78, 104 78" fill="none"
+              stroke="#6042a6" strokeWidth={2.6} strokeLinecap="round"/>
+            <line x1={104} y1={14} x2={104} y2={90} stroke="#6042a6" strokeWidth={1.4} strokeDasharray="4 3" opacity={0.55}/>
+            <text x={60} y={20} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">20</text>
+            <text x={152} y={20} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">20</text>
           </Art>
         ),
         body: <>
@@ -459,7 +532,7 @@ const FP_OBJECT_TUTORIALS = {
         art: (
           <Art>
             {fanBox(74, 84, 60, 66)}
-            <ArtBall dur={3} path="M12,26 C 52,58 74,78 104,52 C 126,32 140,40 196,74"/>
+            <ArtBall path="M12,26 C 52,58 74,78 104,52 C 126,32 140,40 196,74"/>
           </Art>
         ),
         body: <>
@@ -476,7 +549,7 @@ const FP_OBJECT_TUTORIALS = {
         art: (
           <Art>
             {fanBox(74, 84, 60, 60, { noArrow: true })}
-            <ArtBall from={[104, 8]} to={[104, 73]} dur={1.5}/>
+            <ArtBall dur={2.6} path="M104,8 L104,73"/>
             <path d="M74 80h60" stroke={FAN_C} strokeWidth={3} strokeLinecap="round"/>
           </Art>
         ),
@@ -516,10 +589,11 @@ const FP_OBJECT_TUTORIALS = {
           <Art>
             <rect x={62} y={40} width={84} height={30} rx={3} fill={HAZ_C} fillOpacity={0.09}
               stroke={HAZ_C} strokeWidth={1.6} strokeDasharray="5 3"/>
-            <ArtBall dur={2.4} path="M14,14 C 50,20 80,34 100,40"/>
+            <ArtBall path="M14,14 C 50,20 80,34 100,40"/>
             <g transform="translate(100,40)" stroke={HAZ_C} strokeWidth={2} strokeLinecap="round">
               <path d="M-9 -9L9 9M9 -9L-9 9" opacity={0}>
-                <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.78;0.84;0.96;1" dur="2.4s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0;0;1;1;0" dur="3.2s" repeatCount="indefinite"
+                  keyTimes={`0;${RUN - 0.03};${RUN + 0.02};${FADE};1`}/>
               </path>
             </g>
           </Art>
@@ -537,7 +611,7 @@ const FP_OBJECT_TUTORIALS = {
               stroke={HAZ_C} strokeWidth={1.6} strokeDasharray="5 3"/>
             <path d="M10 66 C 60 66, 60 20, 104 20 C 148 20, 148 66, 198 66"
               fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
-            <ArtBall dur={2.8} path="M10,59 C 60,59 60,13 104,13 C 148,13 148,59 198,59"/>
+            <ArtBall path="M10,59 C 60,59 60,13 104,13 C 148,13 148,59 198,59"/>
           </Art>
         ),
         body: <>
@@ -650,7 +724,7 @@ const FP_OBJECT_TUTORIALS = {
             <circle cx={116} cy={52} r={3.5} fill={WELL_C}/>
             <path d="M8 20 C 60 26, 96 26, 116 52" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.18}
               strokeWidth={1.4} strokeDasharray="3 3"/>
-            <ArtBall dur={2.6} path="M8,20 C 60,26 96,26 116,52"/>
+            <ArtBall path="M8,20 C 60,26 96,26 116,52"/>
           </Art>
         ),
         body: <>
@@ -667,7 +741,7 @@ const FP_OBJECT_TUTORIALS = {
             <circle cx={104} cy={48} r={3.5} fill={WELL_C}/>
             <path d="M10 48 C 60 48, 70 84, 104 84 C 138 84, 148 48, 104 48" fill="none"
               stroke={WELL_C} strokeOpacity={0.35} strokeWidth={1.4} strokeDasharray="3 3"/>
-            <ArtBall dur={3.4} path="M10,48 C 60,48 70,84 104,84 C 138,84 148,48 104,48"/>
+            <ArtBall path="M10,48 C 60,48 70,84 104,84 C 138,84 148,48 104,48"/>
           </Art>
         ),
         body: <>

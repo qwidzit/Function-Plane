@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-16T10:02:02.083Z
+// Generated: 2026-09-16T12:38:35.928Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -603,7 +603,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-16T10:01:32.546051+00:00",
+    "updated_at": "2026-09-16T12:38:05.26518+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -618,7 +618,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
      {
       "kind": "fan",
       "x": 2,
-      "y": 0,
+      "y": -4,
       "angle": 0,
       "len": 4,
       "w": 4,
@@ -870,7 +870,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 70,
     "eq_goal": 2,
-    "updated_at": "2026-09-16T10:01:32.546051+00:00",
+    "updated_at": "2026-09-16T12:38:05.26518+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -885,7 +885,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
      {
       "kind": "fan",
       "x": -5,
-      "y": -10,
+      "y": 10,
       "angle": -90,
       "len": 20,
       "w": 10,

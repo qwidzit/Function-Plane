@@ -1,5 +1,21 @@
 // Function Plane — How to Play screen
 
+// Maths inside the copy is typeset, not written out. The game asks players to
+// read x² and √x; showing them x^2 and sqrt(x) in its own explanations teaches
+// the wrong notation. MathExpr is resolved at render time because it lives in
+// level-screen.js, which loads after this file.
+function M({
+  e
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      whiteSpace: 'nowrap'
+    }
+  }, typeof MathExpr === 'function' ? /*#__PURE__*/React.createElement(MathExpr, {
+    src: e
+  }) : e);
+}
 function HowToPlayScreen({
   onBack,
   density = 'comfortable'
@@ -90,7 +106,13 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "Add"), " in the panel and type an equation in any form:"), /*#__PURE__*/React.createElement(CodeLine, null, "y = sin(x)"), /*#__PURE__*/React.createElement(CodeLine, null, "x\xB2 + y\xB2 = 25"), /*#__PURE__*/React.createElement(CodeLine, null, "y = 0.5x \u2212 1"), /*#__PURE__*/React.createElement("div", {
+  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "Add"), " in the panel and type an equation in any form:"), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=sin(x)"
+  })), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "x^2+y^2=25"
+  })), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=0.5x-1"
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
@@ -208,7 +230,15 @@ function HowToPlayScreen({
     className: "fp-mono"
   }, "x"), " (and ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
-  }, "n"), " for sums)."), /*#__PURE__*/React.createElement(CodeLine, null, "y = arcsin(x)"), /*#__PURE__*/React.createElement(CodeLine, null, "y = sum(1, 5, n*x^n)        \u03A3 from n=1..5"), /*#__PURE__*/React.createElement(CodeLine, null, "y = deriv(sin(x))           \u2248 cos(x)"), /*#__PURE__*/React.createElement(CodeLine, null, "y = integ(x^2)              \u222B\u2080\u02E3 t\xB2 dt = x\xB3/3"), /*#__PURE__*/React.createElement("div", {
+  }, "n"), " for sums)."), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=arcsin(x)"
+  })), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=sum(1,5,n*x^n)"
+  }), /*#__PURE__*/React.createElement(Note, null, "\u03A3 from n=1..5")), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=deriv(sin(x))"
+  }), /*#__PURE__*/React.createElement(Note, null, "\u2248 cos(x)")), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+    e: "y=integ(x^2)"
+  }), /*#__PURE__*/React.createElement(Note, null, "\u222B\u2080\u02E3 t\xB2 dt = x\xB3/3")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: 'var(--fp-ink-4)',
@@ -317,6 +347,18 @@ function CodeLine({
     }
   }, children);
 }
+
+// The aside beside a worked example — what it comes out as, not part of it.
+function Note({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 10,
+      color: 'var(--fp-ink-4)'
+    }
+  }, children);
+}
 function RatingRow({
   n,
   children
@@ -372,43 +414,51 @@ function Art({
   }), children);
 }
 
-// A ball that slides from a to b and starts over, so a page loops quietly
-// instead of playing once and leaving a still picture.
+// A ball that runs a path and then waits before running it again. Two things
+// matter here. It follows the *drawn* path rather than sliding between two
+// points, because a ball cutting the corner off its own track is the one thing
+// a picture of this game must not show. And the cycle holds at the end and
+// hides itself on the way back, so a page that is read twice does not snap
+// back to the start the instant it arrives.
+//   0 → RUN     travelling
+//   RUN → FADE  arrived, holding
+//   FADE → 1    invisible, returning
+const RUN = 0.66,
+  FADE = 0.8;
 function ArtBall({
-  from,
-  to,
-  dur = 2.6,
+  path,
+  dur = 3.2,
   r = 7,
-  c = 'var(--fp-ink)',
-  path
+  c = 'var(--fp-ink)'
 }) {
   return /*#__PURE__*/React.createElement("circle", {
     r: r,
     fill: c,
-    cx: path ? 0 : from[0],
-    cy: path ? 0 : from[1]
-  }, path ? /*#__PURE__*/React.createElement("animateMotion", {
+    opacity: 0
+  }, /*#__PURE__*/React.createElement("animateMotion", {
     path: path,
     dur: `${dur}s`,
-    repeatCount: "indefinite"
-  }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("animate", {
-    attributeName: "cx",
-    from: from[0],
-    to: to[0],
-    dur: `${dur}s`,
-    repeatCount: "indefinite"
+    repeatCount: "indefinite",
+    calcMode: "linear",
+    keyPoints: `0;1;1;0`,
+    keyTimes: `0;${RUN};${FADE};1`
   }), /*#__PURE__*/React.createElement("animate", {
-    attributeName: "cy",
-    from: from[1],
-    to: to[1],
+    attributeName: "opacity",
     dur: `${dur}s`,
-    repeatCount: "indefinite"
-  })));
+    repeatCount: "indefinite",
+    values: "0;1;1;0;0",
+    keyTimes: `0;0.05;${RUN};${FADE};1`
+  }));
 }
+
+// The same cadence for anything else that plays once and waits: a value that
+// holds where it lands rather than easing straight back.
+const holdTimes = `0;${RUN};1`;
 const FAN_C = '#1f9aa8',
   HAZ_C = '#d13b3b',
   ZG_C = '#7a4fd6',
   WELL_C = '#2f3e8f';
+const CURVE_C = '#2d70b3';
 
 // A fan box lying on its base at x, blowing +y (up the picture, so -y in SVG).
 const fanBox = (x, y, w, h, opts = {}) => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
@@ -436,6 +486,28 @@ const fanBox = (x, y, w, h, opts = {}) => /*#__PURE__*/React.createElement(React
   strokeWidth: 2,
   strokeLinecap: "round",
   strokeLinejoin: "round"
+}));
+
+// One track, drawn once and ridden once: the ball's path is the curve lifted by
+// its own radius, so it sits *on* the line instead of through it.
+const TRACK = 'M16 24 C 58 24, 104 60, 192 72';
+const TRACK_B = 'M16 18 C 58 18, 104 54, 192 66';
+// Points on TRACK, and roughly how far along it each one sits — so a star can
+// light at the moment the ball reaches it.
+const TRACK_STARS = [[49, 30, 0.18], [87, 43, 0.35], [144, 62, 0.55]];
+const artStar = (cx, cy, k = 0.74, lit = null) => /*#__PURE__*/React.createElement("path", {
+  transform: `translate(${cx},${cy}) scale(${k})`,
+  d: "M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z",
+  fill: "var(--lv-star)",
+  fillOpacity: lit == null ? 0 : undefined,
+  stroke: "var(--lv-star)",
+  strokeWidth: 2 / k
+}, lit != null && /*#__PURE__*/React.createElement("animate", {
+  attributeName: "fill-opacity",
+  dur: "3.2s",
+  repeatCount: "indefinite",
+  values: "0;0;1;1;0",
+  keyTimes: `0;${lit};${Math.min(lit + 0.06, 0.99)};${FADE};1`
 }));
 
 // ─── Level explainers ────────────────────────────────────────
@@ -471,82 +543,90 @@ const FP_EXPLAINERS = {
     })),
     pages: [{
       heading: 'Write an equation',
-      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M18 22 C 60 22, 110 62, 190 74",
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("text", {
+        x: 104,
+        y: 17,
+        textAnchor: "middle",
+        fontSize: 12,
+        fontFamily: "ui-monospace,monospace",
+        fill: CURVE_C,
+        opacity: 0.75
+      }, "y=\u2212x"), /*#__PURE__*/React.createElement("path", {
+        d: TRACK,
         fill: "none",
-        stroke: "#2d70b3",
+        stroke: CURVE_C,
         strokeWidth: 2.4,
         strokeLinecap: "round"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        from: [18, 15],
-        to: [190, 67],
-        dur: 2.8
+        path: TRACK_B
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " and write anything you can graph \u2014 ", /*#__PURE__*/React.createElement("code", null, "y=-x"), ",", /*#__PURE__*/React.createElement("code", null, " y=x^2-3"), ", ", /*#__PURE__*/React.createElement("code", null, "y=sin(x)"), ". The curve becomes a solid track and the ball rolls along it under gravity.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " and write anything you can graph \u2014 ", /*#__PURE__*/React.createElement(M, {
+        e: "y=-x"
+      }), ",", ' ', /*#__PURE__*/React.createElement(M, {
+        e: "y=x^2-3"
+      }), ", ", /*#__PURE__*/React.createElement(M, {
+        e: "y=sin(x)"
+      }), ". The curve becomes a solid track and the ball rolls along it under gravity.")
     }, {
       heading: 'Collect every star',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M18 26 C 70 26, 96 70, 190 70",
+        d: TRACK,
         fill: "none",
-        stroke: "#2d70b3",
+        stroke: CURVE_C,
         strokeWidth: 2.4,
         strokeLinecap: "round"
-      }), [[62, 34], [116, 60], [168, 68]].map(([cx, cy], i) => /*#__PURE__*/React.createElement("path", {
-        key: i,
-        transform: `translate(${cx},${cy}) scale(0.72)`,
-        d: "M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z",
-        fill: "none",
-        stroke: "var(--lv-star)",
-        strokeWidth: 2
-      })), /*#__PURE__*/React.createElement(ArtBall, {
-        from: [18, 19],
-        to: [190, 63],
-        dur: 2.8
+      }), TRACK_STARS.map(([cx, cy, at]) => /*#__PURE__*/React.createElement(React.Fragment, {
+        key: cx
+      }, artStar(cx, cy, 0.74, at))), /*#__PURE__*/React.createElement(ArtBall, {
+        path: TRACK_B
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "The run ends half a second after the last star. Miss one and the ball simply falls out of the world \u2014 press ", /*#__PURE__*/React.createElement("strong", null, "Play"), " again and adjust.")
     }, {
       heading: 'Keep it cheap',
-      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("text", {
-        x: 52,
-        y: 40,
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
+        d: "M14 30 C 44 30, 66 62, 92 70",
+        fill: "none",
+        stroke: CURVE_C,
+        strokeWidth: 2.2,
+        strokeLinecap: "round"
+      }), [[35, 35], [54, 47], [77, 63]].map(([cx, cy]) => /*#__PURE__*/React.createElement(React.Fragment, {
+        key: cx
+      }, artStar(cx, cy, 0.5))), /*#__PURE__*/React.createElement("text", {
+        x: 53,
+        y: 88,
         textAnchor: "middle",
-        fontSize: 13,
-        fontFamily: "ui-monospace,monospace",
-        fill: "var(--fp-ink-2)"
-      }, "y=-x"), /*#__PURE__*/React.createElement("text", {
-        x: 52,
-        y: 62,
-        textAnchor: "middle",
-        fontSize: 11,
+        fontSize: 11.5,
+        fontWeight: 600,
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
       }, "30"), /*#__PURE__*/React.createElement("line", {
         x1: 104,
-        y1: 22,
+        y1: 16,
         x2: 104,
-        y2: 74,
+        y2: 80,
         stroke: "var(--fp-ink)",
-        strokeOpacity: 0.15,
+        strokeOpacity: 0.13,
         strokeWidth: 1
-      }), /*#__PURE__*/React.createElement("text", {
-        x: 156,
-        y: 36,
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M118 44 C 128 22, 142 22, 152 44 C 160 62, 172 64, 182 50",
+        fill: "none",
+        stroke: "#c74440",
+        strokeWidth: 2.2,
+        strokeLinecap: "round"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M118 70 C 136 40, 166 40, 186 70",
+        fill: "none",
+        stroke: "#6042a6",
+        strokeWidth: 2.2,
+        strokeLinecap: "round"
+      }), [[135, 27], [151, 47], [176, 58]].map(([cx, cy]) => /*#__PURE__*/React.createElement(React.Fragment, {
+        key: cx
+      }, artStar(cx, cy, 0.5))), /*#__PURE__*/React.createElement("text", {
+        x: 152,
+        y: 88,
         textAnchor: "middle",
-        fontSize: 13,
-        fontFamily: "ui-monospace,monospace",
-        fill: "var(--fp-ink-2)"
-      }, "y=sin(x)"), /*#__PURE__*/React.createElement("text", {
-        x: 156,
-        y: 52,
-        textAnchor: "middle",
-        fontSize: 13,
-        fontFamily: "ui-monospace,monospace",
-        fill: "var(--fp-ink-2)"
-      }, "y=x^2"), /*#__PURE__*/React.createElement("text", {
-        x: 156,
-        y: 70,
-        textAnchor: "middle",
-        fontSize: 11,
+        fontSize: 11.5,
+        fontWeight: 600,
         fontFamily: "ui-monospace,monospace",
         fill: "#c74440"
       }, "85")),
@@ -575,91 +655,130 @@ const FP_EXPLAINERS = {
     pages: [{
       heading: 'The bracket button',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
-        x: 28,
+        x: 22,
         y: 30,
-        width: 152,
+        width: 164,
         height: 36,
         rx: 9,
         fill: "var(--fp-surface)",
         stroke: "var(--fp-ink)",
         strokeOpacity: 0.14
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 40,
+        cy: 48,
+        r: 8,
+        fill: CURVE_C
       }), /*#__PURE__*/React.createElement("text", {
-        x: 44,
+        x: 40,
+        y: 52,
+        textAnchor: "middle",
+        fontSize: 9,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#fff"
+      }, "1"), /*#__PURE__*/React.createElement("text", {
+        x: 57,
         y: 53,
-        fontSize: 13,
+        fontSize: 12.5,
         fontFamily: "ui-monospace,monospace",
         fill: "var(--fp-ink-2)"
-      }, "y=x^2-2"), /*#__PURE__*/React.createElement("g", {
-        transform: "translate(150,48)",
+      }, "y=x\xB2\u22122"), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(165,48)",
         stroke: "#6042a6",
         strokeWidth: 1.8,
         strokeLinecap: "round",
         fill: "none"
       }, /*#__PURE__*/React.createElement("path", {
-        d: "M-7 -8v16M7 -8v16M-10 -3h20M-10 4h20"
+        d: "M-6 -7v14M6 -7v14M-9 -2.5h18M-9 3.5h18"
       }), /*#__PURE__*/React.createElement("circle", {
-        r: 14,
-        strokeWidth: 1.4,
-        strokeOpacity: 0.55
+        r: 10,
+        strokeWidth: 1.4
       }, /*#__PURE__*/React.createElement("animate", {
         attributeName: "r",
-        values: "11;15;11",
-        dur: "2s",
-        repeatCount: "indefinite"
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "9;19;19",
+        keyTimes: holdTimes
       }), /*#__PURE__*/React.createElement("animate", {
         attributeName: "stroke-opacity",
-        values: "0.7;0;0.7",
-        dur: "2s",
-        repeatCount: "indefinite"
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "0.75;0;0",
+        keyTimes: holdTimes
       })))),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "Every equation row has a bracket button. It restricts the curve's", /*#__PURE__*/React.createElement("strong", null, " domain"), " \u2014 the range of x where it exists at all.")
     }, {
       heading: 'A track with an end',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M14 70 C 50 70, 70 26, 104 24",
+        d: "M14 76 C 46 76, 70 34, 100 28",
         fill: "none",
         stroke: "#6042a6",
         strokeWidth: 2.4,
         strokeLinecap: "round"
       }), /*#__PURE__*/React.createElement("path", {
-        d: "M104 24 C 138 22, 158 66, 194 66",
+        d: "M100 28 C 130 22, 156 62, 192 74",
         fill: "none",
         stroke: "#6042a6",
         strokeWidth: 2.4,
         strokeLinecap: "round",
         strokeDasharray: "3 5",
-        opacity: 0.3
+        opacity: 0.28
       }), /*#__PURE__*/React.createElement("line", {
-        x1: 104,
-        y1: 12,
-        x2: 104,
-        y2: 84,
+        x1: 100,
+        y1: 10,
+        x2: 100,
+        y2: 88,
         stroke: "#6042a6",
         strokeWidth: 1.4,
         strokeDasharray: "4 3",
-        opacity: 0.6
+        opacity: 0.55
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        from: [14, 62],
-        to: [104, 17],
-        dur: 1.9
+        dur: 3.4,
+        path: "M14,69 C 46,69 70,27 100,21 C 124,16 148,30 176,74"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "Past the limit the curve is not drawn and not solid, so the ball flies off the end of it instead of riding on into trouble.")
     }, {
       heading: 'It is free',
-      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("text", {
-        x: 104,
-        y: 44,
-        textAnchor: "middle",
-        fontSize: 12,
-        fontFamily: "ui-monospace,monospace",
-        fill: "var(--fp-ink-2)"
-      }, "y=x^2  \xB7  \u22124 \u2264 x \u2264 1"), /*#__PURE__*/React.createElement("text", {
-        x: 104,
-        y: 66,
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
+        d: "M22 26 C 60 92, 148 92, 186 26",
+        fill: "none",
+        stroke: "#6042a6",
+        strokeWidth: 2.2,
+        strokeLinecap: "round",
+        strokeDasharray: "3 5",
+        opacity: 0.3
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M22 26 C 44 64, 72 78, 104 78",
+        fill: "none",
+        stroke: "#6042a6",
+        strokeWidth: 2.6,
+        strokeLinecap: "round"
+      }), /*#__PURE__*/React.createElement("line", {
+        x1: 104,
+        y1: 14,
+        x2: 104,
+        y2: 90,
+        stroke: "#6042a6",
+        strokeWidth: 1.4,
+        strokeDasharray: "4 3",
+        opacity: 0.55
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 60,
+        y: 20,
         textAnchor: "middle",
         fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
-      }, "same score as the full curve")),
+      }, "20"), /*#__PURE__*/React.createElement("text", {
+        x: 152,
+        y: 20,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "20")),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A restricted curve scores exactly what the full one does. When one shaped track can be cut into the two you need, that is one equation instead of two.")
     }]
   }
@@ -724,7 +843,6 @@ const FP_OBJECT_TUTORIALS = {
     }, {
       heading: 'Wind and gravity add up',
       art: /*#__PURE__*/React.createElement(Art, null, fanBox(74, 84, 60, 66), /*#__PURE__*/React.createElement(ArtBall, {
-        dur: 3,
         path: "M12,26 C 52,58 74,78 104,52 C 126,32 140,40 196,74"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "It does not care what your track is doing. The ball keeps the speed it arrived with and the wind is simply added to gravity while it is inside.", /*#__PURE__*/React.createElement("div", {
@@ -737,9 +855,8 @@ const FP_OBJECT_TUTORIALS = {
       art: /*#__PURE__*/React.createElement(Art, null, fanBox(74, 84, 60, 60, {
         noArrow: true
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        from: [104, 8],
-        to: [104, 73],
-        dur: 1.5
+        dur: 2.6,
+        path: "M104,8 L104,73"
       }), /*#__PURE__*/React.createElement("path", {
         d: "M74 80h60",
         stroke: FAN_C,
@@ -805,7 +922,6 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 1.6,
         strokeDasharray: "5 3"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        dur: 2.4,
         path: "M14,14 C 50,20 80,34 100,40"
       }), /*#__PURE__*/React.createElement("g", {
         transform: "translate(100,40)",
@@ -818,9 +934,9 @@ const FP_OBJECT_TUTORIALS = {
       }, /*#__PURE__*/React.createElement("animate", {
         attributeName: "opacity",
         values: "0;0;1;1;0",
-        keyTimes: "0;0.78;0.84;0.96;1",
-        dur: "2.4s",
-        repeatCount: "indefinite"
+        dur: "3.2s",
+        repeatCount: "indefinite",
+        keyTimes: `0;${RUN - 0.03};${RUN + 0.02};${FADE};1`
       })))),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "The moment the ball's edge meets one, the run fails \u2014 it does not matter how many stars you had already collected.")
     }, {
@@ -843,7 +959,6 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 2.4,
         strokeLinecap: "round"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        dur: 2.8,
         path: "M10,59 C 60,59 60,13 104,13 C 148,13 148,59 198,59"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "Your curve may cross a hazard; only the ", /*#__PURE__*/React.createElement("em", null, "ball"), " must not. Watch where it bounces, not just where the track goes \u2014 and remember you can cut a curve short.")
@@ -1071,7 +1186,6 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 1.4,
         strokeDasharray: "3 3"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        dur: 2.6,
         path: "M8,20 C 60,26 96,26 116,52"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A pull from the side turns a straight throw into an arc. Aim past a well and it will curve the ball round for you \u2014 no extra equation needed.")
@@ -1100,7 +1214,6 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 1.4,
         strokeDasharray: "3 3"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        dur: 3.4,
         path: "M10,48 C 60,48 70,84 104,84 C 138,84 148,48 104,48"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A well drags as well as pulls, so the ball never leaves with as much as it brought. Fall too deep into one and it will not climb back out.")

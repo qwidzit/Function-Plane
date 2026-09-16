@@ -470,9 +470,16 @@ Objects tab, or grab it on the plane, then drag it or edit its numbers.
   the plane's current view back out, which is how "add a fan" puts it at the
   centre of whatever you are looking at.
 - The sandbox's top bar carries a **Score** chip showing what the board would
-  cost as a level run. Free play has no goals, but "is this cheaper than what
-  I did last time" is still the question the game is about, and it was the one
-  thing the sandbox could not answer.
+  cost as a level run — the level screen's own `HudChip`, not a lookalike.
+  Free play has no goals, but "is this cheaper than what I did last time" is
+  still the question the game is about, and it was the one thing the sandbox
+  could not answer.
+- The selected thing's **x and y are buttons, not inputs**: they open the same
+  `NumPad` the domain and object fields use. An `<input type="number">` cannot
+  reliably suppress the native keyboard on Android, and it reports `""` for a
+  half-typed `-`, which ate the sign. The studio owns that keypad and passes
+  `suppressKeyboard` to `EquationsPanel` while it is open, so two custom
+  keyboards can never cover each other.
 
 The view frames the objects once on entry and never again: re-framing on Play
 would discard a view the player deliberately composed. A free run ends when
@@ -680,12 +687,12 @@ as meaning.
   value it is editing — so the minus pressed on `0` simply vanished and
   reaching `-0.5` meant clearing first. An empty field now reads *empty*
   rather than `0`, because `0` is a value and the field does not have one yet.
-  The studio's own coordinate inputs had the twin of that bug: `Number('')` is
+  The studio's own coordinate fields had the twin of that bug: `Number('')` is
   `0`, so deleting the contents snapped the object to the origin, and
   `String(-0)` is `"0"`, so echoing each commit back turned `-0` into `0`
-  mid-keystroke. They are `type="text" inputMode="decimal"` now, since a
-  `type="number"` input reports `""` for a partly-typed `-` and eats the sign
-  before React ever sees it.
+  mid-keystroke. They are not text fields at all now — they open this same
+  keypad (see *Level studio*), which is the only way to be sure of what a
+  keystroke means.
 
 ### Panel height, and the three states it has
 
@@ -710,21 +717,43 @@ were wrong in ways that looked like the same bug:
 
 Two different kinds of help, deliberately not the same mechanism.
 
-**Hint** — a button beside History on the level HUD. One line saying what
-*kind* of function the level was built around and nothing about the numbers:
-a hint should shorten the search, not end it. `LEVEL_HINTS` in `data.jsx`
-carries the ten for pack I; everywhere else `getHint` returns null and the
-popup says so. `level_overrides.hint` (`20260916_level_hints.sql`, additive)
-wins over the table wherever it is set, and the studio's Level tab edits it —
-the same shape `explain` has. The app only reads keys off the override row, so
-the built-in hints work whether or not that migration has been applied; only
-authoring one per level needs it.
+**Hint** — a bulb on the plane, bottom-left, mirroring the zoom stack on the
+right. It says one thing: the **family** of function the level was built
+around — `Linear`, `Quadratic`, and so on. No form, no coefficients, no
+reasoning. Naming the family is the most a hint can give without solving the
+level, and a sentence of advice reads as the answer even when it isn't.
+
+It sits on the plane rather than in the HUD because the HUD row was full: two
+goal chips and History already filled it, and a fourth chip wrapped the row
+onto a second line.
+
+`LEVEL_HINTS` in `data.jsx` carries the ten for pack I; everywhere else
+`getHint` returns null and the popup says so. `level_overrides.hint`
+(`20260916_level_hints.sql`, additive) wins over the table wherever it is set,
+and the studio's Level tab edits it — the same shape `explain` has. The app
+only reads keys off the override row, so the built-in hints work whether or
+not that migration has been applied; only authoring one per level needs it.
 
 **Tutorials** — three-page decks in `how-to-play.jsx`, shown once each, with
 an X that closes on page one for a player who already knows and a **Got it**
-that replaces Next on the last page. Each page is a heading, a paragraph and a
-small SMIL-animated diagram; like the wind streaks on a real fan, the motion is
-the drawing and never the physics.
+that replaces Next on the last page. Pages also turn on a horizontal swipe:
+cards that step sideways invite one whether or not it is offered, and the Next
+button is a long reach from the thumb already on the picture. Each page is a
+heading, a paragraph and a small SMIL-animated diagram; like the wind streaks
+on a real fan, the motion is the drawing and never the physics.
+
+Two rules keep the diagrams honest:
+
+- **The ball follows the drawn path.** `ArtBall` takes the curve's own `d` (the
+  same shape, lifted by the ball's radius) and runs it with `animateMotion`.
+  Sliding a circle linearly between two points across a bezier puts the ball
+  through its own track, which is the one thing a picture of this game must
+  not show.
+- **A demonstration plays, then waits.** The cycle travels to `RUN`, holds
+  where it landed to `FADE`, and returns invisibly — so a page read twice does
+  not snap back the instant it arrives. Ambient texture (a fan's wind streaks,
+  the speck drifting in a zero-g box) stays continuous: that is weather, not a
+  replay, and pausing it would read as broken.
 
 - `FP_OBJECT_TUTORIALS` is keyed by **object kind**. The level screen walks the
   level's objects and queues the deck for any kind the player has not met, so a
@@ -740,6 +769,14 @@ the drawing and never the physics.
   advances to the next. Seen-ness is `fp-tip-<key>` in localStorage, per
   device and deliberately **not** part of progress: it is a reading state, not
   something worth syncing or restoring.
+
+**Maths in the copy is typeset.** `M` in `how-to-play.jsx` renders an
+expression through `MathExpr` rather than printing its source, so the
+explanations show `y=x²−3` and `√x` the way the equation rows do. It resolves
+`MathExpr` at *render* time, because `level-screen.js` loads after
+`how-to-play.js` and a module-scope reference would capture `undefined`. The
+same applies everywhere the game quotes an expression back — the empty-row
+placeholder and the run-history list both go through `MathExpr`.
 
 ## Splash screen (index.html)
 

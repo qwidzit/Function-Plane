@@ -100,6 +100,11 @@ function LevelStudio({
   const [hint, setHint] = useLS(admin ? level.hint || '' : '');
   const [busy, setBusy] = useLS(false);
   const [msg, setMsg] = useLS('');
+  // The selected thing's x / y, edited with the game's keypad rather than the
+  // device's: an <input type="number"> cannot reliably suppress the native
+  // keyboard on Android, and it mangles a half-typed "-" on the way through.
+  // null = closed; { axis, val } = open on that axis.
+  const [coordKb, setCoordKb] = useLS(null);
 
   // Frame the objects once, after the plane has been measured. Only on entry:
   // re-framing on Play would throw away a view the player deliberately
@@ -180,6 +185,16 @@ function LevelStudio({
       [axis]: q(n)
     });
   };
+  const openCoord = axis => {
+    if (!running && selectedPos) setCoordKb({
+      axis,
+      val: String(selectedPos[axis])
+    });
+  };
+  // Anything that takes the selection away takes the keypad with it.
+  useLSE(() => {
+    setCoordKb(null);
+  }, [selected, running]);
   const addStar = () => {
     if (running) return;
     const c = viewRef.current;
@@ -550,33 +565,14 @@ function LevelStudio({
       textOverflow: 'ellipsis'
     }
   }, running ? `${elapsed.toFixed(1)}s` : admin ? name || 'Untitled level' : 'Free play')), /*#__PURE__*/React.createElement("div", {
-    className: "fp-mono",
     title: "What these equations would score as a level",
     style: {
-      display: 'flex',
-      alignItems: 'baseline',
-      gap: 5,
-      flex: '0 0 auto',
-      height: 38,
-      padding: '0 11px',
-      borderRadius: 11,
-      background: 'var(--lv-surface)',
-      border: '1px solid var(--lv-line)'
+      flex: '0 0 auto'
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 9.5,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-      color: 'var(--fp-ink-3)',
-      fontFamily: 'inherit'
-    }
-  }, "Score"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: 'var(--fp-ink)'
-    }
-  }, eqsUsed > 0 ? liveScore : '—')), gravityFlip && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(HudChip, {
+    label: "Score",
+    value: eqsUsed > 0 ? liveScore : '—'
+  })), gravityFlip && /*#__PURE__*/React.createElement("div", {
     className: "fp-mono",
     style: {
       fontSize: 13,
@@ -705,11 +701,17 @@ function LevelStudio({
   }, selectedLabel), /*#__PURE__*/React.createElement(StudioCoord, {
     axis: "x",
     value: selectedPos.x,
-    onChange: setCoord
+    active: coordKb?.axis === 'x',
+    draft: coordKb?.val,
+    label: `${selectedLabel} x`,
+    onTap: () => openCoord('x')
   }), /*#__PURE__*/React.createElement(StudioCoord, {
     axis: "y",
     value: selectedPos.y,
-    onChange: setCoord
+    active: coordKb?.axis === 'y',
+    draft: coordKb?.val,
+    label: `${selectedLabel} y`,
+    onTap: () => openCoord('y')
   }), selected.startsWith('star-') && stars.length > 1 && /*#__PURE__*/React.createElement("button", {
     onClick: removeSelectedStar,
     title: "Remove star",
@@ -735,8 +737,31 @@ function LevelStudio({
     selectedObj: selected?.startsWith('obj-') ? selected : null,
     onSelectObj: setSelected,
     placeAt: placeAt,
-    extraTab: levelTab
-  }));
+    extraTab: levelTab,
+    suppressKeyboard: !!coordKb
+  }), coordKb && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 60
+    }
+  }, /*#__PURE__*/React.createElement(NumPad, {
+    val: coordKb.val,
+    label: `${selectedLabel} ${coordKb.axis}`,
+    onChange: v => {
+      setCoordKb(k => ({
+        ...k,
+        val: v
+      }));
+      setCoord(coordKb.axis, v);
+    },
+    onDone: () => {
+      setCoord(coordKb.axis, coordKb.val);
+      setCoordKb(null);
+    }
+  })));
 }
 function StudioChip({
   label,
@@ -759,20 +784,19 @@ function StudioChip({
     }
   }, label);
 }
+
+// A button, not an input: tapping it opens the game's keypad. `draft` is what
+// that keypad currently holds, so a half-typed "-" or "1." shows as typed
+// instead of being parsed and snapped back on every keystroke.
 function StudioCoord({
   axis,
   value,
-  onChange
+  active,
+  draft,
+  label,
+  onTap
 }) {
-  // Held locally while typing so an intermediate "-" or "1." isn't rejected
-  // as unparseable and snapped back mid-keystroke. Re-seeded only when the
-  // number really changed underneath: String(-0) is "0", so echoing every
-  // commit back turned "-0" into "0" and made -0.5 impossible to type.
-  const [draft, setDraft] = useLS(String(value));
-  useLSE(() => {
-    if (Number(draft) !== value) setDraft(String(value));
-  }, [value]);
-  return /*#__PURE__*/React.createElement("label", {
+  return /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -785,26 +809,25 @@ function StudioCoord({
       fontSize: 12,
       color: 'var(--fp-ink-3)'
     }
-  }, axis), /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    inputMode: "decimal",
-    value: draft,
-    onChange: e => {
-      setDraft(e.target.value);
-      onChange(axis, e.target.value);
+  }, axis), /*#__PURE__*/React.createElement("button", {
+    "aria-label": label,
+    onPointerDown: e => {
+      e.preventDefault();
+      onTap();
     },
     style: {
       width: '100%',
       height: 34,
       borderRadius: 9,
       padding: '0 9px',
-      background: 'var(--fp-bg)',
-      border: '1px solid var(--fp-line)',
+      textAlign: 'left',
+      background: active ? 'color-mix(in srgb, var(--fp-accent) 16%, var(--fp-bg))' : 'var(--fp-bg)',
+      border: `1px solid ${active ? 'var(--fp-accent)' : 'var(--fp-line)'}`,
       color: 'var(--fp-ink)',
       fontFamily: "'Geist Mono', monospace",
       fontSize: 13
     }
-  }));
+  }, active ? draft : String(value)));
 }
 function StudioField({
   label,

@@ -86,6 +86,13 @@ believing it.
   a cosmetic one. `x(x+1)` priced as an unknown function while the game drew a
   quadratic; `2pi` folded to a constant in one and to `p*i` in the other. If
   you change one, put the expression in `npm test` against both.
+- You cannot type after the end of an expression → the typeset layer only
+  hit-tests things that carry a `data-pos`, and a call's parentheses are drawn
+  without one. The row keeps a stretched target after the expression whose
+  `data-pos` is `expr.length`; anything that replaces that layer has to keep it.
+- A second custom keyboard appears over the first → `EquationsPanel` takes
+  `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
+  passes it.
 - A list inside `EquationsPanel` collapses to a sliver when a keyboard opens →
   `flex: 1` has a zero basis, so it contributes nothing to the panel's own
   height. Use `flex: '1 1 auto'` with `minHeight: 0`.
@@ -94,7 +101,9 @@ believing it.
   parent (`%`), not the viewport.
 - A number field rewrites what is being typed → `Number('')` is `0` and
   `String(-0)` is `"0"`, and a `type="number"` input reports `""` for a
-  half-typed `-`. Hold a draft string, re-seed it only when the number really
+  half-typed `-`. In-game the answer is the `NumPad`, not a text field: it
+  holds the raw string and commits only what parses. Anywhere a real `<input>`
+  is unavoidable, hold a draft string, re-seed it only when the number really
   changed, and use `type="text" inputMode="decimal"`.
 - Deployed a new build, users still see the old app → forgot to bump the
   `sw.js` cache version.
@@ -191,6 +200,10 @@ believing it.
   `equation-classifier.js` — both are extensively documented at the top.
 - Never hand-edit a `.js` that has a `.jsx` sibling without also updating the
   `.jsx`; the next `build:jsx` run silently overwrites it.
+- Quote an expression back to the player through `MathExpr`, never as its
+  source: the game teaches `x²` and `√x`, so its own copy must not show
+  `x^2` and `sqrt(x)`. In `how-to-play.jsx` use `M`, which resolves `MathExpr`
+  at render time because that file loads first.
 - If a change touches level goals, scoring, the classifier's output, the
   spawn or what an object does to the ball, say so explicitly — past records
   and authored level goals were tuned against those exact numbers, and the

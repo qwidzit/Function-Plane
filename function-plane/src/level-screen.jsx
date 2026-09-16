@@ -1485,7 +1485,14 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, notation, do
             }}>
               {eq.expr ? <MathExpr src={eq.expr} caret={focused ? caret : null}/>
                : focused ? <MathExpr src="" caret={0}/>
-               : <span style={{ color:'var(--fp-ink-4)' }}>e.g.  y = sin(x)</span>}
+               : <span style={{ color:'var(--fp-ink-4)' }}>e.g.  <MathExpr src="y=sin(x)"/></span>}
+              {/* The blank to the right of the expression is the end of it.
+                  Without a target there, the nearest thing to a tap past the
+                  last glyph was whatever the grammar happened to leave a
+                  data-pos on — the x inside sin(x), or the base under an
+                  exponent — so "y=sin(x)" could not be extended to
+                  "y=sin(x)+1" at all. */}
+              <span data-pos={eq.expr.length} style={{ flex:'1 0 10px', alignSelf:'stretch' }}/>
             </div>
           )}
           {/* Sets the row height when the typeset layer is floating over it */}
@@ -1637,7 +1644,8 @@ function ObjRow({ idx, o, selected, disabled, onSelect, onRemove, onField, domKb
 // objects/setObjects turn on the Objects tab (the studio); extraTab is one
 // more tab with arbitrary content (the admin's level settings).
 function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled, notation, allowedClass, classWarning,
-                          materialsOn, objects, setObjects, selectedObj, onSelectObj, placeAt, extraTab }) {
+                          materialsOn, objects, setObjects, selectedObj, onSelectObj, placeAt, extraTab,
+                          suppressKeyboard }) {
   const activeInputRef = useRL(null);
   const [activeId,  setActiveId]  = useSL(null);
   const [kbVisible, setKbVisible] = useSL(true);
@@ -1646,7 +1654,10 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
   // the plane is the screen, and only the tab that brings it back is left.
   const [hidden, setHidden] = useSL(false);
   const objectsEditable = !!setObjects;
-  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible && !hidden;
+  // suppressKeyboard is the studio saying it has a keypad of its own open;
+  // two custom keyboards covering each other is the one thing this panel must
+  // never do.
+  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible && !hidden && !suppressKeyboard;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
@@ -1671,7 +1682,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
     domKbCommitRef.current = null;
   };
 
-  const anyKbOpen = (kbOpen && !domKb) || domKb !== null;
+  const anyKbOpen = ((kbOpen && !domKb) || domKb !== null) && !suppressKeyboard;
 
   const activate = (id, ref) => {
     activeInputRef.current = ref.current;
@@ -1923,7 +1934,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
           ))}
           {equations.length === 0 && (
             <div style={{ padding:'14px 16px', fontSize:12, color:'var(--fp-ink-3)' }}>
-              Tap <strong>+</strong> to enter an equation, e.g. <span className="fp-mono">y=sin(x)</span>
+              Tap <strong>+</strong> to enter an equation, e.g. <MathExpr src="y=sin(x)"/>
             </div>
           )}
         </div>
@@ -2227,21 +2238,8 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         <div style={{ display:'flex', gap:6, alignItems:'center' }}>
           <GoalChip bits={STAR_SCORE} label={`score ≤ ${scoreGoal}`}/>
           <GoalChip bits={STAR_EQS}   label={`≤ ${eqGoal} eq`}/>
-          <button onClick={() => setHintOpen(true)} disabled={running} style={{
-            marginLeft: 'auto',
-            height: 24, padding: '0 10px', borderRadius: 999,
-            background: 'transparent', border: '1px solid var(--lv-line)',
-            color: 'var(--fp-ink-2)', fontSize: 11, fontWeight: 500,
-            display: 'flex', alignItems: 'center', gap: 5,
-            opacity: running ? 0.4 : 1,
-          }}>
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none">
-              <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"
-                stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Hint
-          </button>
           <button onClick={() => setHistoryOpen(true)} disabled={running} style={{
+            marginLeft: 'auto',
             height: 24, padding: '0 10px', borderRadius: 999,
             background: 'transparent', border: '1px solid var(--lv-line)',
             color: 'var(--fp-ink-2)', fontSize: 11, fontWeight: 500,
@@ -2271,6 +2269,21 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
           gridLabels={settings?.gridLabels !== false}
           levelStars={levelData.stars} trail={trail}
           objects={levelData.objects} gravityDir={gravityFlip && running ? gravityDir : null}/>
+        {/* Floating on the plane, opposite the zoom stack: the two goal chips
+            plus History already fill their row, and a fourth chip wrapped it
+            onto a second line. */}
+        <button onClick={() => setHintOpen(true)} disabled={running} aria-label="Hint" style={{
+          position:'absolute', left:10, bottom:10,
+          width:34, height:34, borderRadius:10,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          background:'var(--lv-surface)', border:'1px solid var(--lv-line)',
+          color:'var(--fp-ink)', opacity: running ? 0.4 : 1,
+        }}>
+          <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+            <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"
+              stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         {missMsg && (
           <div style={{
             position:'absolute', top:8, left:0, right:0,
@@ -2330,8 +2343,23 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
 // is always exactly one obvious way forward.
 function TutorialPopup({ tip, onClose }) {
   const [page, setPage] = useSL(0);
-  if (!tip?.pages?.length) return null;
-  const last = page === tip.pages.length - 1;
+  // Where a drag began, so a horizontal one turns the page. Cards that step
+  // sideways invite a swipe whether or not one is offered, and the Next button
+  // is a long reach from the thumb that is already on the picture.
+  const swipeRef = useRL(null);
+  const n = tip?.pages?.length || 0;
+  const go = d => setPage(p => Math.max(0, Math.min(n - 1, p + d)));
+  const onDown = e => { swipeRef.current = { x: e.clientX, y: e.clientY }; };
+  const onUp = e => {
+    const s = swipeRef.current;
+    swipeRef.current = null;
+    if (!s) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    go(dx < 0 ? 1 : -1);
+  };
+  if (!n) return null;
+  const last = page === n - 1;
   const p = tip.pages[page];
   return (
     <div onClick={onClose} style={{
@@ -2340,12 +2368,15 @@ function TutorialPopup({ tip, onClose }) {
       display:'flex', alignItems:'flex-end',
       backdropFilter:'blur(2px)',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width:'100%', background:'var(--fp-bg)',
-        borderRadius:'22px 22px 0 0',
-        padding:'14px 22px max(18px, env(safe-area-inset-bottom, 0px))',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.3)',
-      }}>
+      <div onClick={e => e.stopPropagation()}
+        onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipeRef.current = null; }}
+        style={{
+          width:'100%', background:'var(--fp-bg)',
+          borderRadius:'22px 22px 0 0',
+          padding:'14px 22px max(18px, env(safe-area-inset-bottom, 0px))',
+          boxShadow:'0 -8px 40px rgba(0,0,0,0.3)',
+          touchAction:'pan-y',
+        }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
           <div style={{
             width:36, height:36, borderRadius:10, flex:'0 0 36px',
@@ -2385,7 +2416,7 @@ function TutorialPopup({ tip, onClose }) {
               }}/>
             ))}
           </div>
-          <button onClick={() => last ? onClose() : setPage(page + 1)} style={{
+          <button onClick={() => last ? onClose() : go(1)} style={{
             flex:1, height:44, borderRadius:12,
             background: last ? 'var(--fp-accent)' : 'var(--fp-surface-2)',
             color: last ? 'var(--fp-accent-ink)' : 'var(--fp-ink)',
@@ -2436,24 +2467,26 @@ function HintPopup({ hint, onClose }) {
         padding:'18px 22px max(18px, env(safe-area-inset-bottom, 0px))',
         boxShadow:'0 -8px 40px rgba(0,0,0,0.3)',
       }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14 }}>
           <div style={{
-            width:36, height:36, borderRadius:10, flex:'0 0 36px',
+            width:42, height:42, borderRadius:12, flex:'0 0 42px',
             background:'color-mix(in srgb, var(--fp-accent) 15%, transparent)', color:'var(--fp-accent)',
             display:'flex', alignItems:'center', justifyContent:'center',
           }}>
-            <svg width={19} height={19} viewBox="0 0 24 24" fill="none">
+            <svg width={21} height={21} viewBox="0 0 24 24" fill="none">
               <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"
                 stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div style={{
-            fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic',
-            fontSize:23, color:'var(--fp-ink)', letterSpacing:'-0.02em',
-          }}>Hint</div>
-        </div>
-        <div style={{ fontSize:13.5, color: hint ? 'var(--fp-ink-3)' : 'var(--fp-ink-4)', lineHeight:1.65 }}>
-          {hint || 'No hint for this level — this one is on you.'}
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:10.5, letterSpacing:'0.1em', textTransform:'uppercase',
+              color:'var(--fp-ink-3)', marginBottom:3 }}>Try a function of type</div>
+            <div style={{
+              fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic',
+              fontSize:28, lineHeight:1.05, letterSpacing:'-0.02em',
+              color: hint ? 'var(--fp-ink)' : 'var(--fp-ink-4)',
+            }}>{hint || 'No hint'}</div>
+          </div>
         </div>
         <button onClick={onClose} style={{
           width:'100%', height:44, borderRadius:12, marginTop:18,
@@ -2522,7 +2555,7 @@ function HistoryPopup({ entries = [], onClose, onLoad }) {
                     fontSize:12, color:'var(--fp-ink)',
                     background:'var(--fp-surface-2)', borderRadius:8,
                     padding:'5px 9px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                  }}>{expr}</div>
+                  }}><MathExpr src={expr}/></div>
                 ))}
               </div>
               <button onClick={() => onLoad(e.exprs, e.mats)} style={{
@@ -2546,6 +2579,11 @@ window.starRating = starRating;
 // real level rather than a lookalike that can drift.
 window.PlaneFiller = PlaneFiller;
 window.EquationsPanel = EquationsPanel;
+// The studio edits the selected object's coordinates with the same keypad the
+// domain and object fields use, rather than the device's own.
+window.NumPad = NumPad;
+window.DomValBtn = DomValBtn;
+window.HudChip = HudChip;
 window.physicsStep = physicsStep;
 window.drainTicks = drainTicks;
 window.makeWorld = makeWorld;

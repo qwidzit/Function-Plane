@@ -60,6 +60,11 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
   const [hint,      setHint]      = useLS(admin ? (level.hint || '') : '');
   const [busy,      setBusy]      = useLS(false);
   const [msg,       setMsg]       = useLS('');
+  // The selected thing's x / y, edited with the game's keypad rather than the
+  // device's: an <input type="number"> cannot reliably suppress the native
+  // keyboard on Android, and it mangles a half-typed "-" on the way through.
+  // null = closed; { axis, val } = open on that axis.
+  const [coordKb,   setCoordKb]   = useLS(null);
 
   // Frame the objects once, after the plane has been measured. Only on entry:
   // re-framing on Play would throw away a view the player deliberately
@@ -131,6 +136,10 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
     if (!isFinite(n)) return;
     moveObject(selected, { ...selectedPos, [axis]: q(n) });
   };
+
+  const openCoord = axis => { if (!running && selectedPos) setCoordKb({ axis, val: String(selectedPos[axis]) }); };
+  // Anything that takes the selection away takes the keypad with it.
+  useLSE(() => { setCoordKb(null); }, [selected, running]);
 
   const addStar = () => {
     if (running) return;
@@ -333,15 +342,11 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{running ? `${elapsed.toFixed(1)}s` : (admin ? (name || 'Untitled level') : 'Free play')}</div>
         </div>
-        <div className="fp-mono" title="What these equations would score as a level"
-          style={{
-            display: 'flex', alignItems: 'baseline', gap: 5, flex: '0 0 auto',
-            height: 38, padding: '0 11px', borderRadius: 11,
-            background: 'var(--lv-surface)', border: '1px solid var(--lv-line)',
-          }}>
-          <span style={{ fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase',
-            color: 'var(--fp-ink-3)', fontFamily: 'inherit' }}>Score</span>
-          <span style={{ fontSize: 13, color: 'var(--fp-ink)' }}>{eqsUsed > 0 ? liveScore : '—'}</span>
+        {/* The level screen's own chip, rather than a lookalike: the hand-rolled
+            one aligned its text to the baseline of a 38px box, so the label and
+            the number sat against the top edge. */}
+        <div title="What these equations would score as a level" style={{ flex: '0 0 auto' }}>
+          <HudChip label="Score" value={eqsUsed > 0 ? liveScore : '—'}/>
         </div>
         {gravityFlip && (
           <div className="fp-mono" style={{ fontSize: 13, color: 'var(--fp-ink-2)', width: 22, textAlign: 'center' }}
@@ -418,8 +423,10 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
             fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
             color: 'var(--fp-ink-3)', minWidth: 52,
           }}>{selectedLabel}</span>
-          <StudioCoord axis="x" value={selectedPos.x} onChange={setCoord}/>
-          <StudioCoord axis="y" value={selectedPos.y} onChange={setCoord}/>
+          <StudioCoord axis="x" value={selectedPos.x} active={coordKb?.axis === 'x'} draft={coordKb?.val}
+            label={`${selectedLabel} x`} onTap={() => openCoord('x')}/>
+          <StudioCoord axis="y" value={selectedPos.y} active={coordKb?.axis === 'y'} draft={coordKb?.val}
+            label={`${selectedLabel} y`} onTap={() => openCoord('y')}/>
           {selected.startsWith('star-') && stars.length > 1 && (
             <button onClick={removeSelectedStar} title="Remove star"
               style={{ width: 30, height: 34, color: 'var(--fp-ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
@@ -436,7 +443,16 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
         objects={objects} setObjects={setObjects}
         selectedObj={selected?.startsWith('obj-') ? selected : null}
         onSelectObj={setSelected} placeAt={placeAt}
-        extraTab={levelTab}/>
+        extraTab={levelTab}
+        suppressKeyboard={!!coordKb}/>
+
+      {coordKb && (
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 60 }}>
+          <NumPad val={coordKb.val} label={`${selectedLabel} ${coordKb.axis}`}
+            onChange={v => { setCoordKb(k => ({ ...k, val: v })); setCoord(coordKb.axis, v); }}
+            onDone={() => { setCoord(coordKb.axis, coordKb.val); setCoordKb(null); }}/>
+        </div>
+      )}
     </div>
   );
 }
@@ -453,27 +469,23 @@ function StudioChip({ label, active, disabled, onClick }) {
   );
 }
 
-function StudioCoord({ axis, value, onChange }) {
-  // Held locally while typing so an intermediate "-" or "1." isn't rejected
-  // as unparseable and snapped back mid-keystroke. Re-seeded only when the
-  // number really changed underneath: String(-0) is "0", so echoing every
-  // commit back turned "-0" into "0" and made -0.5 impossible to type.
-  const [draft, setDraft] = useLS(String(value));
-  useLSE(() => { if (Number(draft) !== value) setDraft(String(value)); }, [value]);
+// A button, not an input: tapping it opens the game's keypad. `draft` is what
+// that keypad currently holds, so a half-typed "-" or "1." shows as typed
+// instead of being parsed and snapped back on every keystroke.
+function StudioCoord({ axis, value, active, draft, label, onTap }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
       <span style={{
         fontFamily: "'Geist Mono', monospace", fontSize: 12, color: 'var(--fp-ink-3)',
       }}>{axis}</span>
-      <input
-        type="text" inputMode="decimal" value={draft}
-        onChange={e => { setDraft(e.target.value); onChange(axis, e.target.value); }}
+      <button aria-label={label} onPointerDown={e => { e.preventDefault(); onTap(); }}
         style={{
-          width: '100%', height: 34, borderRadius: 9, padding: '0 9px',
-          background: 'var(--fp-bg)', border: '1px solid var(--fp-line)',
+          width: '100%', height: 34, borderRadius: 9, padding: '0 9px', textAlign: 'left',
+          background: active ? 'color-mix(in srgb, var(--fp-accent) 16%, var(--fp-bg))' : 'var(--fp-bg)',
+          border: `1px solid ${active ? 'var(--fp-accent)' : 'var(--fp-line)'}`,
           color: 'var(--fp-ink)', fontFamily: "'Geist Mono', monospace", fontSize: 13,
-        }}/>
-    </label>
+        }}>{active ? draft : String(value)}</button>
+    </div>
   );
 }
 
