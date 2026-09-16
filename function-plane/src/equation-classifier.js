@@ -35,14 +35,19 @@
   const FN_LOG     = { log: 1, ln: 1 };
   const FN_PIECE   = { abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1, sgn: 1 };
   const CONSTS     = { e: Math.E, pi: Math.PI };
+  // Names that may be *called*. A letter run that is not one of these and is
+  // followed by "(" is juxtaposition, not a call: normExpr reads x(x+1) as
+  // x·(x+1), and this file used to read it as an unknown function and charge
+  // 10 for a quadratic.
+  const CALLABLE = {
+    sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, log: 1, ln: 1, exp: 1,
+    sqrt: 1, abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1, pow: 1,
+    sgn: 1, sum: 1, deriv: 1, integ: 1,
+  };
   // Letter runs that are one identifier. Anything else is a product of
   // single-letter variables, mirroring normExpr: "ax" is a*x, so a slider
   // parameter can be written next to x the way it is on paper.
-  const KNOWN_NAMES = {
-    sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, log: 1, ln: 1, exp: 1,
-    sqrt: 1, abs: 1, floor: 1, ceil: 1, round: 1, min: 1, max: 1, pow: 1,
-    sgn: 1, sum: 1, deriv: 1, integ: 1, pi: 1,
-  };
+  const KNOWN_NAMES = { ...CALLABLE, pi: 1 };
 
   // Accepts either ['a','b'] or { a: 3, b: -1 } — the live slider map.
   function paramSet(params) {
@@ -91,7 +96,7 @@
       const prev = out[out.length - 1];
       if (prev && (
         (prev.t === 'num'  && (tk.t === 'name' || tk.t === '(')) ||
-        (prev.t === 'name' && tk.t === 'name') ||
+        (prev.t === 'name' && (tk.t === 'name' || (tk.t === '(' && !CALLABLE[prev.v]))) ||
         (prev.t === ')'    && (tk.t === 'name' || tk.t === 'num' || tk.t === '('))
       )) out.push({ t: '*' });
       out.push(tk);
@@ -303,7 +308,9 @@
             parseArgs(1);
             return NONPOLY();
           }
-          // unknown function
+          // A callable name with no handler above. Unreachable while CALLABLE
+          // and the branches match; scoring unknown is the safe answer if they
+          // ever drift apart.
           ctx.unknown = true;
           parseArgs(1);
           return NONPOLY();

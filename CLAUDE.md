@@ -22,25 +22,33 @@ problem, don't try to solve it in the app) and
    `SHELL` array. Skipping the bump leaves users on the old cached app
    indefinitely.
 3. **Run `npm test`.** Zero dependencies, about a second. It catches the
-   classifier, physics, sim-clock, service-worker and build-parity
+   classifier, parser, physics, sim-clock, service-worker and build-parity
    regressions this project has actually shipped before.
+4. **Touched physics, the spawn, or what an object does?** Run
+   `npm run verify:levels` too. It replays every authored level's intended
+   solution through the real run loop; a level authored close to a hazard can
+   stop clearing over a change of a single pixel.
 
-## Editing compiled `.js` by hand
+## Getting Babel, and never hand-editing a compiled `.js`
 
-A full `build-jsx.js` run reformats ~12 files with functionally-identical
-unicode-escape churn (older Babel escaped non-ASCII string contents, newer
-Babel doesn't). So for a small change it's cleaner to edit the matching `.js`
-region directly than to rebuild everything — but **verify the hand-edit
-against a fresh Babel build of that file before committing**, normalizing
-`\uXXXX`/`\xXX` escapes on both sides, since that's the only legitimate
-source of difference. Never assume a raw string diff.
-
-A real full rebuild produces a large one-time reformat diff. Do it
-deliberately, in its own commit, never mixed into a feature change.
+`package.json` pins `@babel/core` and `@babel/preset-react` at **7.29.7**, and
+the committed `.js` are exactly what that version emits: run
+`npm run build:jsx` on a clean tree with it and `git status` comes back empty.
+So **edit the `.jsx` and rebuild, however small the change** — there is no
+longer any reason to hand-edit a compiled file, and the next `build:jsx` would
+silently overwrite it anyway.
 
 `npm install` fails in sandboxes — `@capacitor/assets` pulls in `sharp`,
-whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
-`@babel/preset-react` into a temp dir and point `NODE_PATH` at it.
+whose binary download is proxy-blocked. To get Babel, install
+`@babel/core@7.29.7` + `@babel/preset-react@7.29.7` into a temp dir and point
+`NODE_PATH` at it; `npm test` then runs the build-parity check instead of
+skipping it, and prints the version it compiled with.
+
+**Pin the version.** A different Babel reformats most files with
+functionally-identical churn (non-ASCII escaping, and how props spread
+compiles), so a parity failure naming a dozen files is almost always the wrong
+Babel rather than real drift — check the version the test printed before
+believing it.
 
 ## Conventions & code style
 
@@ -68,6 +76,26 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
 ## Common pitfalls (learned the hard way)
 
 - Edited a `.jsx`, refreshed, no change → forgot `npm run build:jsx`.
+- A perfectly ordinary expression reads as invalid → check whether the bracket
+  is closed. The keyboard's function keys type `sin(` and the typeset layer
+  draws the result as finished maths, so the display and the parser have to be
+  forgiving in the *same* places. `normExpr` closes what was left open; a
+  surplus `)` is still an error.
+- The classifier and the runtime parser disagree about an expression → they
+  are two tokenizers over the same conventions and drift is a scoring bug, not
+  a cosmetic one. `x(x+1)` priced as an unknown function while the game drew a
+  quadratic; `2pi` folded to a constant in one and to `p*i` in the other. If
+  you change one, put the expression in `npm test` against both.
+- A list inside `EquationsPanel` collapses to a sliver when a keyboard opens →
+  `flex: 1` has a zero basis, so it contributes nothing to the panel's own
+  height. Use `flex: '1 1 auto'` with `minHeight: 0`.
+- A panel or sheet is taller than the screen on desktop → `vh` is the window,
+  and `#root` is capped at 844px on a desktop-width viewport. Size against the
+  parent (`%`), not the viewport.
+- A number field rewrites what is being typed → `Number('')` is `0` and
+  `String(-0)` is `"0"`, and a `type="number"` input reports `""` for a
+  half-typed `-`. Hold a draft string, re-seed it only when the number really
+  changed, and use `type="text" inputMode="decimal"`.
 - Deployed a new build, users still see the old app → forgot to bump the
   `sw.js` cache version.
 - New source file loads locally but not for other users → forgot to add it
@@ -163,6 +191,8 @@ whose binary download is proxy-blocked. To get Babel, install `@babel/core` +
   `equation-classifier.js` — both are extensively documented at the top.
 - Never hand-edit a `.js` that has a `.jsx` sibling without also updating the
   `.jsx`; the next `build:jsx` run silently overwrites it.
-- If a change touches level goals, scoring, or the classifier's output, say
-  so explicitly — past records and authored level goals were tuned against
-  those exact numbers.
+- If a change touches level goals, scoring, the classifier's output, the
+  spawn or what an object does to the ball, say so explicitly — past records
+  and authored level goals were tuned against those exact numbers, and the
+  drafts in `levels/` are the only written record of what each level was
+  meant to ask for.

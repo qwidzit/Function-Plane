@@ -106,6 +106,11 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
     setObjects(prev => prev.map((o, k) => (k === i ? { ...o, x: pos.x, y: pos.y } : o)));
   };
 
+  // What this board would score as a level run, so the sandbox can answer the
+  // only question it could not: is this cheaper than what I did before?
+  const liveScore = computeScore(equations);
+  const eqsUsed   = equations.filter(e => e.fn && e.visible !== false).length;
+
   const selectedPos = !selected ? null
     : selected === 'ball' ? ball
     : selected.startsWith('star-') ? stars[Number(selected.slice(5))]
@@ -116,8 +121,13 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
     : FP_OBJECTS.KINDS[objects[Number(selected.slice(4))]?.kind]?.label || '';
 
   const setCoord = (axis, value) => {
-    const n = Number(value);
-    if (!isFinite(n) || !selectedPos) return;
+    // Number('') is 0 and Number('-') is NaN, so an emptied field used to snap
+    // the object to the origin on the keystroke that cleared it. A field the
+    // player is still part-way through typing commits nothing.
+    const t = String(value).trim();
+    if (!t || t === '-' || t === '.' || t === '-.' || !selectedPos) return;
+    const n = Number(t);
+    if (!isFinite(n)) return;
     moveObject(selected, { ...selectedPos, [axis]: q(n) });
   };
 
@@ -245,7 +255,8 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
               <option key={k} value={k}>{v.title}</option>)}
           </select>
           <div style={{ fontSize: 11, color: 'var(--fp-ink-4)', marginTop: 4, lineHeight: 1.5 }}>
-            Shown once, the first time a player opens this level.
+            Shown once, the first time a player opens this level. Objects are not
+            listed — a fan or a hazard explains itself the first time a player meets one.
           </div>
         </div>
         <label style={{
@@ -304,6 +315,16 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
             fontSize: 19, letterSpacing: '-0.02em', color: 'var(--fp-ink)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{running ? `${elapsed.toFixed(1)}s` : (admin ? (name || 'Untitled level') : 'Free play')}</div>
+        </div>
+        <div className="fp-mono" title="What these equations would score as a level"
+          style={{
+            display: 'flex', alignItems: 'baseline', gap: 5, flex: '0 0 auto',
+            height: 38, padding: '0 11px', borderRadius: 11,
+            background: 'var(--lv-surface)', border: '1px solid var(--lv-line)',
+          }}>
+          <span style={{ fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase',
+            color: 'var(--fp-ink-3)', fontFamily: 'inherit' }}>Score</span>
+          <span style={{ fontSize: 13, color: 'var(--fp-ink)' }}>{eqsUsed > 0 ? liveScore : '—'}</span>
         </div>
         {gravityFlip && (
           <div className="fp-mono" style={{ fontSize: 13, color: 'var(--fp-ink-2)', width: 22, textAlign: 'center' }}
@@ -417,16 +438,18 @@ function StudioChip({ label, active, disabled, onClick }) {
 
 function StudioCoord({ axis, value, onChange }) {
   // Held locally while typing so an intermediate "-" or "1." isn't rejected
-  // as unparseable and snapped back mid-keystroke.
+  // as unparseable and snapped back mid-keystroke. Re-seeded only when the
+  // number really changed underneath: String(-0) is "0", so echoing every
+  // commit back turned "-0" into "0" and made -0.5 impossible to type.
   const [draft, setDraft] = useLS(String(value));
-  useLSE(() => { setDraft(String(value)); }, [value]);
+  useLSE(() => { if (Number(draft) !== value) setDraft(String(value)); }, [value]);
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
       <span style={{
         fontFamily: "'Geist Mono', monospace", fontSize: 12, color: 'var(--fp-ink-3)',
       }}>{axis}</span>
       <input
-        type="number" step="0.25" inputMode="decimal" value={draft}
+        type="text" inputMode="decimal" value={draft}
         onChange={e => { setDraft(e.target.value); onChange(axis, e.target.value); }}
         style={{
           width: '100%', height: 34, borderRadius: 9, padding: '0 9px',

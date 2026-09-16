@@ -242,11 +242,64 @@ function RatingRow({ n, children }) {
   );
 }
 
+// ─── Tutorial art ────────────────────────────────────────────
+// Little animated diagrams for the popups below. SMIL, like the wind streaks
+// on a real fan, so a page costs no state and no timers — and, like them, the
+// motion is the drawing and never the physics.
+const ART_W = 208, ART_H = 96;
+
+function Art({ children }) {
+  return (
+    <svg viewBox={`0 0 ${ART_W} ${ART_H}`} width="100%" height={96}
+      style={{ display: 'block', margin: '2px 0 12px' }} aria-hidden="true">
+      <rect x={0} y={0} width={ART_W} height={ART_H} rx={12}
+        fill="var(--fp-ink)" fillOpacity={0.035}/>
+      {children}
+    </svg>
+  );
+}
+
+// A ball that slides from a to b and starts over, so a page loops quietly
+// instead of playing once and leaving a still picture.
+function ArtBall({ from, to, dur = 2.6, r = 7, c = 'var(--fp-ink)', path }) {
+  return (
+    <circle r={r} fill={c} cx={path ? 0 : from[0]} cy={path ? 0 : from[1]}>
+      {path
+        ? <animateMotion path={path} dur={`${dur}s`} repeatCount="indefinite"/>
+        : <>
+            <animate attributeName="cx" from={from[0]} to={to[0]} dur={`${dur}s`} repeatCount="indefinite"/>
+            <animate attributeName="cy" from={from[1]} to={to[1]} dur={`${dur}s`} repeatCount="indefinite"/>
+          </>}
+    </circle>
+  );
+}
+
+const FAN_C = '#1f9aa8', HAZ_C = '#d13b3b', ZG_C = '#7a4fd6', WELL_C = '#2f3e8f';
+
+// A fan box lying on its base at x, blowing +y (up the picture, so -y in SVG).
+const fanBox = (x, y, w, h, opts = {}) => (
+  <>
+    <rect x={x} y={y - h} width={w} height={h} rx={4}
+      fill={FAN_C} fillOpacity={0.08} stroke={FAN_C} strokeWidth={1.2} strokeDasharray="5 4"/>
+    <rect x={x} y={y - 4} width={w} height={5} rx={1.5} fill={FAN_C}/>
+    {!opts.noArrow && (
+      <path d={`M${x + w / 2 - 6} ${y - h + 11} L${x + w / 2} ${y - h + 3} L${x + w / 2 + 6} ${y - h + 11}`}
+        fill="none" stroke={FAN_C} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+    )}
+  </>
+);
+
 // ─── Level explainers ────────────────────────────────────────
 // A level that introduces a mechanic names one of these in its `explain`
 // column; the level screen shows it once, on the player's first visit. Kept
 // here beside How to Play because it is the same teaching copy, written
 // shorter — a player who is mid-level wants a sentence, not a chapter.
+//
+// Each is a small deck: `pages` is what the popup steps through, and the
+// popup itself is in level-screen.jsx. Objects are not listed here — they
+// teach themselves through FP_OBJECT_TUTORIALS below, keyed by kind, so a
+// level that puts a new kind on the plane explains it without an admin having
+// to remember to tick a box.
 const FP_EXPLAINERS = {
   'how-to-play': {
     title: 'Draw a track',
@@ -255,46 +308,57 @@ const FP_EXPLAINERS = {
       <circle cx={6} cy={6} r={2.6} fill="currentColor"/>
       <path d="M3 19C8 19 15 12 21 5" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
     </svg>,
-    body: <>
-      Tap <strong>Add</strong> and write an equation — <code>y=-x</code>, <code>y=x^2-3</code>,
-      anything you can graph. The curve becomes a solid track, and the ball rolls along it
-      under gravity. Collect every star to finish.
-      <div style={{ marginTop: 8 }}>
-        Fewer and simpler equations score better, so a line beats a parabola and one curve
-        beats two.
-      </div>
-    </>,
-  },
-  hazards: {
-    title: 'Mind the red',
-    color: '#d13b3b',
-    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <rect x={4} y={7} width={16} height={10} rx={1.5} stroke="currentColor" strokeWidth={2} strokeDasharray="3 2.5"/>
-    </svg>,
-    body: <>
-      The dashed red areas are hazards. Touch one and the run ends immediately — it does not
-      matter how many stars you had already collected.
-      <div style={{ marginTop: 8 }}>
-        Your curve may cross a hazard; only the <em>ball</em> must not. Watch where it bounces,
-        not just where the track goes.
-      </div>
-    </>,
-  },
-  fans: {
-    title: 'Mind the wind',
-    color: '#1f9aa8',
-    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <path d="M4 8h10a3 3 0 1 0-3-3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
-      <path d="M4 14h13a3 3 0 1 1-3 3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
-    </svg>,
-    body: <>
-      A fan pushes the ball the way its arrow points, the whole time the ball is inside the shaded
-      box. It does not care what your track is doing — wind and gravity simply add up.
-      <div style={{ marginTop: 8 }}>
-        The solid bar at the fan's base is part of it. That edge is a wall: the ball lands on it, and
-        cannot be rolled into the fan from behind.
-      </div>
-    </>,
+    pages: [
+      {
+        heading: 'Write an equation',
+        art: (
+          <Art>
+            <path d="M18 22 C 60 22, 110 62, 190 74" fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
+            <ArtBall from={[18, 15]} to={[190, 67]} dur={2.8}/>
+          </Art>
+        ),
+        body: <>
+          Tap <strong>+</strong> and write anything you can graph — <code>y=-x</code>,
+          <code> y=x^2-3</code>, <code>y=sin(x)</code>. The curve becomes a solid track and
+          the ball rolls along it under gravity.
+        </>,
+      },
+      {
+        heading: 'Collect every star',
+        art: (
+          <Art>
+            <path d="M18 26 C 70 26, 96 70, 190 70" fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
+            {[[62, 34], [116, 60], [168, 68]].map(([cx, cy], i) => (
+              <path key={i} transform={`translate(${cx},${cy}) scale(0.72)`}
+                d="M0 -10 L3 -3 L11 -2 L5 3 L7 11 L0 6 L-7 11 L-5 3 L-11 -2 L-3 -3 Z"
+                fill="none" stroke="var(--lv-star)" strokeWidth={2}/>
+            ))}
+            <ArtBall from={[18, 19]} to={[190, 63]} dur={2.8}/>
+          </Art>
+        ),
+        body: <>
+          The run ends half a second after the last star. Miss one and the ball simply falls
+          out of the world — press <strong>Play</strong> again and adjust.
+        </>,
+      },
+      {
+        heading: 'Keep it cheap',
+        art: (
+          <Art>
+            <text x={52} y={40} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=-x</text>
+            <text x={52} y={62} textAnchor="middle" fontSize={11} fontFamily="ui-monospace,monospace" fill="#388c46">30</text>
+            <line x1={104} y1={22} x2={104} y2={74} stroke="var(--fp-ink)" strokeOpacity={0.15} strokeWidth={1}/>
+            <text x={156} y={36} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=sin(x)</text>
+            <text x={156} y={52} textAnchor="middle" fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2</text>
+            <text x={156} y={70} textAnchor="middle" fontSize={11} fontFamily="ui-monospace,monospace" fill="#c74440">85</text>
+          </Art>
+        ),
+        body: <>
+          Fewer and simpler equations score better, so a line beats a parabola and one curve
+          beats two. The two goal chips above the plane say what this level is asking for.
+        </>,
+      },
+    ],
   },
   domain: {
     title: 'Stop the track early',
@@ -303,16 +367,318 @@ const FP_EXPLAINERS = {
       <path d="M6 4v16M18 4v16" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
       <path d="M9 12h6" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
     </svg>,
-    body: <>
-      The bracket button on an equation row restricts its <strong>domain</strong> — the range of
-      x where the curve exists at all.
-      <div style={{ marginTop: 8 }}>
-        End a track before an obstacle and the ball flies off it instead of riding into trouble.
-        It costs nothing: a restricted curve scores exactly the same as a full one.
-      </div>
-    </>,
+    pages: [
+      {
+        heading: 'The bracket button',
+        art: (
+          <Art>
+            <rect x={28} y={30} width={152} height={36} rx={9} fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
+            <text x={44} y={53} fontSize={13} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2-2</text>
+            <g transform="translate(150,48)" stroke="#6042a6" strokeWidth={1.8} strokeLinecap="round" fill="none">
+              <path d="M-7 -8v16M7 -8v16M-10 -3h20M-10 4h20"/>
+              <circle r={14} strokeWidth={1.4} strokeOpacity={0.55}>
+                <animate attributeName="r" values="11;15;11" dur="2s" repeatCount="indefinite"/>
+                <animate attributeName="stroke-opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite"/>
+              </circle>
+            </g>
+          </Art>
+        ),
+        body: <>
+          Every equation row has a bracket button. It restricts the curve's
+          <strong> domain</strong> — the range of x where it exists at all.
+        </>,
+      },
+      {
+        heading: 'A track with an end',
+        art: (
+          <Art>
+            <path d="M14 70 C 50 70, 70 26, 104 24" fill="none" stroke="#6042a6" strokeWidth={2.4} strokeLinecap="round"/>
+            <path d="M104 24 C 138 22, 158 66, 194 66" fill="none" stroke="#6042a6" strokeWidth={2.4}
+              strokeLinecap="round" strokeDasharray="3 5" opacity={0.3}/>
+            <line x1={104} y1={12} x2={104} y2={84} stroke="#6042a6" strokeWidth={1.4} strokeDasharray="4 3" opacity={0.6}/>
+            <ArtBall from={[14, 62]} to={[104, 17]} dur={1.9}/>
+          </Art>
+        ),
+        body: <>
+          Past the limit the curve is not drawn and not solid, so the ball flies off the end
+          of it instead of riding on into trouble.
+        </>,
+      },
+      {
+        heading: 'It is free',
+        art: (
+          <Art>
+            <text x={104} y={44} textAnchor="middle" fontSize={12} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x^2  ·  −4 ≤ x ≤ 1</text>
+            <text x={104} y={66} textAnchor="middle" fontSize={11} fill="#388c46">same score as the full curve</text>
+          </Art>
+        ),
+        body: <>
+          A restricted curve scores exactly what the full one does. When one shaped track can
+          be cut into the two you need, that is one equation instead of two.
+        </>,
+      },
+    ],
+  },
+};
+
+// ─── Object tutorials ────────────────────────────────────────
+// Keyed by object kind. The first time a level puts one of these on the plane
+// the level screen runs the deck once and remembers it per device — a reading
+// state, not progress, so it is deliberately not synced.
+const FP_OBJECT_TUTORIALS = {
+  fan: {
+    title: 'Fan',
+    color: FAN_C,
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M4 8h10a3 3 0 1 0-3-3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+      <path d="M4 14h13a3 3 0 1 1-3 3" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'A box of wind',
+        art: (
+          <Art>
+            {fanBox(74, 84, 60, 66)}
+            {[0, 1, 2, 3].map(k => (
+              <line key={k} x1={84 + k * 14} y1={70} x2={84 + k * 14} y2={58} stroke={FAN_C}
+                strokeWidth={1.6} strokeLinecap="round" opacity={0.5}>
+                <animate attributeName="y1" values="76;34" dur="1.6s" begin={`${k * 0.4}s`} repeatCount="indefinite"/>
+                <animate attributeName="y2" values="64;22" dur="1.6s" begin={`${k * 0.4}s`} repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0;0.6;0" dur="1.6s" begin={`${k * 0.4}s`} repeatCount="indefinite"/>
+              </line>
+            ))}
+          </Art>
+        ),
+        body: <>
+          A fan is the shaded box, not the bar at its base. It blows the way the arrow points,
+          the whole time the ball is in there — and the number on it is how hard.
+        </>,
+      },
+      {
+        heading: 'Wind and gravity add up',
+        art: (
+          <Art>
+            {fanBox(74, 84, 60, 66)}
+            <ArtBall dur={3} path="M12,26 C 52,58 74,78 104,52 C 126,32 140,40 196,74"/>
+          </Art>
+        ),
+        body: <>
+          It does not care what your track is doing. The ball keeps the speed it arrived with
+          and the wind is simply added to gravity while it is inside.
+          <div style={{ marginTop: 8 }}>
+            Clip the edge and you get part of the push: it builds from about a third of the
+            ball being inside up to the full force once it is properly in.
+          </div>
+        </>,
+      },
+      {
+        heading: 'The base is a wall',
+        art: (
+          <Art>
+            {fanBox(74, 84, 60, 60, { noArrow: true })}
+            <ArtBall from={[104, 8]} to={[104, 73]} dur={1.5}/>
+            <path d="M74 80h60" stroke={FAN_C} strokeWidth={3} strokeLinecap="round"/>
+          </Art>
+        ),
+        body: <>
+          The solid bar at the fan's base is part of it. That edge is a wall — the ball lands
+          on it, and cannot be rolled into the fan from behind.
+        </>,
+      },
+    ],
+  },
+  hazard: {
+    title: 'Hazard',
+    color: HAZ_C,
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <rect x={4} y={7} width={16} height={10} rx={1.5} stroke="currentColor" strokeWidth={2} strokeDasharray="3 2.5"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'Do not touch the red',
+        art: (
+          <Art>
+            <rect x={62} y={34} width={84} height={30} rx={3} fill={HAZ_C} fillOpacity={0.09}
+              stroke={HAZ_C} strokeWidth={1.6} strokeDasharray="5 3"/>
+            {[0, 1, 2, 3].map(k => (
+              <line key={k} x1={66 + k * 19} y1={62} x2={80 + k * 19} y2={36} stroke={HAZ_C} strokeWidth={1.4} opacity={0.5}/>
+            ))}
+          </Art>
+        ),
+        body: <>
+          The dashed red areas are hazards. They do nothing to your curve and everything to
+          your ball.
+        </>,
+      },
+      {
+        heading: 'One touch ends the run',
+        art: (
+          <Art>
+            <rect x={62} y={40} width={84} height={30} rx={3} fill={HAZ_C} fillOpacity={0.09}
+              stroke={HAZ_C} strokeWidth={1.6} strokeDasharray="5 3"/>
+            <ArtBall dur={2.4} path="M14,14 C 50,20 80,34 100,40"/>
+            <g transform="translate(100,40)" stroke={HAZ_C} strokeWidth={2} strokeLinecap="round">
+              <path d="M-9 -9L9 9M9 -9L-9 9" opacity={0}>
+                <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.78;0.84;0.96;1" dur="2.4s" repeatCount="indefinite"/>
+              </path>
+            </g>
+          </Art>
+        ),
+        body: <>
+          The moment the ball's edge meets one, the run fails — it does not matter how many
+          stars you had already collected.
+        </>,
+      },
+      {
+        heading: 'Route around it',
+        art: (
+          <Art>
+            <rect x={62} y={52} width={84} height={26} rx={3} fill={HAZ_C} fillOpacity={0.09}
+              stroke={HAZ_C} strokeWidth={1.6} strokeDasharray="5 3"/>
+            <path d="M10 66 C 60 66, 60 20, 104 20 C 148 20, 148 66, 198 66"
+              fill="none" stroke="#2d70b3" strokeWidth={2.4} strokeLinecap="round"/>
+            <ArtBall dur={2.8} path="M10,59 C 60,59 60,13 104,13 C 148,13 148,59 198,59"/>
+          </Art>
+        ),
+        body: <>
+          Your curve may cross a hazard; only the <em>ball</em> must not. Watch where it
+          bounces, not just where the track goes — and remember you can cut a curve short.
+        </>,
+      },
+    ],
+  },
+  zerog: {
+    title: 'Zero gravity',
+    color: ZG_C,
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <rect x={4} y={4} width={16} height={16} rx={2} stroke="currentColor" strokeWidth={2} strokeDasharray="3 2.5"/>
+      <circle cx={12} cy={12} r={2} fill="currentColor"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'A box with no weight in it',
+        art: (
+          <Art>
+            <rect x={56} y={22} width={96} height={54} rx={6} fill={ZG_C} fillOpacity={0.08}
+              stroke={ZG_C} strokeWidth={1.4} strokeDasharray="5 4"/>
+            <circle cx={104} cy={49} r={14} fill="none" stroke={ZG_C} strokeWidth={1.4} strokeDasharray="3 3" opacity={0.6}/>
+            <circle cx={101} cy={46} r={4} fill={ZG_C} opacity={0.7}>
+              <animate attributeName="cy" values="46;52;46" dur="3s" repeatCount="indefinite"/>
+            </circle>
+          </Art>
+        ),
+        body: <>
+          Inside this box gravity is switched off. Nothing pulls the ball down and nothing
+          pushes it up.
+        </>,
+      },
+      {
+        heading: 'It keeps whatever it arrived with',
+        art: (
+          <Art>
+            <rect x={56} y={22} width={96} height={54} rx={6} fill={ZG_C} fillOpacity={0.08}
+              stroke={ZG_C} strokeWidth={1.4} strokeDasharray="5 4"/>
+            <path d="M8 18 C 30 28, 44 38, 56 42" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <path d="M56 42 L152 42" fill="none" stroke={ZG_C} strokeOpacity={0.45} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <path d="M152 42 C 166 48, 178 62, 190 84" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <ArtBall dur={3.2} path="M8,18 C 30,28 44,38 56,42 L152,42 C 166,48 178,62 190,84"/>
+          </Art>
+        ),
+        body: <>
+          Its speed and direction stay exactly as they were on the way in — a curve straight
+          through the box, and the fall picked up again on the way out.
+        </>,
+      },
+      {
+        heading: 'Weightless, not upward',
+        art: (
+          <Art>
+            <rect x={56} y={22} width={96} height={54} rx={6} fill={ZG_C} fillOpacity={0.08}
+              stroke={ZG_C} strokeWidth={1.4} strokeDasharray="5 4"/>
+            <g transform="translate(104,49)" stroke={ZG_C} strokeWidth={2} strokeLinecap="round" fill="none">
+              <path d="M-11 -14 L11 14M11 -14L-11 14" opacity={0.35}/>
+              <path d="M0 -20 L0 20" opacity={0}/>
+            </g>
+            <text x={104} y={88} textAnchor="middle" fontSize={10} fill="var(--fp-ink-4)">no arrows: there is no direction</text>
+          </Art>
+        ),
+        body: <>
+          It will not lift the ball, and two overlapping boxes do not cancel back to normal.
+          A ball that enters with nothing left simply drifts to a stop and stays there.
+        </>,
+      },
+    ],
+  },
+  well: {
+    title: 'Gravity well',
+    color: WELL_C,
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <circle cx={12} cy={12} r={9} stroke="currentColor" strokeWidth={2} strokeDasharray="3 2.5"/>
+      <circle cx={12} cy={12} r={2} fill="currentColor"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'A steady pull, out to the ring',
+        art: (
+          <Art>
+            <defs>
+              <radialGradient id="fp-tut-well">
+                <stop offset="0%" stopColor={WELL_C} stopOpacity={0.3}/>
+                <stop offset="100%" stopColor={WELL_C} stopOpacity={0.03}/>
+              </radialGradient>
+            </defs>
+            <circle cx={104} cy={48} r={36} fill="url(#fp-tut-well)"/>
+            <circle cx={104} cy={48} r={36} fill="none" stroke={WELL_C} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.7}/>
+            <circle cx={104} cy={48} r={3.5} fill={WELL_C}/>
+            {[0, 90, 180, 270].map(a => (
+              <line key={a} x1={104} y1={12} x2={104} y2={20} stroke={WELL_C} strokeWidth={1.6}
+                strokeLinecap="round" opacity={0.6} transform={`rotate(${a} 104 48)`}/>
+            ))}
+          </Art>
+        ),
+        body: <>
+          Anywhere inside the ring the ball is pulled toward the centre by the same amount —
+          the number on it. Outside the ring it does nothing at all.
+        </>,
+      },
+      {
+        heading: 'It bends the flight',
+        art: (
+          <Art>
+            <circle cx={116} cy={52} r={32} fill={WELL_C} fillOpacity={0.07}
+              stroke={WELL_C} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.8}/>
+            <circle cx={116} cy={52} r={3.5} fill={WELL_C}/>
+            <path d="M8 20 C 60 26, 96 26, 116 52" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.18}
+              strokeWidth={1.4} strokeDasharray="3 3"/>
+            <ArtBall dur={2.6} path="M8,20 C 60,26 96,26 116,52"/>
+          </Art>
+        ),
+        body: <>
+          A pull from the side turns a straight throw into an arc. Aim past a well and it will
+          curve the ball round for you — no extra equation needed.
+        </>,
+      },
+      {
+        heading: 'Crossing one costs speed',
+        art: (
+          <Art>
+            <circle cx={104} cy={48} r={34} fill={WELL_C} fillOpacity={0.07}
+              stroke={WELL_C} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.8}/>
+            <circle cx={104} cy={48} r={3.5} fill={WELL_C}/>
+            <path d="M10 48 C 60 48, 70 84, 104 84 C 138 84, 148 48, 104 48" fill="none"
+              stroke={WELL_C} strokeOpacity={0.35} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <ArtBall dur={3.4} path="M10,48 C 60,48 70,84 104,84 C 138,84 148,48 104,48"/>
+          </Art>
+        ),
+        body: <>
+          A well drags as well as pulls, so the ball never leaves with as much as it brought.
+          Fall too deep into one and it will not climb back out.
+        </>,
+      },
+    ],
   },
 };
 
 window.FP_EXPLAINERS = FP_EXPLAINERS;
+window.FP_OBJECT_TUTORIALS = FP_OBJECT_TUTORIALS;
 window.HowToPlayScreen = HowToPlayScreen;

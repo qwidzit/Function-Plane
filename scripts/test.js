@@ -251,6 +251,50 @@ it('awards each star on its own, not as a ladder', () => {
   eq(scoring.starRating(3, 90, 1, 40), CLEAR, 'neither goal still clears the level');
 });
 
+it('reads an unclosed bracket as the expression it looks like', () => {
+  // The keyboard's function keys type "sin(" and leave the closer to the
+  // player, and the typeset layer draws the result as finished maths — so a
+  // perfectly ordinary y=sin(x came back red and drew nothing.
+  const at = (expr, x) => { const r = scoring.parseEquation(expr); return r.fn ? r.fn(x) : null; };
+  near(at('y=sin(x', 1), Math.sin(1), 1e-12, 'the reported case');
+  eq(at('y=abs(x', -2),  2,  'one argument');
+  eq(at('y=min(x,2', 5),  2, 'two arguments');
+  eq(at('y=((x+1)*2', 1), 4, 'more than one bracket open');
+  eq(scoring.parseEquation('y=x)').fn, null, 'a surplus bracket is still an error');
+});
+
+it('reads pi glued to what multiplies it', () => {
+  // \bpi\b cannot see a boundary between a digit and a letter, so 2pi
+  // compiled to p*i — two undeclared parameters — and silently drew nothing,
+  // while the classifier read the same string as a constant.
+  const at = (expr, x) => { const r = scoring.parseEquation(expr); return r.fn ? r.fn(x) : null; };
+  near(at('y=2pi', 0),     2 * Math.PI, 1e-12, 'after a digit');
+  near(at('y=2pi*x', 1),   2 * Math.PI, 1e-12, 'and it still multiplies out');
+  near(at('y=sin(2pi*x', 0.25), 1, 1e-12, 'inside a call');
+  near(at('y=pi', 0),      Math.PI, 1e-12, 'and on its own, as before');
+});
+
+it('charges for a curve the way the classifier reads it, brackets and all', () => {
+  // x(x+1) is juxtaposition, not a call to a function named x. The runtime
+  // parser always read it that way; the classifier read it as an unknown
+  // function and charged 10 for a quadratic.
+  eq(detectClass('y=x(x+1)'), 'quadratic', 'a product written without a sign');
+  eq(classifyEquation('y=x(x+1)'), 20, 'and priced as one');
+  eq(detectClass('y=x(x+1)(x-1)'), 'cubic', 'three factors are a cubic');
+  eq(detectClass('y=sin(x)'), 'trig', 'a real call is still a call');
+  eq(scoring.computeScore(parse(['y=x(x+1)'])), 40, 'the run agrees with the audit');
+});
+
+it('leaves a hidden curve out of the score and the equation count', () => {
+  // A hidden row is not a collider, so it is not part of the track — and a
+  // track the ball never touches must not be charged for.
+  const rows = parse(['y=x', 'y=sin(x)']).map((r, i) => ({ ...r, visible: i === 0 }));
+  eq(scoring.computeScore(rows), 30, 'only the visible line counts');
+  eq(rows.filter(r => r.fn && r.visible !== false).length, 1, 'and only it is an equation');
+  eq(scoring.computeScore(parse(['y=x', 'y=sin(x)'])), 75,
+    'rows with no visible field — the audit\'s — are all live');
+});
+
 it('parses a negated power whose base has nested parentheses', () => {
   // -(5*(x+1))^3 came back as a broken equation: maths reads -x^2 as -(x^2)
   // and JS rejects that spelling outright, so the source is rewritten before
@@ -554,6 +598,29 @@ it('bleeds speed inside a well instead of slingshotting it back out', () => {
   const shipped = objs.makeObject('well');
   ok(shipped.damp > 0, 'drag is on by default');
   ok(shipped.strength >= 30, `and the pull is worth feeling, got ${shipped.strength}`);
+});
+
+it('grades a fan by how much of the ball it has hold of', () => {
+  // A point test meant the wind switched on the instant the ball's *centre*
+  // crossed the line, which reads as "nothing until it is almost fully in".
+  const fan = objs.makeObject('fan', { x: 0, y: 0, angle: 90, len: 10, w: 4, strength: 12 });
+  const r = 0.22;
+  const push = x => {
+    const f = objs.makeField([fan], r);
+    return f(x, 5, 0, 0).ay;
+  };
+  near(push(0), 12, 1e-9, 'dead centre is the full force');
+  ok(push(2 - r * 0.5) > 0 && push(2 - r * 0.5) < 12, 'part way out is part of the force');
+  eq(push(2 + r), 0, 'clear of the edge is nothing at all');
+  eq(push(2 + r * 0.9), 0, 'and under a third inside is nothing either');
+  // Same field twice, same answer: an object may never read a clock.
+  const f = objs.makeField([fan], r);
+  const a = f(1, 5, 0, 0).ay, b = f(1, 5, 0, 0).ay;
+  eq(a, b, 'deterministic');
+});
+
+it('ships a fan strong enough to matter', () => {
+  eq(objs.makeObject('fan').strength, 20, 'the default force');
 });
 
 it('makes a fan housing solid, and nothing else', () => {

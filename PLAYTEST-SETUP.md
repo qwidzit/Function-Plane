@@ -117,11 +117,11 @@ folder — run `dir` and check you can see `package.json`.
 
    ```
    ────────────────────────────────────────────────────────────
-   43 passed
+   73 passed
    ```
 
-   That is the whole check — no browser, no build, nothing to click. If it says
-   `43 passed`, move on to step 4.
+   That is the whole check — no browser, no build, nothing to click. The count
+   grows as checks are added; what matters is that nothing says `failed`.
 
    > **If `Build parity` fails** with a list of stale `.js` files, it is almost
    > always a stale `node_modules`, not a real problem with the code.

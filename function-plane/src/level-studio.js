@@ -159,11 +159,21 @@ function LevelStudio({
       y: pos.y
     } : o));
   };
+
+  // What this board would score as a level run, so the sandbox can answer the
+  // only question it could not: is this cheaper than what I did before?
+  const liveScore = computeScore(equations);
+  const eqsUsed = equations.filter(e => e.fn && e.visible !== false).length;
   const selectedPos = !selected ? null : selected === 'ball' ? ball : selected.startsWith('star-') ? stars[Number(selected.slice(5))] : objects[Number(selected.slice(4))];
   const selectedLabel = !selected ? '' : selected === 'ball' ? 'Spawn' : selected.startsWith('star-') ? `Star ${Number(selected.slice(5)) + 1}` : FP_OBJECTS.KINDS[objects[Number(selected.slice(4))]?.kind]?.label || '';
   const setCoord = (axis, value) => {
-    const n = Number(value);
-    if (!isFinite(n) || !selectedPos) return;
+    // Number('') is 0 and Number('-') is NaN, so an emptied field used to snap
+    // the object to the origin on the keystroke that cleared it. A field the
+    // player is still part-way through typing commits nothing.
+    const t = String(value).trim();
+    if (!t || t === '-' || t === '.' || t === '-.' || !selectedPos) return;
+    const n = Number(t);
+    if (!isFinite(n)) return;
     moveObject(selected, {
       ...selectedPos,
       [axis]: q(n)
@@ -370,7 +380,7 @@ function LevelStudio({
         marginTop: 4,
         lineHeight: 1.5
       }
-    }, "Shown once, the first time a player opens this level.")), /*#__PURE__*/React.createElement("label", {
+    }, "Shown once, the first time a player opens this level. Objects are not listed \u2014 a fan or a hazard explains itself the first time a player meets one.")), /*#__PURE__*/React.createElement("label", {
       style: {
         display: 'flex',
         alignItems: 'center',
@@ -501,7 +511,34 @@ function LevelStudio({
       overflow: 'hidden',
       textOverflow: 'ellipsis'
     }
-  }, running ? `${elapsed.toFixed(1)}s` : admin ? name || 'Untitled level' : 'Free play')), gravityFlip && /*#__PURE__*/React.createElement("div", {
+  }, running ? `${elapsed.toFixed(1)}s` : admin ? name || 'Untitled level' : 'Free play')), /*#__PURE__*/React.createElement("div", {
+    className: "fp-mono",
+    title: "What these equations would score as a level",
+    style: {
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 5,
+      flex: '0 0 auto',
+      height: 38,
+      padding: '0 11px',
+      borderRadius: 11,
+      background: 'var(--lv-surface)',
+      border: '1px solid var(--lv-line)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      color: 'var(--fp-ink-3)',
+      fontFamily: 'inherit'
+    }
+  }, "Score"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink)'
+    }
+  }, eqsUsed > 0 ? liveScore : '—')), gravityFlip && /*#__PURE__*/React.createElement("div", {
     className: "fp-mono",
     style: {
       fontSize: 13,
@@ -690,10 +727,12 @@ function StudioCoord({
   onChange
 }) {
   // Held locally while typing so an intermediate "-" or "1." isn't rejected
-  // as unparseable and snapped back mid-keystroke.
+  // as unparseable and snapped back mid-keystroke. Re-seeded only when the
+  // number really changed underneath: String(-0) is "0", so echoing every
+  // commit back turned "-0" into "0" and made -0.5 impossible to type.
   const [draft, setDraft] = useLS(String(value));
   useLSE(() => {
-    setDraft(String(value));
+    if (Number(draft) !== value) setDraft(String(value));
   }, [value]);
   return /*#__PURE__*/React.createElement("label", {
     style: {
@@ -709,8 +748,7 @@ function StudioCoord({
       color: 'var(--fp-ink-3)'
     }
   }, axis), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.25",
+    type: "text",
     inputMode: "decimal",
     value: draft,
     onChange: e => {

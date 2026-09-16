@@ -300,7 +300,7 @@ function App() {
         pack,
         levelIndex
       } = nav;
-      const handleComplete = (rating, score, time, exprs) => {
+      const handleComplete = (rating, score, time, exprs, runEntry) => {
         setProgress(prev => {
           const next = {
             ...prev
@@ -323,6 +323,11 @@ function App() {
           // in another keeps both. `stars` stays the count the rest of the app
           // adds up.
           const starBits = pd.starBits ? [...pd.starBits] : Array(10).fill(null);
+          // history: the last ten winning runs per level, so "load these
+          // equations" survives a reload. It lives here rather than in a
+          // localStorage key of its own so it merges and uploads with
+          // everything else the account owns.
+          const history = pd.history ? [...pd.history] : Array(10).fill(null);
           const bits = starBitsOf(stars[levelIndex] ?? 0, starBits[levelIndex]) | rating;
           starBits[levelIndex] = bits;
           stars[levelIndex] = starCount(bits);
@@ -343,6 +348,12 @@ function App() {
           pd.bestTime = bestTime;
           pd.maxScore = maxScore;
           pd.bestEqs = bestEqs;
+          if (runEntry) {
+            const sig = (runEntry.exprs || []).join('||');
+            const prev = (history[levelIndex] || []).filter(r => (r.exprs || []).join('||') !== sig);
+            history[levelIndex] = [runEntry, ...prev].slice(0, 10);
+          }
+          pd.history = history;
           return next;
         });
       };

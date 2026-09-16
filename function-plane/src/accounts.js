@@ -182,6 +182,21 @@
           if (bb === null) return pa.bestEqs?.[i] ?? null;
           return (ba <= bb ? pa.bestEqs?.[i] : pb.bestEqs?.[i]) ?? null;
         }),
+        // Winning runs from both sides, newest first, one entry per distinct
+        // set of equations. A union rather than a pick: two devices holding
+        // different answers to the same level should end up holding both.
+        history: Array.from({ length: 10 }, (_, i) => {
+          const ra = pa.history?.[i] || [], rb = pb.history?.[i] || [];
+          if (!ra.length && !rb.length) return null;
+          const seen = {}, merged = [];
+          for (const r of [...ra, ...rb].sort((x, y) => (y.ts || 0) - (x.ts || 0))) {
+            const sig = (r.exprs || []).join('||');
+            if (seen[sig]) continue;
+            seen[sig] = 1;
+            merged.push(r);
+          }
+          return merged.slice(0, 10);
+        }),
       };
     }
     return out;

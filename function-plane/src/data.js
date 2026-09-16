@@ -88,15 +88,40 @@ const LEVELS = {
     eqGoal: 1
   }
 };
+
+// ─── Hints ───────────────────────────────────────────
+// One line per level, saying what *kind* of function it was built around and
+// nothing about the numbers — a hint should shorten the search, not end it.
+// Only the first pack is written; everywhere else a hint is simply absent and
+// the popup says so. A `hint` column on level_overrides wins over this table
+// wherever one exists, the way every other authored field does.
+const LEVEL_HINTS = {
+  'r-I-0': 'One straight line is all this needs — something like y=mx, tilted so the ball runs down across every star.',
+  'r-I-1': 'A straight line again, but this one slopes the other way and has to start below the axis: y=mx+b.',
+  'r-I-2': 'A line cannot come back up. Use a parabola — y=ax^2+c — so the ball falls, turns and climbs.',
+  'r-I-3': 'A straight line, aimed shallow enough to stay under the hazard the whole way.',
+  'r-I-4': 'A wide, shallow parabola: y=ax^2+c with a small a, so the dip clears the hazard.',
+  'r-I-5': 'A straight line, and then the bracket button. Cut the curve short and the ball leaves the track instead of riding it into the red.',
+  'r-I-6': 'A parabola with a restricted domain — shape the arc with y=ax^2+bx+c, then end it where the gap is.',
+  'r-I-7': 'Three straight lines, each cut to its own stretch of x. One long curve cannot be a staircase.',
+  'r-I-8': 'It looks like it wants two curves. It does not: one parabola, y=ax^2+bx+c, reaches all three.',
+  'r-I-9': 'Two straight lines: one restricted to the entrance, one to carry the ball out along the floor.'
+};
+function getHint(packId, levelIndex) {
+  const ov = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];
+  return ov && ov.hint || LEVEL_HINTS[`${packId}-${levelIndex}`] || null;
+}
 function getLevelData(packId, levelIndex) {
   const base = LEVELS[`${packId}-${levelIndex}`] || LEVELS._default;
+  const hint = getHint(packId, levelIndex);
   const ov = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];
   if (!ov) return {
     ...base,
     preplaced: [],
     objects: [],
     materials: false,
-    explain: null
+    explain: null,
+    hint
   };
   return {
     ball: ov.ball_x != null && ov.ball_y != null ? {
@@ -115,7 +140,9 @@ function getLevelData(packId, levelIndex) {
     materials: !!ov.materials,
     // Which mechanic this level introduces — a key into FP_EXPLAINERS, shown
     // once on the player's first visit. Null on levels that teach nothing new.
-    explain: ov.explain && window.FP_EXPLAINERS?.[ov.explain] ? ov.explain : null
+    explain: ov.explain && window.FP_EXPLAINERS?.[ov.explain] ? ov.explain : null,
+    // What kind of function the level wants. Empty outside the first pack.
+    hint
   };
 }
 function getLevelName(packId, levelIndex) {
@@ -323,6 +350,7 @@ Object.assign(window, {
   SPECIAL_UNLOCK_STARS,
   getLevelData,
   getLevelName,
+  getHint,
   getPack,
   visiblePacks,
   applyOverrides,

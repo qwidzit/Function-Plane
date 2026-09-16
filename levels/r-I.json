@@ -392,7 +392,7 @@
           "name": "launch through the hole",
           "eqs": [
             {
-              "expr": "y=0.43x^2+1.35x+1.8",
+              "expr": "y=0.43x^2+1.4x+1.8",
               "domain": [
                 {
                   "xMin": -12,

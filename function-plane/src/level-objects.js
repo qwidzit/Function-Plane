@@ -23,7 +23,7 @@ const KINDS = {
       angle: 90,
       len: 4,
       w: 2,
-      strength: 14
+      strength: 20
     },
     fields: [{
       k: 'x',
@@ -175,6 +175,31 @@ function fanLocal(o, x, y) {
     v: -dx * Math.sin(a) + dy * Math.cos(a)
   };
 }
+
+// How much of a ball of radius r, centred at c, lies inside [lo, hi] along one
+// axis — as a fraction of the ball's own width.
+function cover1d(c, r, lo, hi) {
+  if (r <= 0) return c >= lo && c <= hi ? 1 : 0;
+  const w = Math.min(hi, c + r) - Math.max(lo, c - r);
+  return w <= 0 ? 0 : Math.min(1, w / (2 * r));
+}
+
+// A ball only grazing the edge of a fan should not be nudged; from a third of
+// the way in the wind builds with how much of the ball it actually has hold of.
+const FAN_MIN_COVER = 1 / 3;
+
+// How much of the ball is in the fan's box, as the product of its coverage
+// along each local axis. A cheap stand-in for the true circle-rectangle
+// overlap area, allocation-free, and — like everything else here — a pure
+// function of where the ball is.
+function fanCoverage(o, x, y, r) {
+  const {
+    u,
+    v
+  } = fanLocal(o, x, y);
+  const f = cover1d(u, r, 0, o.len) * cover1d(v, r, -o.w / 2, o.w / 2);
+  return f < FAN_MIN_COVER ? 0 : f;
+}
 const INSIDE = {
   fan: (o, x, y) => {
     const {
@@ -208,11 +233,12 @@ function solidSegs(objects) {
 // Accumulate into `out` — ax/ay in units/s², gMul scales gravity. The engine
 // calls this every substep, so it must not allocate.
 const FORCE = {
-  fan(o, x, y, vx, vy, out) {
-    if (!INSIDE.fan(o, x, y)) return;
+  fan(o, x, y, vx, vy, out, r) {
+    const f = fanCoverage(o, x, y, r);
+    if (f === 0) return;
     const a = o.angle * DEG;
-    out.ax += o.strength * Math.cos(a);
-    out.ay += o.strength * Math.sin(a);
+    out.ax += o.strength * f * Math.cos(a);
+    out.ay += o.strength * f * Math.sin(a);
   },
   zerog(o, x, y, vx, vy, out) {
     if (INSIDE.zerog(o, x, y)) out.gMul = 0;
@@ -237,8 +263,9 @@ const FORCE = {
 };
 
 // The field the engine samples. Null when nothing pushes, so a level without
-// objects pays nothing.
-function makeField(objects) {
+// objects pays nothing. ballR lets a kind know how big the thing it is pushing
+// is — the fan grades its force by how much of the ball it has hold of.
+function makeField(objects, ballR = 0) {
   const fs = (objects || []).filter(o => FORCE[o.kind]);
   if (!fs.length) return null;
   const out = {
@@ -250,7 +277,7 @@ function makeField(objects) {
     out.ax = 0;
     out.ay = 0;
     out.gMul = 1;
-    for (let i = 0; i < fs.length; i++) FORCE[fs[i].kind](fs[i], x, y, vx, vy, out);
+    for (let i = 0; i < fs.length; i++) FORCE[fs[i].kind](fs[i], x, y, vx, vy, out, ballR);
     return out;
   };
 }
@@ -312,6 +339,41 @@ function hash01(i, k) {
   h = Math.imul(h ^ h >>> 15, 2246822519);
   h = Math.imul(h ^ h >>> 13, 3266489917);
   return ((h ^ h >>> 16) >>> 0) / 4294967296;
+}
+
+// How hard the thing pushes, written on it. A fan drawn at half length can
+// blow twice as hard as the one beside it and nothing about the picture said
+// so; the number is the only part of an object that is exact.
+function ForceTag({
+  c,
+  n,
+  x,
+  y,
+  rotate = 0
+}) {
+  const t = String(Math.round(n * 10) / 10);
+  return /*#__PURE__*/React.createElement("g", {
+    transform: `translate(${x},${y}) rotate(${rotate})`
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: -8.5 - t.length * 3,
+    y: -8,
+    width: 17 + t.length * 6,
+    height: 16,
+    rx: 8,
+    fill: "var(--lv-bg)",
+    opacity: 0.82,
+    stroke: c,
+    strokeWidth: 1,
+    strokeOpacity: 0.5
+  }), /*#__PURE__*/React.createElement("text", {
+    x: 0,
+    y: 4,
+    textAnchor: "middle",
+    fontSize: 10.5,
+    fontWeight: 600,
+    fontFamily: "ui-monospace,monospace",
+    fill: c
+  }, t));
 }
 function Fan({
   o,
@@ -394,6 +456,12 @@ function Fan({
     strokeLinecap: "round",
     strokeLinejoin: "round",
     opacity: 0.9
+  }), /*#__PURE__*/React.createElement(ForceTag, {
+    c: c,
+    n: o.strength,
+    x: 14,
+    y: 0,
+    rotate: o.angle
   }));
 }
 
@@ -488,6 +556,11 @@ function Well({
     r: 3,
     fill: c,
     opacity: 0.9
+  }), /*#__PURE__*/React.createElement(ForceTag, {
+    c: c,
+    n: o.strength,
+    x: 0,
+    y: -16
   }));
 }
 function Hazard({

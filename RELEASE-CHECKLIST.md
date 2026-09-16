@@ -25,6 +25,7 @@ approved — and each one says so.
 | 1 | Author the remaining 50 levels | Packs III, IV, V, Linear and Trig have no level data and currently repeat one placeholder. `npm test` prints live coverage. | You |
 | 2 | Re-tune level goals | Score and equation goals across all 70 levels, once the levels exist. **Stars are now awarded individually** — clearing, the score goal and the equation goal each light their own, so a run that beats the equation goal but misses the score goal earns 2 rather than 3. Worth re-checking the `SPECIAL_UNLOCK_STARS` thresholds and the `stars_200` target against real play, since totals are slightly tighter than before. | You |
 | 3 | Set the `stars_200` threshold | 200 of a maximum 210 stars is near-impossible; editable in the admin panel. | You |
+| 3b | Write the remaining level hints | Every level has a **Hint** button; `LEVEL_HINTS` in `src/data.jsx` carries the ten for pack I and every other level currently answers "no hint for this level". A hint names the *kind* of function the level was built around and never the numbers. Add them as the levels are authored (item 1), either in that table or — if you add a `hint` column to `level_overrides` — per level in the database, which wins over the table. | You |
 | 4 | Regenerate the data snapshot | `npm run snapshot:data` bakes the finished Supabase level data into the app. Must be the last content step — and it is now also what carries authored **objects** (fans, zero-gravity zones, wells, hazards) and the per-level bounce toggle into offline boots. | You |
 
 ## Payments

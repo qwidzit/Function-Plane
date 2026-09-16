@@ -61,19 +61,20 @@ check in the `mount()` polling guard near the bottom of `app.jsx`
 creates a race where React tries to render a component before its script has
 finished parsing).
 
-> **Babel-version churn.** The committed `.js` files were built with an older
-> Babel that escapes non-ASCII in string literals (`•`, `—`). A newer
-> Babel emits those characters literally, so a full `build-jsx.js` run
-> reformats ~all files with functionally-identical churn. Two implications:
-> (1) for a **one-line** change, it's cleaner to edit the matching `.js` line
-> directly instead of rebuilding everything (verify the hand-edit matches a
-> fresh Babel build of just that region before committing — diff the two,
-> normalizing `\uXXXX`/`\xXX` escapes, since that's the only churn source);
-> (2) a real full rebuild will produce a large one-time reformat diff — do it
-> deliberately, not mixed into a feature commit. Also note `npm install`
-> fails in sandboxes: `@capacitor/assets` pulls in `sharp`, whose binary
-> download is proxy-blocked. To rebuild, install only `@babel/core` +
-> `@babel/preset-react` (e.g. in a temp dir) and point `NODE_PATH` at them.
+> **Use the pinned Babel and a full rebuild is free.** `package.json` pins
+> `@babel/core` and `@babel/preset-react` at **7.29.7**, and the committed
+> `.js` are what that version emits: run `npm run build:jsx` on a clean tree
+> with it and `git status` comes back empty. So there is no reason to
+> hand-edit a compiled `.js` — edit the `.jsx` and rebuild, however small the
+> change. Babel versions differ in whether they escape non-ASCII in string
+> literals (`•`, `—`) and in how they spread props, so a *different* version
+> reformats most files with functionally-identical churn; `npm test` prints
+> the version it compiled with next to the parity result, and a parity failure
+> that names a dozen files is almost always that rather than a real drift.
+> Note `npm install` fails in sandboxes: `@capacitor/assets` pulls in `sharp`,
+> whose binary download is proxy-blocked. To rebuild, install only
+> `@babel/core@7.29.7` + `@babel/preset-react@7.29.7` (e.g. in a temp dir) and
+> point `NODE_PATH` at them.
 
 ## Layout
 
@@ -146,13 +147,19 @@ for not running it before a commit.
   so pack gating is tested as shipped, not as a copy.
 - **Physics** — free fall, resting height, no sink-through, energy loss on a
   real bounce, determinism, and the slope roll that dies instantly if the
-  "`energyRetention` only when `-vn > 1.5`" gate is broken.
+  "`energyRetention` only when `-vn > 1.5`" gate is broken. Objects too: a fan
+  is graded by how much of the ball it holds, is silent below a third, and
+  answers the same twice.
 - **Sim clock** — that recorded times come from tick count and not the wall
   clock (see below), that 60Hz still steps exactly once per frame, and that a
   stall can't trigger unbounded catch-up.
 - **Shell integrity** — every script/stylesheet in `index.html` is in `sw.js`'s
   `SHELL` and still exists, `app.js` loads last, every `.jsx` has a `.js`, and
   the screens agree on the build number.
+- **Parser leniency** — an unclosed bracket reads as the expression it looks
+  like (`y=sin(x`), a surplus one is still an error, `pi` glued to a digit is
+  π, a name before `(` that is not callable is a product (`x(x+1)` is a
+  quadratic and priced as one), and a hidden row costs nothing.
 - **Level data** — the snapshot parses, every authored level has a ball, stars
   and positive goals, and `_default`'s goal stays on the authored scale.
 - **Build parity** — recompiles every `.jsx` and compares to the committed
@@ -251,9 +258,43 @@ Current design:
 - **`ph.bounces`** counts real bounces (the same `-vn > threshold` test that
   gates `energyRetention`), on top of the per-frame `ph.bounced` flag. The
   gravity-flip rule needs a count, not a flag: a frame can drain several ticks.
+- **The ball starts one pixel downhill of its mark.** `freshPh` offsets the
+  spawn by `START_NUDGE` (1/40 of a unit — one pixel at the plane's default
+  scale) along +x. Dropped exactly onto the apex of a circle or the vertex of
+  a parabola the ball would otherwise balance there for the whole 28 s, which
+  reads as a broken level rather than a symmetric one. It is a fixed number of
+  *world units*, never read off the live zoom: the sim has to run identically
+  on every screen for the time leaderboard to mean anything. It also shifts
+  every trajectory very slightly, which is why `npm run verify:levels` is part
+  of changing it — one authored level's draft answer sat close enough to a
+  hazard that a pixel was the difference.
 - Level ends **0.5 s after the last star is collected** (`wonAtS` timestamp),
   not when the ball falls off. Recorded finish time is `wonAtS`, not the
   wind-down endpoint.
+
+## Equation parser (`normExpr` / `parseEquation` in level-screen.jsx)
+
+What a player types is rewritten into JavaScript and compiled once per edit.
+Two rules keep that rewrite honest, and both exist because they were broken:
+
+- **A function name is the tail of a letter run that `(` follows.** `\b` cannot
+  separate `3sin(` from `asin(`, so `normExpr` matches the *longest known name
+  ending the run* and swaps it for a private-use character before splitting the
+  rest into single letters. The same reasoning applies to `pi`: `\bpi\b` sees no
+  boundary between a digit and a letter, so `2pi` used to compile to `p*i` —
+  two undeclared parameters — and silently drew nothing while the classifier
+  read the same string as a constant. It is now matched wherever it is not
+  glued to other letters.
+- **An unclosed bracket is closed, not rejected.** The math keyboard's function
+  keys type `sin(` and leave the closer to the player, and the typeset layer
+  draws `y=sin(x` as finished maths — so the most ordinary expression in the
+  game came back red and drew nothing, with the display insisting it was fine.
+  `closeParens` appends whatever was left open. A *surplus* `)` is still an
+  error: only the forgiving direction is forgiving.
+
+The display grammar has always been deliberately lenient (see *Equation field*
+below); the parser is now lenient in the same places, which is the only way the
+two can agree about whether a half-typed expression is wrong.
 
 ## Equation classifier (equation-classifier.js)
 
@@ -291,6 +332,15 @@ pack still accepts a `const`, because a horizontal line *is* a line), and the
 database guard's floor — see *Leaderboard integrity*. `sgn()` joins the
 piecewise family (`abs`/`floor`/`ceil`/`round`/`min`/`max`) and so costs the
 same 20 as `floor()`.
+
+**A name before `(` is only a call if it is callable.** `CALLABLE` lists the
+functions this file knows how to analyse; any other letter run followed by `(`
+gets an implicit `*`, exactly as `normExpr` does. Without that, `y=x(x+1)` read
+as a call to an unknown function named `x` and scored **10** — the price of an
+inert curve — for what the game actually draws and collides with as a
+quadratic. `x(x+1)(x-1)` was a cubic for the same 10. Adding a name to
+`CALLABLE` without adding a branch that parses it falls through to `unknown`,
+which is the safe direction.
 
 **Parameters.** Both entry points take an optional second argument — the
 declared slider parameters, as `['a','b']` or the live `FP_PARAMS` map. A
@@ -384,7 +434,10 @@ the app does **not** trust the network for them:
   (the level's fans/zones/wells/hazards, unknown kinds dropped) and
   **`materials`** (whether players may set a curve's bounce — off unless the
   admin turns it on for that level). Both default to nothing, so every row
-  from before the columns existed still reads.
+  from before the columns existed still reads. It also returns **`hint`**,
+  which comes from `LEVEL_HINTS` in `data.jsx` and is overridden by a
+  `level_overrides.hint` column wherever one exists — see *Hints and tutorials*
+  below.
 
 ## Level studio (level-studio.jsx) — the sandbox and the admin editor
 
@@ -401,13 +454,25 @@ physics changed.
 The spawn, the stars and every placed object are **things you select and
 move**, not things you scatter by tapping: pick one from the chip row or the
 Objects tab, or grab it on the plane, then drag it or edit its numbers.
-Dragging snaps to a quarter unit so a drag lands on a round number. Tapping
-empty space still pans, so editing never fights navigation. `CoordPlane`
-hit-tests the spawn and stars in *pixels* (26px), so they stay grabbable
-zoomed far out, and objects by region in world units, last, so a star sitting
-inside a zone is still the thing you pick up. `viewRef` hands the plane's
-current view back out, which is how "add a fan" puts it at the centre of
-whatever you are looking at.
+
+- **A drag keeps the point you grabbed.** `grabAt` returns the offset from the
+  finger to the thing's own anchor and `onPointerMove` carries it, so a fan
+  taken by the far edge of its reach stays taken by that edge. It used to
+  teleport its base to the finger, which made a big object impossible to nudge.
+- **Snapping follows the zoom.** A quarter unit while there are at least
+  `SNAP_FINE_SCALE` (25) pixels to a unit, a half below that: zoomed out a
+  quarter is finer than a finger can aim, and pretending otherwise only makes
+  the resulting number look arbitrary.
+- Tapping empty space still pans, so editing never fights navigation.
+  `CoordPlane` hit-tests the spawn and stars in *pixels* (26px), so they stay
+  grabbable zoomed far out, and objects by region in world units, last, so a
+  star sitting inside a zone is still the thing you pick up. `viewRef` hands
+  the plane's current view back out, which is how "add a fan" puts it at the
+  centre of whatever you are looking at.
+- The sandbox's top bar carries a **Score** chip showing what the board would
+  cost as a level run. Free play has no goals, but "is this cheaper than what
+  I did last time" is still the question the game is about, and it was the one
+  thing the sandbox could not answer.
 
 The view frames the objects once on entry and never again: re-framing on Play
 would discard a view the player deliberately composed. A free run ends when
@@ -436,8 +501,15 @@ engine, the plane, the studio's Objects tab and `getLevelData` learn nothing.
 
 - **Fan** — a rectangle standing on its base at `(x, y)`, reaching `len`
   along `angle` (0° is +x, 90° is +y — so a sideways fan is `angle: 0` or
-  `180`) and `w` wide. Constant acceleration `strength` along the angle while
-  the ball is inside. Its **housing is solid**: `solidSegs()` returns the one
+  `180`) and `w` wide. Acceleration `strength` along the angle, **graded by
+  how much of the ball is inside**: `fanCoverage` multiplies the ball's
+  coverage along each local axis — a cheap, allocation-free stand-in for the
+  true circle-rectangle overlap — and returns 0 below `FAN_MIN_COVER`, a
+  third. It used to be a point test on the ball's centre, which switches the
+  wind on all at once and reads as "nothing happens until the ball is almost
+  fully in". `makeField(objects, ballR)` is how the ball's size reaches it;
+  `ballR` defaults to 0, which is exactly the old point test, so a caller that
+  does not care pays nothing. Default `strength` is **20**. Its **housing is solid**: `solidSegs()` returns the one
   segment across the base, and the run appends it as a `{ segs }` collider,
   so the ball lands on the back of a fan instead of sailing through it. Drawn
   as a tinted, dashed box with that housing as a filled bar, an arrowhead at
@@ -465,6 +537,12 @@ Every fill sits under 10% opacity and every outline is dashed, so a zone
 reads as a region rather than a wall and the grid, curves and ball stay
 legible through it. Each kind has one hue — teal, purple, indigo, red — and
 one glyph, so they tell apart at a glance and stay quiet otherwise.
+
+**Anything that pushes says how hard.** `ForceTag` writes the number onto the
+fan and the well. A fan drawn at half the length can blow twice as hard as the
+one beside it and nothing in the picture said so — the number is the only part
+of an object that is exact. On a fan it counter-rotates, so it reads level
+however the fan is aimed.
 
 **The one rule**: what an object does to the ball is a pure function of the
 ball's position. Never the wall clock, never `Math.random()`. Recorded times
@@ -591,15 +669,76 @@ as meaning.
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
   Android, and two custom keyboards can't be open/covering each other.
-- When any keyboard is open, `EquationsPanel` sets `maxHeight: 'none'` so
-  both the equation rows and the keyboard fit; the graph area shrinks to
-  accommodate.
 - Given `objects`/`setObjects` (the studio), the panel grows an **Objects**
   tab — a row per placed object with every registry field opening the
   `NumPad` — and, given `extraTab`, one more tab of arbitrary content (the
   admin's Level tab). Switching away from Equations dismisses the math
   keyboard; a level being *played* never passes these, so players see the
   panel exactly as before.
+- The `NumPad`'s minus **toggles the sign** rather than being typed. It used
+  to be accepted only into an empty field, and the field opens holding the
+  value it is editing — so the minus pressed on `0` simply vanished and
+  reaching `-0.5` meant clearing first. An empty field now reads *empty*
+  rather than `0`, because `0` is a value and the field does not have one yet.
+  The studio's own coordinate inputs had the twin of that bug: `Number('')` is
+  `0`, so deleting the contents snapped the object to the origin, and
+  `String(-0)` is `"0"`, so echoing each commit back turned `-0` into `0`
+  mid-keystroke. They are `type="text" inputMode="decimal"` now, since a
+  `type="number"` input reports `""` for a partly-typed `-` and eats the sign
+  before React ever sees it.
+
+### Panel height, and the three states it has
+
+The panel is **expanded**, **collapsed** (the drag handle toggles those) or
+**hidden** — a chevron in its header drops the whole thing away and leaves one
+bar that brings it back, for when the plane is the only thing worth looking at.
+
+Two layout rules keep a keyboard and a long list on screen together, and both
+were wrong in ways that looked like the same bug:
+
+- The cap when a keyboard is open is a share of the **screen**, not of the
+  window: `#root` is capped at 844px on a desktop-width viewport, so the old
+  `80vh` overflowed it and pushed the keypad past the bottom edge. It is 62%
+  rather than 80% now, because the point of opening a keyboard is to watch
+  what typing does to the curve.
+- Every scrolling list in the panel is `flex: 1 1 auto`, never `flex: 1`. A
+  zero basis contributes nothing to the panel's own height, so the panel sized
+  itself to header-plus-keypad and the rows underneath collapsed to a sliver —
+  which is what "the objects ate the numpad" looked like from the outside.
+
+## Hints and tutorials
+
+Two different kinds of help, deliberately not the same mechanism.
+
+**Hint** — a button beside History on the level HUD. One line saying what
+*kind* of function the level was built around and nothing about the numbers:
+a hint should shorten the search, not end it. `LEVEL_HINTS` in `data.jsx`
+carries the ten for pack I; everywhere else `getHint` returns null and the
+popup says so. A `level_overrides.hint` column wins over the table wherever
+one exists, the way every other authored field does — and because the app only
+reads keys off the override row, the feature works whether or not that column
+has been added to the database yet.
+
+**Tutorials** — three-page decks in `how-to-play.jsx`, shown once each, with
+an X that closes on page one for a player who already knows and a **Got it**
+that replaces Next on the last page. Each page is a heading, a paragraph and a
+small SMIL-animated diagram; like the wind streaks on a real fan, the motion is
+the drawing and never the physics.
+
+- `FP_OBJECT_TUTORIALS` is keyed by **object kind**. The level screen walks the
+  level's objects and queues the deck for any kind the player has not met, so a
+  level that puts a new thing on the plane explains it *without* an admin
+  having to remember to tick a box. That is why `fans` and `hazards` are no
+  longer entries in `FP_EXPLAINERS` and no longer appear in the studio's
+  **Introduces** dropdown.
+- `FP_EXPLAINERS` keeps the mechanics that are not objects — `how-to-play` and
+  `domain` — and is still chosen per level by `level_overrides.explain`. A row
+  naming an explainer that no longer exists reads as null, so the old `fans` and
+  `hazards` rows heal themselves.
+- `pendingTutorials(levelData)` returns the queue, objects first; closing one
+  advances to the next. Seen-ness is `fp-tip-<key>` in localStorage, per
+  device and deliberately **not** part of progress: it is a reading state, not
+  something worth syncing or restoring.
 
 ## Splash screen (index.html)
 
@@ -628,7 +767,29 @@ If you change fonts, update the `document.fonts.load(...)` calls in
 
 ## Stars
 
+**How big one is drawn.** `STAR_R` (0.55) is the collection radius and
+`STAR_DRAW_R` is `STAR_R / STAR_HIT_MARGIN` — the artwork, in world units, so
+a star zooms with the plane exactly as the ball and the curves do. The margin
+is **1.3**: collection stays a little more forgiving than the picture, which is
+right for a thumb, but it used to be 2× (the drawn radius was pinned to what a
+fixed 11px star had at the default scale) and a star that counts from half a
+radius away from anywhere it looks like it should reads as a bug. The path is
+authored at an outer radius of 11 units and `starK` scales it; the floor of 5px
+keeps a star findable when zoomed right out, and there is deliberately no
+ceiling, because "as big as the maths says" is the correct answer when zoomed
+in.
+
 Three separate awards, not a ladder:
+
+**A hidden row costs nothing.** `makeRunColliders` has always dropped a row
+whose visibility circle is off, so it is not part of the track — but
+`computeScore` and `eqsUsed` charged for it anyway, which made toggling a curve
+off a way to lose points for nothing. Both now filter on `e.visible !== false`;
+the `!== false` matters because rows rebuilt from stored history in the admin
+audit carry no `visible` field and are all live. The equation count in the
+panel header follows the same rule, and the exprs submitted with a run exclude
+hidden curves, so the row, the score and the database guard's `20 × n_eqs`
+floor all agree.
 
 | Star | Earned by |
 |---|---|
@@ -841,9 +1002,17 @@ the code.
 - `maxScore[i]`: **highest** score used in a winning run (drives the "beat a
   level with a 100+ pt equation" achievement). Older exports may lack this
   field — handle with `?? null`.
+- `history[i]`: the last ten **winning runs** on that level, newest first, one
+  per distinct set of equations — `{ exprs, mats, score, time, stars, bits,
+  ts }`. This is what *Load these equations* reloads. It lived in a
+  `fp-history-<pack>-<level>` localStorage key of its own, which meant it was
+  per device and vanished on a reinstall or a cache clear; inside the progress
+  blob it rides the same merge and the same upload as every other score.
 
 Merging (`accounts.js`'s `_mergeProgress`) takes max of stars/maxScore, min
-of best/bestTime.
+of best/bestTime, and a **union** of `history` — newest first, de-duplicated by
+the equation strings and capped at ten. A union rather than a pick: two devices
+holding different answers to the same level should end up holding both.
 
 ## Achievements
 
@@ -1011,8 +1180,9 @@ checkout.
 
 **Built:** fans, zero-gravity zones, gravity wells, hazards, dead/rubber curve
 materials (player-set, per level, off by default), the Inversion pack
-(gravity flips on every real bounce), the studio that places all of it, and
-the admin editor built on the studio. See *Level objects* above. The rules
+(gravity flips on every real bounce), the studio that places all of it, the
+admin editor built on the studio, per-kind tutorial decks that fire the first
+time a player meets an object, and per-level hints (pack I only so far). See *Level objects* above. The rules
 below were considered and declined for now — the design wants no locks on
 the player. What follows is the original analysis, kept for the reasoning.
 

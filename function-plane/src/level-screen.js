@@ -22,11 +22,13 @@ const TICK_DT = 1 / 60;
 // behind rather than freezing the UI trying to replay lost seconds.
 const MAX_TICKS = 5;
 const STAR_R = 0.55;
-// How big a star is *drawn*, in world units. Kept at the size the old fixed
-// 11px star had at the default scale of 40, so no authored level changes
-// appearance — it just holds that proportion at every zoom now. Smaller than
-// STAR_R, which is the collection radius, not the artwork.
-const STAR_DRAW_R = 11 / 40;
+// How big a star is *drawn*, in world units — STAR_R over the margin the
+// collection radius keeps over the artwork. It used to be 11/40, the size the
+// old fixed 11px star had at the default scale, which left the hitbox twice
+// the star: aiming looked generous to the point of feeling wrong. At 1.3 the
+// hitbox is still forgiving, and now it is visibly so.
+const STAR_HIT_MARGIN = 1.3;
+const STAR_DRAW_R = STAR_R / STAR_HIT_MARGIN;
 const BALL_R = 0.22;
 // Stroke widths, named because the ball's drawn radius has to subtract them:
 // an SVG stroke straddles its path, so the curve covers EQ_STROKE/2 px either
@@ -36,6 +38,9 @@ const EQ_STROKE = 2.2;
 const BALL_OUTLINE = 1.5;
 const FALL_LIMIT = -13;
 const TIME_LIMIT = 28;
+// Pixels per unit below which a dragged object snaps to a half rather than a
+// quarter — see onPointerMove in CoordPlane.
+const SNAP_FINE_SCALE = 25;
 
 // ─── Complexity scoring ───────────────────────────────────────
 // classifyEquation and detectClass live in src/equation-classifier.js
@@ -56,8 +61,12 @@ function classMatches(allowed, detected) {
   if (allowed === 'linear' && detected === 'const') return true;
   return false;
 }
+
+// A hidden row is not a collider (makeRunColliders drops it), so it is not
+// part of the track and is not charged for either. Rows rebuilt from stored
+// history carry no `visible` field and are all live.
 function computeScore(equations) {
-  const active = equations.filter(e => e.fn);
+  const active = equations.filter(e => e.fn && e.visible !== false);
   if (active.length === 0) return 0;
   const complexity = active.reduce((s, e) => s + classifyEquation(e.expr, window.FP_PARAMS), 0);
   return complexity + active.length * 20;
@@ -190,9 +199,25 @@ function fixUnaryPow(s) {
   }
   return s;
 }
+
+// The keyboard's function keys type "sin(" and leave the closer to the player,
+// and the typeset layer draws a half-written expression as perfectly good
+// maths — so "y=sin(x" *looked* finished and was rejected outright. Close
+// whatever was left open; a surplus ")" is still an error.
+function closeParens(s) {
+  let depth = 0;
+  for (const c of s) {
+    if (c === '(') depth++;else if (c === ')' && --depth < 0) return s;
+  }
+  return depth > 0 ? s + ')'.repeat(depth) : s;
+}
 function normExpr(s) {
   s = s.replace(/\s+/g, '');
-  s = s.replace(/\bpi\b/g, 'π');
+  // "pi" is π wherever it isn't glued to other letters. \b cannot see a
+  // boundary between a digit and a letter, so 2pi used to compile to p*i —
+  // two undeclared parameters — and drew nothing at all.
+  s = s.replace(/(^|[^a-zA-Z])pi(?![a-zA-Z])/g, '$1π');
+  s = closeParens(s);
   // A function name is the *tail* of a letter run that "(" follows: "asin(" is
   // one name, "xsin(" is x times sin. A \b can't tell those apart — there is
   // no word boundary between two letters — so match the longest known tail.
@@ -510,7 +535,7 @@ function drainTicks(ph, colliders, world, ts) {
 // run, like the colliders.
 function makeWorld(objects, gravityFlip) {
   return {
-    field: FP_OBJECTS.makeField(objects),
+    field: FP_OBJECTS.makeField(objects, BALL_R),
     solids: FP_OBJECTS.solidSegs(objects),
     hazards: objects.filter(o => o.kind === 'hazard'),
     gravityFlip: !!gravityFlip
@@ -532,9 +557,16 @@ function makeRunColliders(equations, world) {
   });
   return FP_PHYSICS.makeColliders(defs, BALL_R);
 }
+
+// One pixel at the plane's default scale, in world units. The ball starts
+// there rather than exactly on its mark so that landing on the apex of a
+// circle — or the vertex of a parabola — rolls off instead of balancing
+// forever. Fixed in world units, never read off the live zoom: the sim has to
+// run the same on every screen for the time leaderboard to mean anything.
+const START_NUDGE = 1 / 40;
 function freshPh(ball, stars) {
   return {
-    x: ball.x,
+    x: ball.x + START_NUDGE,
     y: ball.y,
     vx: 0,
     vy: 0,
@@ -553,7 +585,7 @@ function freshPh(ball, stars) {
     dead: false,
     wonAtS: null,
     trail: [{
-      x: ball.x,
+      x: ball.x + START_NUDGE,
       y: ball.y
     }]
   };
@@ -640,7 +672,7 @@ function CoordPlane({
   const ptrsRef = useRL({});
   const panRef = useRL(null); // { sx, sy, cx, cy }
   const pinchRef = useRL(null); // { dist, midPx, midPy, scale, cx, cy }
-  const dragRef = useRL(null); // sandbox: id of the object being dragged
+  const dragRef = useRL(null); // sandbox: { id, ox, oy } of what is being dragged
 
   const m2p = (mx, my) => ({
     x: width / 2 + (mx - view.cx) * view.scale,
@@ -662,23 +694,31 @@ function CoordPlane({
   // Sandbox editing: grab whichever object is under the finger instead of
   // panning. Hit-testing in pixels keeps the target the same physical size at
   // every zoom level, so a star stays grabbable when zoomed far out.
+  // Returns { id, ox, oy } — the offset from the finger to the thing's own
+  // anchor, so a fan grabbed by its far edge keeps that edge under the finger
+  // instead of teleporting its base there.
   const grabAt = (clientX, clientY) => {
     if (!editable) return null;
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return null;
     const px = clientX - rect.left,
       py = clientY - rect.top;
-    const near = (mx, my) => Math.hypot(px - m2p(mx, my).x, py - m2p(mx, my).y) <= 26;
-    for (let i = 0; i < (levelStars?.length ?? 0); i++) {
-      if (near(levelStars[i].x, levelStars[i].y)) return `star-${i}`;
-    }
-    if (near(startPos.x, startPos.y)) return 'ball';
-    // Objects are regions, so they're grabbed anywhere inside — in world
-    // units, and last, so a star sitting inside a zone stays grabbable.
     const mx = view.cx + (px - width / 2) / view.scale;
     const my = view.cy - (py - height / 2) / view.scale;
+    const grab = (id, ax, ay) => ({
+      id,
+      ox: ax - mx,
+      oy: ay - my
+    });
+    const near = (ax, ay) => Math.hypot(px - m2p(ax, ay).x, py - m2p(ax, ay).y) <= 26;
+    for (let i = 0; i < (levelStars?.length ?? 0); i++) {
+      if (near(levelStars[i].x, levelStars[i].y)) return grab(`star-${i}`, levelStars[i].x, levelStars[i].y);
+    }
+    if (near(startPos.x, startPos.y)) return grab('ball', startPos.x, startPos.y);
+    // Objects are regions, so they're grabbed anywhere inside — in world
+    // units, and last, so a star sitting inside a zone stays grabbable.
     for (let i = objects.length - 1; i >= 0; i--) {
-      if (FP_OBJECTS.hitTest(objects[i], mx, my)) return `obj-${i}`;
+      if (FP_OBJECTS.hitTest(objects[i], mx, my)) return grab(`obj-${i}`, objects[i].x, objects[i].y);
     }
     return null;
   };
@@ -693,7 +733,7 @@ function CoordPlane({
       const grabbed = grabAt(e.clientX, e.clientY);
       if (grabbed) {
         dragRef.current = grabbed;
-        onSelect?.(grabbed);
+        onSelect?.(grabbed.id);
         panRef.current = null;
         pinchRef.current = null;
         return;
@@ -737,12 +777,20 @@ function CoordPlane({
       if (!rect) return;
       const px = e.clientX - rect.left,
         py = e.clientY - rect.top;
-      // Snapped to a quarter unit: fine enough to place anything, coarse
-      // enough that dragging lands on a round number instead of 2.0713.
-      const q = v => Math.round(v * 4) / 4;
-      onMove?.(dragRef.current, {
-        x: q(view.cx + (px - width / 2) / view.scale),
-        y: q(view.cy - (py - height / 2) / view.scale)
+      // Snapped so a drag lands on a round number instead of 2.0713. A
+      // quarter is right while a unit is a comfortable distance on screen;
+      // zoomed out past 25px per unit it is finer than the finger can aim, so
+      // the step doubles rather than pretending to that precision.
+      const step = view.scale >= SNAP_FINE_SCALE ? 4 : 2;
+      const q = v => Math.round(v * step) / step;
+      const {
+        id,
+        ox,
+        oy
+      } = dragRef.current;
+      onMove?.(id, {
+        x: q(view.cx + (px - width / 2) / view.scale + ox),
+        y: q(view.cy - (py - height / 2) / view.scale + oy)
       });
       return;
     }
@@ -1459,8 +1507,14 @@ function NumPad({
   const valRef = useRL(val);
   valRef.current = val;
   const ins = ch => {
-    // only one leading minus allowed
-    if (ch === '-' && val !== '') return;
+    // The minus toggles the sign rather than being typed. It used to be
+    // accepted only into an empty field, and the field opens holding the
+    // value it is editing — so reaching -0.5 meant clearing first, and the
+    // minus you pressed on "0" simply vanished.
+    if (ch === '-') {
+      onChange(val.startsWith('-') ? val.slice(1) : '-' + val);
+      return;
+    }
     onChange(val + ch);
   };
   const del = () => onChange(valRef.current.slice(0, -1));
@@ -1563,11 +1617,11 @@ function NumPad({
     style: {
       fontFamily: "'Geist Mono','ui-monospace',monospace",
       fontSize: 15,
-      color: 'var(--fp-ink)',
+      color: val ? 'var(--fp-ink)' : 'var(--fp-ink-4)',
       minWidth: 50,
       textAlign: 'right'
     }
-  }, val || '0')), ROWS.map((row, ri) => /*#__PURE__*/React.createElement("div", {
+  }, val || 'empty')), ROWS.map((row, ri) => /*#__PURE__*/React.createElement("div", {
     key: ri,
     style: {
       display: 'flex',
@@ -2645,8 +2699,11 @@ function EquationsPanel({
   const [activeId, setActiveId] = useSL(null);
   const [kbVisible, setKbVisible] = useSL(true);
   const [tab, setTab] = useSL('eq'); // 'eq' | 'obj' | 'extra'
+  // Hidden is a third state below "collapsed": the whole panel drops away so
+  // the plane is the screen, and only the tab that brings it back is left.
+  const [hidden, setHidden] = useSL(false);
   const objectsEditable = !!setObjects;
-  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible;
+  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible && !hidden;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
@@ -2690,6 +2747,12 @@ function EquationsPanel({
     setDomKb(null);
     setTab(id);
   };
+  const hide = () => {
+    dismiss();
+    setDomKb(null);
+    setHidden(true);
+  };
+  const eqCount = equations.filter(e => e.expr.trim() && !e.param && e.visible !== false).length;
   const addObject = kind => {
     if (disabled) return;
     setObjects(objs => [...objs, FP_OBJECTS.makeObject(kind, placeAt?.())]);
@@ -2759,17 +2822,75 @@ function EquationsPanel({
     if (e.param) delete window.FP_PARAMS[e.param.name];
     return false;
   }));
+  if (hidden) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: 'var(--lv-surface)',
+        borderTop: '1px solid var(--lv-line)',
+        flex: '0 0 auto',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onPointerDown: e => {
+        e.preventDefault();
+        setHidden(false);
+      },
+      "aria-label": "Show equations",
+      style: {
+        width: '100%',
+        height: 38,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        color: 'var(--fp-ink-2)'
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: 14,
+      height: 14,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M6 15l6-6 6 6",
+      stroke: "currentColor",
+      strokeWidth: 2.2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        fontWeight: 500
+      }
+    }, "Equations ", /*#__PURE__*/React.createElement("span", {
+      className: "fp-mono",
+      style: {
+        color: 'var(--fp-ink-4)'
+      }
+    }, eqCount), objectsEditable && /*#__PURE__*/React.createElement(React.Fragment, null, " \xB7 Objects ", /*#__PURE__*/React.createElement("span", {
+      className: "fp-mono",
+      style: {
+        color: 'var(--fp-ink-4)'
+      }
+    }, objects.length)))));
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--lv-surface)',
       borderTop: '1px solid var(--lv-line)',
       display: 'flex',
       flexDirection: 'column',
-      // When any keyboard is open the cap is raised so equations + keyboard are
-      // both visible (the plane above shrinks to accommodate) — but it stays a
-      // cap. Removing it entirely let the panel grow with every equation added
-      // until the keyboard had been pushed off the bottom of the screen.
-      maxHeight: anyKbOpen ? '80vh' : expanded ? 300 : 188,
+      overflow: 'hidden',
+      // With a keyboard open the cap is raised so rows and keyboard both fit
+      // (the plane above shrinks to accommodate) — but it stays a cap, because
+      // removing it let the panel grow with every equation until the keyboard
+      // was off the bottom of the screen. A share of the *screen*, not of the
+      // window: #root is capped at 844px on a desktop-width viewport, where
+      // 80vh overflowed it and pushed the keypad past the edge. 62% rather
+      // than 80% because the point of opening a keyboard is to watch what
+      // typing does to the curve.
+      maxHeight: anyKbOpen ? '62%' : expanded ? 300 : 188,
       transition: anyKbOpen ? 'none' : 'max-height .2s ease'
     }
   }, /*#__PURE__*/React.createElement("button", {
@@ -2802,7 +2923,7 @@ function EquationsPanel({
   }, [{
     id: 'eq',
     label: 'Equations',
-    n: equations.filter(e => e.expr.trim() && !e.param).length
+    n: eqCount
   }, ...(objectsEditable ? [{
     id: 'obj',
     label: 'Objects',
@@ -2847,7 +2968,7 @@ function EquationsPanel({
       color: 'var(--fp-ink-4)',
       marginLeft: 4
     }
-  }, equations.filter(e => e.expr.trim() && !e.param).length)), /*#__PURE__*/React.createElement("div", {
+  }, eqCount)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -2897,7 +3018,34 @@ function EquationsPanel({
       color: 'var(--fp-accent)',
       fontWeight: 500
     }
-  }, "Done"), tab === 'eq' && /*#__PURE__*/React.createElement("button", {
+  }, "Done"), /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      hide();
+    },
+    title: "Hide panel",
+    "aria-label": "Hide panel",
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 7,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--fp-ink-3)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 15,
+    height: 15,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M6 9l6 6 6-6",
+    stroke: "currentColor",
+    strokeWidth: 2.2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }))), tab === 'eq' && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
       !disabled && addRow();
@@ -2930,7 +3078,7 @@ function EquationsPanel({
   }))))), tab === 'obj' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
-      flex: 1,
+      flex: '1 1 auto',
       minHeight: 0,
       overflowY: 'auto',
       paddingBottom: 6
@@ -2996,7 +3144,7 @@ function EquationsPanel({
   }, "Tap a kind to place it at the centre of the view. Drag it on the plane, or edit its numbers here.")), tab === 'extra' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
-      flex: 1,
+      flex: '1 1 auto',
       minHeight: 0,
       overflowY: 'auto',
       paddingBottom: 6
@@ -3033,7 +3181,7 @@ function EquationsPanel({
   }), " to make it dead or perfectly elastic."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
-      flex: 1,
+      flex: '1 1 auto',
       minHeight: 0,
       overflowY: 'auto',
       paddingBottom: 6
@@ -3150,7 +3298,7 @@ function LevelScreen({
   const prevBits = prevStars > 0 ? starBitsOf(prevStars, progress?.[pack.id]?.starBits?.[levelIndex]) : 0;
   // Pre-placed equations don't count toward score / equation-budget.
   const userEquations = equations.filter(e => !e.preplaced);
-  const eqsUsed = userEquations.filter(e => e.fn).length;
+  const eqsUsed = userEquations.filter(e => e.fn && e.visible !== false).length;
   const liveScore = computeScore(userEquations);
   const [elapsed, setElapsed] = useSL(0);
   const resetSim = () => {
@@ -3167,22 +3315,18 @@ function LevelScreen({
   };
   const [autoZoomTrigger, setAutoZoomTrigger] = useSL(0);
   const [historyOpen, setHistoryOpen] = useSL(false);
-  // A level that introduces a mechanic explains it once, on the first visit.
-  // Seen-ness is per device and deliberately not part of progress: it is a
-  // reading state, not something worth syncing or restoring.
-  const [tipOpen, setTipOpen] = useSL(() => {
-    if (!levelData.explain) return false;
-    try {
-      return !localStorage.getItem(`fp-tip-${levelData.explain}`);
-    } catch {
-      return true;
-    }
-  });
+  const [hintOpen, setHintOpen] = useSL(false);
+  // Everything this level still has to teach, oldest debt first. Shown one
+  // after another on the first visit, then never again.
+  const [tips, setTips] = useSL(() => pendingTutorials(levelData));
   const closeTip = () => {
-    setTipOpen(false);
-    try {
-      localStorage.setItem(`fp-tip-${levelData.explain}`, '1');
-    } catch {}
+    const done = tips[0];
+    setTips(t => t.slice(1));
+    if (done) {
+      try {
+        localStorage.setItem(`fp-tip-${done.key}`, '1');
+      } catch {}
+    }
   };
   const loadFromHistory = (exprs, mats = []) => {
     setHistoryOpen(false);
@@ -3300,7 +3444,7 @@ function LevelScreen({
           return;
         }
         const userEqs = equationsRef.current.filter(e => !e.preplaced);
-        const curves = userEqs.filter(e => e.fn);
+        const curves = userEqs.filter(e => e.fn && e.visible !== false);
         const eqsN = curves.length;
         // Slider definitions ride along, first, so reloading the run — or
         // auditing it — resolves the parameters the player actually graphed
@@ -3312,27 +3456,18 @@ function LevelScreen({
         const isNew = best == null || sc < best;
         const isNewT = bestTime == null || finishT < bestTime;
         sfx('levelComplete');
-        // Save this successful run to local history so the player can reload
-        // their previous equations next time they revisit the level. Stores
-        // up to 10 most-recent runs per (packId, levelIndex), de-duplicated
-        // by the equation strings.
-        try {
-          const key = `fp-history-${pack.id}-${levelIndex}`;
-          const prev = JSON.parse(localStorage.getItem(key) || '[]');
-          const sig = exprs.join('||');
-          const entry = {
-            exprs,
-            mats: curves.map(e => e.material || null),
-            score: sc,
-            time: finishT,
-            stars: starCount(rating),
-            bits: rating,
-            ts: Date.now()
-          };
-          const filtered = prev.filter(p => (p.exprs || []).join('||') !== sig);
-          const next = [entry, ...filtered].slice(0, 10);
-          localStorage.setItem(key, JSON.stringify(next));
-        } catch {}
+        // The run goes into progress, not into a localStorage key of its own,
+        // so it rides the same merge and upload every other score does and is
+        // still there after a reinstall or on another device.
+        const runEntry = {
+          exprs,
+          mats: curves.map(e => e.material || null),
+          score: sc,
+          time: finishT,
+          stars: starCount(rating),
+          bits: rating,
+          ts: Date.now()
+        };
         setCompleted({
           score: sc,
           starBits: rating,
@@ -3342,7 +3477,7 @@ function LevelScreen({
           prevBestTime: bestTime,
           isNewBestTime: isNewT
         });
-        onComplete(rating, sc, finishT, exprs);
+        onComplete(rating, sc, finishT, exprs, runEntry);
         return;
       }
       animRef.current = requestAnimationFrame(frame);
@@ -3511,10 +3646,38 @@ function LevelScreen({
     bits: STAR_EQS,
     label: `≤ ${eqGoal} eq`
   }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setHistoryOpen(true),
+    onClick: () => setHintOpen(true),
     disabled: running,
     style: {
       marginLeft: 'auto',
+      height: 24,
+      padding: '0 10px',
+      borderRadius: 999,
+      background: 'transparent',
+      border: '1px solid var(--lv-line)',
+      color: 'var(--fp-ink-2)',
+      fontSize: 11,
+      fontWeight: 500,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      opacity: running ? 0.4 : 1
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 11,
+    height: 11,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  })), "Hint"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setHistoryOpen(true),
+    disabled: running,
+    style: {
       height: 24,
       padding: '0 10px',
       borderRadius: 999,
@@ -3603,25 +3766,31 @@ function LevelScreen({
       resetSim();
     }
   }), historyOpen && /*#__PURE__*/React.createElement(HistoryPopup, {
-    packId: pack.id,
-    levelIndex: levelIndex,
+    entries: progress?.[pack.id]?.history?.[levelIndex] || [],
     onClose: () => setHistoryOpen(false),
     onLoad: loadFromHistory
-  }), tipOpen && /*#__PURE__*/React.createElement(ExplainerPopup, {
-    id: levelData.explain,
+  }), hintOpen && /*#__PURE__*/React.createElement(HintPopup, {
+    hint: levelData.hint,
+    onClose: () => setHintOpen(false)
+  }), tips.length > 0 && /*#__PURE__*/React.createElement(TutorialPopup, {
+    tip: tips[0].tip,
     onClose: closeTip
   }));
 }
 
-// ─── Explainer popup ──────────────────────────────────────────────────────
-// Shown once when a level introduces a mechanic. Tapping anywhere dismisses
-// it: a player who already knows what a hazard is should not have to aim.
-function ExplainerPopup({
-  id,
+// ─── Tutorial popup ───────────────────────────────────────────────────────
+// A small deck: what the thing is, what it does to the ball, and how to use
+// it. The X closes it on the first page for a player who already knows, and
+// the last page turns the Next button into the one that finishes — so there
+// is always exactly one obvious way forward.
+function TutorialPopup({
+  tip,
   onClose
 }) {
-  const tip = window.FP_EXPLAINERS?.[id];
-  if (!tip) return null;
+  const [page, setPage] = useSL(0);
+  if (!tip?.pages?.length) return null;
+  const last = page === tip.pages.length - 1;
+  const p = tip.pages[page];
   return /*#__PURE__*/React.createElement("div", {
     onClick: onClose,
     style: {
@@ -3639,23 +3808,15 @@ function ExplainerPopup({
       width: '100%',
       background: 'var(--fp-bg)',
       borderRadius: '22px 22px 0 0',
-      padding: '18px 22px max(18px, env(safe-area-inset-bottom, 0px))',
+      padding: '14px 22px max(18px, env(safe-area-inset-bottom, 0px))',
       boxShadow: '0 -8px 40px rgba(0,0,0,0.3)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 36,
-      height: 4,
-      borderRadius: 2,
-      background: 'var(--fp-ink-4)',
-      margin: '0 auto 16px'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
       display: 'flex',
       alignItems: 'center',
       gap: 12,
-      marginBottom: 12
+      marginBottom: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3671,45 +3832,223 @@ function ExplainerPopup({
     }
   }, tip.icon), /*#__PURE__*/React.createElement("div", {
     style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Instrument Serif', Georgia, serif",
+      fontStyle: 'italic',
+      fontSize: 23,
+      color: 'var(--fp-ink)',
+      letterSpacing: '-0.02em',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }
+  }, tip.title)), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    "aria-label": "Close",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: '50%',
+      flex: '0 0 32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--fp-surface-2)',
+      color: 'var(--fp-ink-3)'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 13,
+    height: 13,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M6 6L18 18M18 6L6 18",
+    stroke: "currentColor",
+    strokeWidth: 2.2,
+    strokeLinecap: "round"
+  })))), p.art, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 500,
+      color: 'var(--fp-ink)',
+      marginBottom: 5
+    }
+  }, p.heading), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: 'var(--fp-ink-3)',
+      lineHeight: 1.65,
+      minHeight: 72
+    }
+  }, p.body), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flex: '0 0 auto'
+    }
+  }, tip.pages.map((_, i) => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setPage(i),
+    "aria-label": `Page ${i + 1}`,
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: '50%',
+      padding: 0,
+      background: i === page ? tip.color : 'var(--fp-ink-4)',
+      opacity: i === page ? 1 : 0.45
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => last ? onClose() : setPage(page + 1),
+    style: {
+      flex: 1,
+      height: 44,
+      borderRadius: 12,
+      background: last ? 'var(--fp-accent)' : 'var(--fp-surface-2)',
+      color: last ? 'var(--fp-accent-ink)' : 'var(--fp-ink)',
+      fontSize: 14,
+      fontWeight: 500
+    }
+  }, last ? 'Got it' : 'Next'))));
+}
+
+// Which decks this level owes the player, in the order they meet them: the
+// objects on the plane first — a new kind explains itself, so no one has to
+// remember to set a level's `explain` — then whatever mechanic the level was
+// authored to introduce. Seen-ness is per device and deliberately not part of
+// progress: it is a reading state, not something worth syncing or restoring.
+const tutorialSeen = key => {
+  try {
+    return !!localStorage.getItem(`fp-tip-${key}`);
+  } catch {
+    return false;
+  }
+};
+function pendingTutorials(levelData) {
+  const out = [];
+  const seenKinds = {};
+  for (const o of levelData.objects || []) {
+    const tip = window.FP_OBJECT_TUTORIALS?.[o.kind];
+    if (!tip || seenKinds[o.kind] || tutorialSeen(o.kind)) continue;
+    seenKinds[o.kind] = 1;
+    out.push({
+      key: o.kind,
+      tip
+    });
+  }
+  const ex = levelData.explain;
+  if (ex && !tutorialSeen(ex) && window.FP_EXPLAINERS?.[ex]) out.push({
+    key: ex,
+    tip: FP_EXPLAINERS[ex]
+  });
+  return out;
+}
+
+// ─── Hint popup ───────────────────────────────────────────────
+// What kind of function the level was built around — never the numbers, so a
+// hint points at the shape of the answer and leaves the puzzle standing.
+function HintPopup({
+  hint,
+  onClose
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 82,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      backdropFilter: 'blur(2px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: '100%',
+      background: 'var(--fp-bg)',
+      borderRadius: '22px 22px 0 0',
+      padding: '18px 22px max(18px, env(safe-area-inset-bottom, 0px))',
+      boxShadow: '0 -8px 40px rgba(0,0,0,0.3)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      flex: '0 0 36px',
+      background: 'color-mix(in srgb, var(--fp-accent) 15%, transparent)',
+      color: 'var(--fp-accent)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: 19,
+    height: 19,
+    viewBox: "0 0 24 24",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
       fontFamily: "'Instrument Serif', Georgia, serif",
       fontStyle: 'italic',
       fontSize: 23,
       color: 'var(--fp-ink)',
       letterSpacing: '-0.02em'
     }
-  }, tip.title)), /*#__PURE__*/React.createElement("div", {
+  }, "Hint")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
-      color: 'var(--fp-ink-3)',
+      color: hint ? 'var(--fp-ink-3)' : 'var(--fp-ink-4)',
       lineHeight: 1.65
     }
-  }, tip.body), /*#__PURE__*/React.createElement("button", {
+  }, hint || 'No hint for this level — this one is on you.'), /*#__PURE__*/React.createElement("button", {
     onClick: onClose,
     style: {
       width: '100%',
       height: 44,
       borderRadius: 12,
       marginTop: 18,
-      background: 'var(--fp-accent)',
-      color: 'var(--fp-accent-ink)',
+      background: 'var(--fp-surface-2)',
+      color: 'var(--fp-ink)',
       fontSize: 14,
       fontWeight: 500
     }
-  }, "Got it")));
+  }, "Close")));
 }
 
 // ─── History popup ────────────────────────────────────────────────────────
+// Successful runs ride in the progress blob, so they merge and upload with
+// every other score and are still there on the next device.
 function HistoryPopup({
-  packId,
-  levelIndex,
+  entries = [],
   onClose,
   onLoad
 }) {
-  const key = `fp-history-${packId}-${levelIndex}`;
-  let entries = [];
-  try {
-    entries = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {}
   const fmtAgo = ts => {
     const s = Math.floor((Date.now() - ts) / 1000);
     if (s < 60) return 'just now';
