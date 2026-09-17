@@ -156,6 +156,11 @@ believing it.
   same numbers baked in (`supabase/migrations/`). If the cheapest winning run
   gets cheaper and the guard isn't migrated with it, every run at the new
   price is rejected on sync and the player silently loses the record.
+- Retuned a level in the admin panel and nothing changed for players →
+  the studio writes Supabase, and offline boots read
+  `overrides-snapshot.js`. Run `npm run snapshot:data` and bump `sw.js`, and
+  copy the new geometry back into `levels/*.json` so the draft still
+  describes the level that exists.
 - `overrides-snapshot.js` disagrees with the database → someone hand-edited it
   rather than running `npm run snapshot:data`. Two tells: an `updated_at` in
   `Z` form (the file's own format is `+00:00`) and object keys in insertion

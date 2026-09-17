@@ -1383,7 +1383,10 @@ the game into a sandbox builder and makes scores incomparable).
   global object, plus a React stub the hook destructuring can read) and drives
   the exported `parseEquation` / `makeWorld` / `drainTicks` / `outOfWorld`, so a
   level that verifies is a level that plays. A draft lives in `levels/` until it
-  is written to Supabase; nothing in the app reads these files.
+  is written to Supabase; nothing in the app reads these files. They stay the
+  written record of what each level was meant to ask for, so a level retuned in
+  the admin panel has to be copied back here — otherwise the draft quietly
+  describes a level that no longer exists.
 - `function-plane/src/store-config.js` — the Play listing URL, the lifetime
   price as a display string, and `FP_PAY_CHANNEL`.
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.

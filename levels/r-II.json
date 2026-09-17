@@ -1,7 +1,7 @@
 {
   "packId": "r-II",
   "name": "Crosswinds",
-  "notes": "Authored and playtested by hand in the sandbox. No `solutions` listed, so verify-levels reports these as author-tested rather than replaying them. Fans are (x, y, angle, reach, width, force); a fan stands on its base at (x,y), reaches `len` along `angle` (0 = +x, 90 = +y, -90 = down) and its base bar is solid. Hazards are (x, y, w, h), centre-based.",
+  "notes": "Authored and playtested by hand in the sandbox. Levels 3, 6 and 7 carry `solutions`, replayed through the real run loop by `npm run verify:levels`; the rest list none and are reported as author-tested instead. Fans are (x, y, angle, reach, width, force); a fan stands on its base at (x,y), reaches `len` along `angle` (0 = +x, 90 = +y, -90 = down) and its base bar is solid. Hazards are (x, y, w, h), centre-based.",
   "levels": [
     {
       "materials": false,
@@ -133,8 +133,8 @@
         },
         {
           "kind": "fan",
-          "x": 2,
-          "y": -4,
+          "x": -4,
+          "y": 0,
           "angle": 0,
           "len": 4,
           "w": 4,
@@ -162,7 +162,51 @@
         }
       ],
       "scoreGoal": 30,
-      "eqGoal": 1
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "above the wind, cut at the fan",
+          "eqs": [
+            {
+              "expr": "y=0.1x+2",
+              "domain": [
+                {
+                  "xMin": 0,
+                  "xMax": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "a little higher",
+          "eqs": [
+            {
+              "expr": "y=0.1x+2.3",
+              "domain": [
+                {
+                  "xMin": 0.5,
+                  "xMax": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "steeper, quicker",
+          "eqs": [
+            {
+              "expr": "y=0.6x+2.2",
+              "domain": [
+                {
+                  "xMin": -1.5,
+                  "xMax": 10
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "materials": false,
@@ -275,15 +319,43 @@
         },
         {
           "x": 0,
-          "y": 2
+          "y": 1
         },
         {
           "x": 6,
-          "y": 2
+          "y": 1
         }
       ],
       "scoreGoal": 30,
-      "eqGoal": 1
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "a shallow line over the wall",
+          "eqs": [
+            "y=-0.1x+0.5"
+          ]
+        },
+        {
+          "name": "steeper off the start",
+          "eqs": [
+            "y=-0.35x+0.45"
+          ]
+        },
+        {
+          "name": "steeper still, started later",
+          "eqs": [
+            {
+              "expr": "y=-0.45x+0.6",
+              "domain": [
+                {
+                  "xMin": -3,
+                  "xMax": 10
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "materials": false,
@@ -328,7 +400,51 @@
         }
       ],
       "scoreGoal": 30,
-      "eqGoal": 1
+      "eqGoal": 1,
+      "solutions": [
+        {
+          "name": "a ramp that stops before the fan",
+          "eqs": [
+            {
+              "expr": "y=-0.5x+0.2",
+              "domain": [
+                {
+                  "xMin": -5,
+                  "xMax": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "the diagonal",
+          "eqs": [
+            {
+              "expr": "y=-x",
+              "domain": [
+                {
+                  "xMin": -5,
+                  "xMax": 2.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "steeper, quicker",
+          "eqs": [
+            {
+              "expr": "y=-0.8x-0.3",
+              "domain": [
+                {
+                  "xMin": -5,
+                  "xMax": 2
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "materials": false,
