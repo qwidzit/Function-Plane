@@ -302,25 +302,87 @@ function HowToPlayScreen({
 
 // ─── Advanced ────────────────────────────────────────────────
 // Every number the simulation actually uses, for players who would rather
-// solve a level than feel their way through it. Deliberately almost wordless:
-// anyone who opens this wants the constants, not the prose.
+// solve a level than feel their way through it.
 //
-// These are physics, not player expressions, so they are written in the
-// engine's own terms rather than through MathExpr — which knows the game's
-// grammar and nothing about subscripts, vectors or hats.
-function Fx({
+// Typeset the way the equation field typesets: upright variables, real
+// fractions, real superscripts. A formula the game draws one way in a row and
+// another way in its own manual is two notations to learn. MathExpr itself
+// cannot be used — it knows the game's grammar and nothing about subscripts,
+// vectors or hats — so these are the same conventions, built small.
+const Sb = ({
+  children
+}) => /*#__PURE__*/React.createElement("sub", {
+  style: {
+    fontSize: '0.72em'
+  }
+}, children);
+const Sp = ({
+  children
+}) => /*#__PURE__*/React.createElement("sup", {
+  style: {
+    fontSize: '0.72em'
+  }
+}, children);
+
+// A fraction, stacked — the same shape mathFrac draws in an equation row.
+function Frac({
+  n,
+  d
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      verticalAlign: 'middle',
+      margin: '0 3px',
+      fontSize: '0.9em',
+      lineHeight: 1.1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      padding: '0 4px 1px'
+    }
+  }, n), /*#__PURE__*/React.createElement("span", {
+    style: {
+      padding: '1px 4px 0',
+      borderTop: '1px solid currentColor',
+      width: '100%',
+      textAlign: 'center'
+    }
+  }, d));
+}
+
+// One law: the statement, and a short note on the right saying when it applies.
+function Law({
+  note,
   children
 }) {
   return /*#__PURE__*/React.createElement("div", {
-    className: "fp-mono",
     style: {
-      fontSize: 12.5,
-      lineHeight: 1.85,
-      color: 'var(--fp-ink)',
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word'
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 10,
+      padding: '5px 0',
+      borderTop: '1px solid var(--fp-line)'
     }
-  }, children);
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: '1 1 auto',
+      fontSize: 14,
+      lineHeight: 1.9,
+      color: 'var(--fp-ink)'
+    }
+  }, children), note && /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: '0 0 auto',
+      fontSize: 10.5,
+      lineHeight: 1.4,
+      textAlign: 'right',
+      color: 'var(--fp-ink-4)',
+      maxWidth: 100
+    }
+  }, note));
 }
 function FxGroup({
   title,
@@ -328,24 +390,52 @@ function FxGroup({
 }) {
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 14
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: 600,
-      letterSpacing: '0.06em',
+      letterSpacing: '0.08em',
       textTransform: 'uppercase',
       color: 'var(--fp-ink-4)',
-      marginBottom: 6
+      marginBottom: 2
     }
   }, title), children);
+}
+
+// The key. Without it the rest is a wall of single letters.
+function Key({
+  sym,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      alignItems: 'baseline',
+      padding: '2.5px 0'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: '0 0 44px',
+      fontSize: 13.5,
+      color: 'var(--fp-ink)',
+      whiteSpace: 'nowrap'
+    }
+  }, sym), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      lineHeight: 1.45,
+      color: 'var(--fp-ink-3)'
+    }
+  }, children));
 }
 function Advanced() {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12,
-      padding: '16px 16px 4px',
+      padding: '16px 16px 6px',
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',
       borderRadius: 18
@@ -354,137 +444,137 @@ function Advanced() {
     style: {
       fontFamily: "'Instrument Serif', Georgia, serif",
       fontStyle: 'italic',
-      fontSize: 20,
+      fontSize: 21,
       color: 'var(--fp-ink)',
-      marginBottom: 12
+      marginBottom: 2
     }
-  }, "The engine, exactly"), /*#__PURE__*/React.createElement(FxGroup, {
+  }, "The engine, exactly"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: 'var(--fp-ink-4)',
+      marginBottom: 14
+    }
+  }, "Everything the simulation runs on. Bold letters are vectors."), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "What the letters mean"
+  }, /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "p")
+  }, "position of the ball"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "v")
+  }, "velocity"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "a")
+  }, "acceleration from objects on the plane"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "n")
+  }, "unit normal of the curve, pointing at the ball"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement(React.Fragment, null, "v", /*#__PURE__*/React.createElement(Sb, null, "n"), ", v", /*#__PURE__*/React.createElement(Sb, null, "t"))
+  }, "parts of ", /*#__PURE__*/React.createElement("strong", null, "v"), " along and across ", /*#__PURE__*/React.createElement("strong", null, "n")), /*#__PURE__*/React.createElement(Key, {
+    sym: "m"
+  }, "gravity multiplier \u2014 0 inside a zero-gravity box, else 1"), /*#__PURE__*/React.createElement(Key, {
+    sym: "h"
+  }, "one substep of time"), /*#__PURE__*/React.createElement(Key, {
+    sym: "e"
+  }, "bounciness \u2014 how much of v", /*#__PURE__*/React.createElement(Sb, null, "n"), " comes back"), /*#__PURE__*/React.createElement(Key, {
+    sym: "\u03C1"
+  }, "fraction of speed kept through a real bounce"), /*#__PURE__*/React.createElement(Key, {
+    sym: "k"
+  }, "traction \u2014 how fast contact bleeds v", /*#__PURE__*/React.createElement(Sb, null, "t")), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "\u0177")
+  }, "straight up"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "q")
+  }, "nearest point on a curve"), /*#__PURE__*/React.createElement(Key, {
+    sym: /*#__PURE__*/React.createElement("strong", null, "w")
+  }, "centre of a gravity well")), /*#__PURE__*/React.createElement(FxGroup, {
     title: "Constants"
-  }, /*#__PURE__*/React.createElement(Fx, null, "g = 12          gravity, units/s\xB2"), /*#__PURE__*/React.createElement(Fx, null, "r = 0.22        ball radius"), /*#__PURE__*/React.createElement(Fx, null, "\u0394t = 1/60 s     one tick, 20 substeps each"), /*#__PURE__*/React.createElement(Fx, null, "h = \u0394t/20       one substep"), /*#__PURE__*/React.createElement(Fx, null, "e = 0.5   \u03C1 = 0.985   k = 0.6"), /*#__PURE__*/React.createElement(Fx, null, "T = 28 s        clock"), /*#__PURE__*/React.createElement(Fx, null, "+0.5 s          after the last star")), /*#__PURE__*/React.createElement(FxGroup, {
-    title: "Step, per substep"
-  }, /*#__PURE__*/React.createElement(Fx, null, "v \u2190 v + (a \u2212 g\xB7m\xB7\u0177)\xB7h"), /*#__PURE__*/React.createElement(Fx, null, "p \u2190 p + v\xB7h"), /*#__PURE__*/React.createElement(Fx, null, "a, m from the field; else a = 0, m = 1")), /*#__PURE__*/React.createElement(FxGroup, {
-    title: "Field"
-  }, /*#__PURE__*/React.createElement(Fx, null, "zero-g box:  m = 0"), /*#__PURE__*/React.createElement(Fx, null, "fan:         a += F\xB7c\xB7(cos \u03B1, sin \u03B1)"), /*#__PURE__*/React.createElement(Fx, null, "             c = c", /*#__PURE__*/React.createElement("sub", null, "u"), "\xB7c", /*#__PURE__*/React.createElement("sub", null, "v"), ",  c < 1/3 \u2192 0"), /*#__PURE__*/React.createElement(Fx, null, "             c", /*#__PURE__*/React.createElement("sub", null, "u"), " = |[x\u2212r, x+r] \u2229 box| / 2r"), /*#__PURE__*/React.createElement(Fx, null, "well, |p\u2212q| \u2264 R:"), /*#__PURE__*/React.createElement(Fx, null, "             a += S\xB7(q\u2212p)/|q\u2212p| \u2212 D\xB7v")), /*#__PURE__*/React.createElement(FxGroup, {
-    title: "Contact"
-  }, /*#__PURE__*/React.createElement(Fx, null, "q = nearest point on the curve"), /*#__PURE__*/React.createElement(Fx, null, "n = (p\u2212q)/|p\u2212q|,   p \u2190 q + r\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "v", /*#__PURE__*/React.createElement("sub", null, "n"), " = v\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "v", /*#__PURE__*/React.createElement("sub", null, "n"), " < 0:   v \u2190 v \u2212 (1+e)\xB7v", /*#__PURE__*/React.createElement("sub", null, "n"), "\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "\u2212v", /*#__PURE__*/React.createElement("sub", null, "n"), " > 1.5: v \u2190 \u03C1\xB7v          (a real bounce)"), /*#__PURE__*/React.createElement(Fx, null, "always:    v", /*#__PURE__*/React.createElement("sub", null, "t"), " \u2190 v", /*#__PURE__*/React.createElement("sub", null, "t"), "\xB7exp(\u2212k\xB7h)")), /*#__PURE__*/React.createElement(FxGroup, {
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "units per second\xB2"
+  }, "g = 12"), /*#__PURE__*/React.createElement(Law, {
+    note: "ball radius"
+  }, "r = 0.22"), /*#__PURE__*/React.createElement(Law, {
+    note: "one tick, 20 substeps"
+  }, "\u0394t = ", /*#__PURE__*/React.createElement(Frac, {
+    n: "1",
+    d: "60"
+  }), " s"), /*#__PURE__*/React.createElement(Law, {
+    note: "one substep"
+  }, "h = ", /*#__PURE__*/React.createElement(Frac, {
+    n: "\u0394t",
+    d: "20"
+  })), /*#__PURE__*/React.createElement(Law, {
+    note: "normal curve"
+  }, "e = 0.5\xA0\xA0 \u03C1 = 0.985\xA0\xA0 k = 0.6"), /*#__PURE__*/React.createElement(Law, {
+    note: "and 0.5 s more after the last star"
+  }, "T = 28 s")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Every substep"
+  }, /*#__PURE__*/React.createElement(Law, null, /*#__PURE__*/React.createElement("strong", null, "v"), " \u2190 ", /*#__PURE__*/React.createElement("strong", null, "v"), " + (", /*#__PURE__*/React.createElement("strong", null, "a"), " \u2212 g\xB7m\xB7", /*#__PURE__*/React.createElement("strong", null, "\u0177"), ")\xB7h"), /*#__PURE__*/React.createElement(Law, null, /*#__PURE__*/React.createElement("strong", null, "p"), " \u2190 ", /*#__PURE__*/React.createElement("strong", null, "p"), " + ", /*#__PURE__*/React.createElement("strong", null, "v"), "\xB7h")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "What objects add"
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "inside the box"
+  }, "zero gravity:\xA0 m = 0"), /*#__PURE__*/React.createElement(Law, {
+    note: "F force, \u03B1 angle"
+  }, "fan:\xA0 ", /*#__PURE__*/React.createElement("strong", null, "a"), " += F\xB7c\xB7(cos \u03B1, sin \u03B1)"), /*#__PURE__*/React.createElement(Law, {
+    note: "c is how much of the ball is in the box; under \u2153 the fan does nothing"
+  }, "c = c", /*#__PURE__*/React.createElement(Sb, null, "u"), "\xB7c", /*#__PURE__*/React.createElement(Sb, null, "v"), ",\xA0 c < ", /*#__PURE__*/React.createElement(Frac, {
+    n: "1",
+    d: "3"
+  }), " \u2192 0"), /*#__PURE__*/React.createElement(Law, {
+    note: "S pull, D drag, inside radius R of the centre w"
+  }, "well:\xA0 ", /*#__PURE__*/React.createElement("strong", null, "a"), " += S\xB7", /*#__PURE__*/React.createElement(Frac, {
+    n: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "w"), "\u2212", /*#__PURE__*/React.createElement("strong", null, "p")),
+    d: /*#__PURE__*/React.createElement(React.Fragment, null, "|", /*#__PURE__*/React.createElement("strong", null, "w"), "\u2212", /*#__PURE__*/React.createElement("strong", null, "p"), "|")
+  }), " \u2212 D\xB7", /*#__PURE__*/React.createElement("strong", null, "v"))), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Touching a curve"
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "q is the nearest point on it"
+  }, /*#__PURE__*/React.createElement("strong", null, "n"), " = ", /*#__PURE__*/React.createElement(Frac, {
+    n: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "p"), "\u2212", /*#__PURE__*/React.createElement("strong", null, "q")),
+    d: /*#__PURE__*/React.createElement(React.Fragment, null, "|", /*#__PURE__*/React.createElement("strong", null, "p"), "\u2212", /*#__PURE__*/React.createElement("strong", null, "q"), "|")
+  }), ",\xA0 ", /*#__PURE__*/React.createElement("strong", null, "p"), " \u2190 ", /*#__PURE__*/React.createElement("strong", null, "q"), " + r\xB7", /*#__PURE__*/React.createElement("strong", null, "n")), /*#__PURE__*/React.createElement(Law, {
+    note: "moving into the curve"
+  }, "v", /*#__PURE__*/React.createElement(Sb, null, "n"), " < 0:\xA0 ", /*#__PURE__*/React.createElement("strong", null, "v"), " \u2190 ", /*#__PURE__*/React.createElement("strong", null, "v"), " \u2212 (1+e)\xB7v", /*#__PURE__*/React.createElement(Sb, null, "n"), "\xB7", /*#__PURE__*/React.createElement("strong", null, "n")), /*#__PURE__*/React.createElement(Law, {
+    note: "a real bounce, not a roll"
+  }, "\u2212v", /*#__PURE__*/React.createElement(Sb, null, "n"), " > 1.5:\xA0 ", /*#__PURE__*/React.createElement("strong", null, "v"), " \u2190 \u03C1\xB7", /*#__PURE__*/React.createElement("strong", null, "v")), /*#__PURE__*/React.createElement(Law, {
+    note: "always, while touching"
+  }, "v", /*#__PURE__*/React.createElement(Sb, null, "t"), " \u2190 v", /*#__PURE__*/React.createElement(Sb, null, "t"), "\xB7e", /*#__PURE__*/React.createElement(Sp, null, "\u2212k\xB7h"))), /*#__PURE__*/React.createElement(FxGroup, {
     title: "Materials"
-  }, /*#__PURE__*/React.createElement(Fx, null, "normal   e = 0.5   \u03C1 = 0.985"), /*#__PURE__*/React.createElement(Fx, null, "steel    e = 0"), /*#__PURE__*/React.createElement(Fx, null, "rubber   e = 1     \u03C1 = 1"), /*#__PURE__*/React.createElement(Fx, null, "k = 0.6 for all three")), /*#__PURE__*/React.createElement(FxGroup, {
-    title: "Consequences"
-  }, /*#__PURE__*/React.createElement(Fx, null, "drop H, bounce back to  (e\xB7\u03C1)\xB2\xB7H"), /*#__PURE__*/React.createElement(Fx, null, "   normal 0.242\xB7H    rubber H    steel 0"), /*#__PURE__*/React.createElement(Fx, null, "slope \u03B8, terminal speed  g\xB7sin \u03B8 / k"), /*#__PURE__*/React.createElement(Fx, null, "   45\xB0 \u2192 14.1      10\xB0 \u2192 3.5"), /*#__PURE__*/React.createElement(Fx, null, "fan lifts the ball when  F\xB7c > g"), /*#__PURE__*/React.createElement(Fx, null, "   c = 1/2 at the mouth \u2192 F > 24 there"), /*#__PURE__*/React.createElement(Fx, null, "zero-g: |v| constant, path straight"), /*#__PURE__*/React.createElement(Fx, null, "flip packs: g \u2190 \u2212g per tick with a bounce")), /*#__PURE__*/React.createElement(FxGroup, {
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "the default"
+  }, "normal:\xA0 e = 0.5,\xA0 \u03C1 = 0.985"), /*#__PURE__*/React.createElement(Law, {
+    note: "lands and rolls"
+  }, "steel:\xA0 e = 0"), /*#__PURE__*/React.createElement(Law, {
+    note: "gives everything back"
+  }, "rubber:\xA0 e = 1,\xA0 \u03C1 = 1"), /*#__PURE__*/React.createElement(Law, {
+    note: "k never changes"
+  }, "k = 0.6")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "What follows"
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "normal 0.242\xB7H, rubber H, steel 0"
+  }, "drop H, come back to (e\xB7\u03C1)", /*#__PURE__*/React.createElement(Sp, null, "2"), "\xB7H"), /*#__PURE__*/React.createElement(Law, {
+    note: "45\xB0 \u2192 14.1,\xA0 10\xB0 \u2192 3.5"
+  }, "slope \u03B8 settles at ", /*#__PURE__*/React.createElement(Frac, {
+    n: "g\xB7sin \u03B8",
+    d: "k"
+  })), /*#__PURE__*/React.createElement(Law, {
+    note: "c = \xBD at the mouth, so F > 24 lifts it off the base"
+  }, "a fan holds the ball:\xA0 F\xB7c > g"), /*#__PURE__*/React.createElement(Law, {
+    note: "nothing acts, so the path is straight"
+  }, "zero gravity:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "v"), "| constant"), /*#__PURE__*/React.createElement(Law, {
+    note: "per tick that saw a real bounce, in packs that flip"
+  }, "g \u2190 \u2212g")), /*#__PURE__*/React.createElement(FxGroup, {
     title: "Bounds"
-  }, /*#__PURE__*/React.createElement(Fx, null, "star taken when  |p \u2212 s| < 0.77"), /*#__PURE__*/React.createElement(Fx, null, "spawn at  (x + 0.025, y)"), /*#__PURE__*/React.createElement(Fx, null, "alive while |p| \u2264 20 and \u2264 10 from an object"), /*#__PURE__*/React.createElement(Fx, null, "hazard kills on |p \u2212 box| \u2264 r")), /*#__PURE__*/React.createElement(FxGroup, {
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "s is the star"
+  }, "star taken:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), " \u2212 ", /*#__PURE__*/React.createElement("strong", null, "s"), "| < 0.77"), /*#__PURE__*/React.createElement(Law, {
+    note: "nudged, so it rolls off an apex instead of balancing there"
+  }, "spawn:\xA0 (x + 0.025, y)"), /*#__PURE__*/React.createElement(Law, {
+    note: "both must hold; with nothing placed, only the first"
+  }, "alive:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), "| \u2264 20,\xA0 \u2264 10 from an object"), /*#__PURE__*/React.createElement(Law, {
+    note: "the ball's edge, not its centre"
+  }, "hazard kills:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), " \u2212 box| \u2264 r")), /*#__PURE__*/React.createElement(FxGroup, {
     title: "Score"
-  }, /*#__PURE__*/React.createElement(Fx, null, "score = \u03A3 complexity + 20\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "\u2605 cleared   \u2605 score \u2264 goal   \u2605 n \u2264 goal"), /*#__PURE__*/React.createElement(Fx, null, "the three are independent")));
-}
-function HTPCard({
-  color,
-  icon,
-  title,
-  children,
-  last
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'var(--fp-surface)',
-      border: '1px solid var(--fp-line)',
-      borderRadius: 18,
-      overflow: 'hidden',
-      marginBottom: last ? 0 : 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      padding: '14px 16px 12px',
-      borderBottom: '1px solid var(--fp-line)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      flex: '0 0 36px',
-      background: color + '18',
-      color: color,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, icon), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: 'var(--fp-ink)',
-      letterSpacing: '-0.01em'
-    }
-  }, title)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '12px 16px',
-      fontSize: 13,
-      color: 'var(--fp-ink-3)',
-      lineHeight: 1.65
-    }
-  }, children));
-}
-function CodeLine({
-  children
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "fp-mono",
-    style: {
-      fontSize: 12.5,
-      color: 'var(--fp-ink-2)',
-      background: 'var(--fp-surface-2)',
-      border: '1px solid var(--fp-line)',
-      borderRadius: 7,
-      padding: '5px 10px',
-      marginBottom: 4,
-      display: 'inline-block',
-      width: '100%',
-      boxSizing: 'border-box'
-    }
-  }, children);
-}
-
-// The aside beside a worked example — what it comes out as, not part of it.
-function Note({
-  children
-}) {
-  return /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginLeft: 10,
-      color: 'var(--fp-ink-4)'
-    }
-  }, children);
-}
-
-// One star, one condition. It used to draw 3/2/1 for a ladder the game no
-// longer uses: the three are independent bits, so a run that beats the
-// equation goal and misses the score goal lights the first and the third.
-function RatingRow({
-  children
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 8,
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement(Stars, {
-    count: 1,
-    total: 1,
-    size: 9,
-    c: "var(--lv-star)",
-    empty: "var(--fp-ink-4)"
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: 'var(--fp-ink-2)',
-      lineHeight: 1.4
-    }
-  }, children));
+  }, /*#__PURE__*/React.createElement(Law, {
+    note: "n equations"
+  }, "score = \u03A3 complexity + 20\xB7n"), /*#__PURE__*/React.createElement(Law, {
+    note: "each earned on its own"
+  }, "\u2605 cleared\xA0 \u2605 score \u2264 goal\xA0 \u2605 n \u2264 goal")));
 }
 
 // ─── Tutorial art ────────────────────────────────────────────

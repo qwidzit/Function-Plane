@@ -221,29 +221,63 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
 
 // ─── Advanced ────────────────────────────────────────────────
 // Every number the simulation actually uses, for players who would rather
-// solve a level than feel their way through it. Deliberately almost wordless:
-// anyone who opens this wants the constants, not the prose.
+// solve a level than feel their way through it.
 //
-// These are physics, not player expressions, so they are written in the
-// engine's own terms rather than through MathExpr — which knows the game's
-// grammar and nothing about subscripts, vectors or hats.
-function Fx({ children }) {
+// Typeset the way the equation field typesets: upright variables, real
+// fractions, real superscripts. A formula the game draws one way in a row and
+// another way in its own manual is two notations to learn. MathExpr itself
+// cannot be used — it knows the game's grammar and nothing about subscripts,
+// vectors or hats — so these are the same conventions, built small.
+const Sb  = ({ children }) => <sub style={{ fontSize: '0.72em' }}>{children}</sub>;
+const Sp  = ({ children }) => <sup style={{ fontSize: '0.72em' }}>{children}</sup>;
+
+// A fraction, stacked — the same shape mathFrac draws in an equation row.
+function Frac({ n, d }) {
   return (
-    <div className="fp-mono" style={{
-      fontSize: 12.5, lineHeight: 1.85, color: 'var(--fp-ink)',
-      whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-    }}>{children}</div>
+    <span style={{
+      display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
+      verticalAlign: 'middle', margin: '0 3px', fontSize: '0.9em', lineHeight: 1.1,
+    }}>
+      <span style={{ padding: '0 4px 1px' }}>{n}</span>
+      <span style={{ padding: '1px 4px 0', borderTop: '1px solid currentColor', width: '100%', textAlign: 'center' }}>{d}</span>
+    </span>
+  );
+}
+
+// One law: the statement, and a short note on the right saying when it applies.
+function Law({ note, children }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'baseline', gap: 10,
+      padding: '5px 0', borderTop: '1px solid var(--fp-line)',
+    }}>
+      <div style={{ flex: '1 1 auto', fontSize: 14, lineHeight: 1.9, color: 'var(--fp-ink)' }}>{children}</div>
+      {note && <div style={{
+        flex: '0 0 auto', fontSize: 10.5, lineHeight: 1.4, textAlign: 'right',
+        color: 'var(--fp-ink-4)', maxWidth: 100,
+      }}>{note}</div>}
+    </div>
   );
 }
 
 function FxGroup({ title, children }) {
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 16 }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
-        textTransform: 'uppercase', color: 'var(--fp-ink-4)', marginBottom: 6,
+        fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em',
+        textTransform: 'uppercase', color: 'var(--fp-ink-4)', marginBottom: 2,
       }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+// The key. Without it the rest is a wall of single letters.
+function Key({ sym, children }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '2.5px 0' }}>
+      <span style={{ flex: '0 0 44px', fontSize: 13.5, color: 'var(--fp-ink)', whiteSpace: 'nowrap' }}>{sym}</span>
+      <span style={{ fontSize: 11.5, lineHeight: 1.45, color: 'var(--fp-ink-3)' }}>{children}</span>
     </div>
   );
 }
@@ -251,141 +285,92 @@ function FxGroup({ title, children }) {
 function Advanced() {
   return (
     <div style={{
-      marginTop: 12, padding: '16px 16px 4px',
+      marginTop: 12, padding: '16px 16px 6px',
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)', borderRadius: 18,
     }}>
       <div style={{
         fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic',
-        fontSize: 20, color: 'var(--fp-ink)', marginBottom: 12,
+        fontSize: 21, color: 'var(--fp-ink)', marginBottom: 2,
       }}>The engine, exactly</div>
+      <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', marginBottom: 14 }}>
+        Everything the simulation runs on. Bold letters are vectors.
+      </div>
+
+      <FxGroup title="What the letters mean">
+        <Key sym={<strong>p</strong>}>position of the ball</Key>
+        <Key sym={<strong>v</strong>}>velocity</Key>
+        <Key sym={<strong>a</strong>}>acceleration from objects on the plane</Key>
+        <Key sym={<strong>n</strong>}>unit normal of the curve, pointing at the ball</Key>
+        <Key sym={<>v<Sb>n</Sb>, v<Sb>t</Sb></>}>parts of <strong>v</strong> along and across <strong>n</strong></Key>
+        <Key sym="m">gravity multiplier — 0 inside a zero-gravity box, else 1</Key>
+        <Key sym="h">one substep of time</Key>
+        <Key sym="e">bounciness — how much of v<Sb>n</Sb> comes back</Key>
+        <Key sym="ρ">fraction of speed kept through a real bounce</Key>
+        <Key sym="k">traction — how fast contact bleeds v<Sb>t</Sb></Key>
+        <Key sym={<strong>ŷ</strong>}>straight up</Key>
+        <Key sym={<strong>q</strong>}>nearest point on a curve</Key>
+        <Key sym={<strong>w</strong>}>centre of a gravity well</Key>
+      </FxGroup>
 
       <FxGroup title="Constants">
-        <Fx>g = 12          gravity, units/s²</Fx>
-        <Fx>r = 0.22        ball radius</Fx>
-        <Fx>Δt = 1/60 s     one tick, 20 substeps each</Fx>
-        <Fx>h = Δt/20       one substep</Fx>
-        <Fx>e = 0.5   ρ = 0.985   k = 0.6</Fx>
-        <Fx>T = 28 s        clock</Fx>
-        <Fx>+0.5 s          after the last star</Fx>
+        <Law note="units per second²">g = 12</Law>
+        <Law note="ball radius">r = 0.22</Law>
+        <Law note="one tick, 20 substeps">Δt = <Frac n="1" d="60"/> s</Law>
+        <Law note="one substep">h = <Frac n="Δt" d="20"/></Law>
+        <Law note="normal curve">e = 0.5&nbsp;&nbsp; ρ = 0.985&nbsp;&nbsp; k = 0.6</Law>
+        <Law note="and 0.5 s more after the last star">T = 28 s</Law>
       </FxGroup>
 
-      <FxGroup title="Step, per substep">
-        <Fx>v ← v + (a − g·m·ŷ)·h</Fx>
-        <Fx>p ← p + v·h</Fx>
-        <Fx>a, m from the field; else a = 0, m = 1</Fx>
+      <FxGroup title="Every substep">
+        <Law><strong>v</strong> ← <strong>v</strong> + (<strong>a</strong> − g·m·<strong>ŷ</strong>)·h</Law>
+        <Law><strong>p</strong> ← <strong>p</strong> + <strong>v</strong>·h</Law>
       </FxGroup>
 
-      <FxGroup title="Field">
-        <Fx>zero-g box:  m = 0</Fx>
-        <Fx>fan:         a += F·c·(cos α, sin α)</Fx>
-        <Fx>             c = c<sub>u</sub>·c<sub>v</sub>,  c &lt; 1/3 → 0</Fx>
-        <Fx>             c<sub>u</sub> = |[x−r, x+r] ∩ box| / 2r</Fx>
-        <Fx>well, |p−q| ≤ R:</Fx>
-        <Fx>             a += S·(q−p)/|q−p| − D·v</Fx>
+      <FxGroup title="What objects add">
+        <Law note="inside the box">zero gravity:&nbsp; m = 0</Law>
+        <Law note="F force, α angle">fan:&nbsp; <strong>a</strong> += F·c·(cos α, sin α)</Law>
+        <Law note="c is how much of the ball is in the box; under ⅓ the fan does nothing">
+          c = c<Sb>u</Sb>·c<Sb>v</Sb>,&nbsp; c &lt; <Frac n="1" d="3"/> → 0
+        </Law>
+        <Law note="S pull, D drag, inside radius R of the centre w">
+          well:&nbsp; <strong>a</strong> += S·<Frac n={<><strong>w</strong>−<strong>p</strong></>} d={<>|<strong>w</strong>−<strong>p</strong>|</>}/> − D·<strong>v</strong>
+        </Law>
       </FxGroup>
 
-      <FxGroup title="Contact">
-        <Fx>q = nearest point on the curve</Fx>
-        <Fx>n = (p−q)/|p−q|,   p ← q + r·n</Fx>
-        <Fx>v<sub>n</sub> = v·n</Fx>
-        <Fx>v<sub>n</sub> &lt; 0:   v ← v − (1+e)·v<sub>n</sub>·n</Fx>
-        <Fx>−v<sub>n</sub> &gt; 1.5: v ← ρ·v          (a real bounce)</Fx>
-        <Fx>always:    v<sub>t</sub> ← v<sub>t</sub>·exp(−k·h)</Fx>
+      <FxGroup title="Touching a curve">
+        <Law note="q is the nearest point on it"><strong>n</strong> = <Frac n={<><strong>p</strong>−<strong>q</strong></>} d={<>|<strong>p</strong>−<strong>q</strong>|</>}/>,&nbsp; <strong>p</strong> ← <strong>q</strong> + r·<strong>n</strong></Law>
+        <Law note="moving into the curve">v<Sb>n</Sb> &lt; 0:&nbsp; <strong>v</strong> ← <strong>v</strong> − (1+e)·v<Sb>n</Sb>·<strong>n</strong></Law>
+        <Law note="a real bounce, not a roll">−v<Sb>n</Sb> &gt; 1.5:&nbsp; <strong>v</strong> ← ρ·<strong>v</strong></Law>
+        <Law note="always, while touching">v<Sb>t</Sb> ← v<Sb>t</Sb>·e<Sp>−k·h</Sp></Law>
       </FxGroup>
 
       <FxGroup title="Materials">
-        <Fx>normal   e = 0.5   ρ = 0.985</Fx>
-        <Fx>steel    e = 0</Fx>
-        <Fx>rubber   e = 1     ρ = 1</Fx>
-        <Fx>k = 0.6 for all three</Fx>
+        <Law note="the default">normal:&nbsp; e = 0.5,&nbsp; ρ = 0.985</Law>
+        <Law note="lands and rolls">steel:&nbsp; e = 0</Law>
+        <Law note="gives everything back">rubber:&nbsp; e = 1,&nbsp; ρ = 1</Law>
+        <Law note="k never changes">k = 0.6</Law>
       </FxGroup>
 
-      <FxGroup title="Consequences">
-        <Fx>drop H, bounce back to  (e·ρ)²·H</Fx>
-        <Fx>   normal 0.242·H    rubber H    steel 0</Fx>
-        <Fx>slope θ, terminal speed  g·sin θ / k</Fx>
-        <Fx>   45° → 14.1      10° → 3.5</Fx>
-        <Fx>fan lifts the ball when  F·c &gt; g</Fx>
-        <Fx>   c = 1/2 at the mouth → F &gt; 24 there</Fx>
-        <Fx>zero-g: |v| constant, path straight</Fx>
-        <Fx>flip packs: g ← −g per tick with a bounce</Fx>
+      <FxGroup title="What follows">
+        <Law note="normal 0.242·H, rubber H, steel 0">drop H, come back to (e·ρ)<Sp>2</Sp>·H</Law>
+        <Law note="45° → 14.1,&nbsp; 10° → 3.5">slope θ settles at <Frac n="g·sin θ" d="k"/></Law>
+        <Law note="c = ½ at the mouth, so F &gt; 24 lifts it off the base">a fan holds the ball:&nbsp; F·c &gt; g</Law>
+        <Law note="nothing acts, so the path is straight">zero gravity:&nbsp; |<strong>v</strong>| constant</Law>
+        <Law note="per tick that saw a real bounce, in packs that flip">g ← −g</Law>
       </FxGroup>
 
       <FxGroup title="Bounds">
-        <Fx>star taken when  |p − s| &lt; 0.77</Fx>
-        <Fx>spawn at  (x + 0.025, y)</Fx>
-        <Fx>alive while |p| ≤ 20 and ≤ 10 from an object</Fx>
-        <Fx>hazard kills on |p − box| ≤ r</Fx>
+        <Law note="s is the star">star taken:&nbsp; |<strong>p</strong> − <strong>s</strong>| &lt; 0.77</Law>
+        <Law note="nudged, so it rolls off an apex instead of balancing there">spawn:&nbsp; (x + 0.025, y)</Law>
+        <Law note="both must hold; with nothing placed, only the first">alive:&nbsp; |<strong>p</strong>| ≤ 20,&nbsp; ≤ 10 from an object</Law>
+        <Law note="the ball's edge, not its centre">hazard kills:&nbsp; |<strong>p</strong> − box| ≤ r</Law>
       </FxGroup>
 
       <FxGroup title="Score">
-        <Fx>score = Σ complexity + 20·n</Fx>
-        <Fx>★ cleared   ★ score ≤ goal   ★ n ≤ goal</Fx>
-        <Fx>the three are independent</Fx>
+        <Law note="n equations">score = Σ complexity + 20·n</Law>
+        <Law note="each earned on its own">★ cleared&nbsp; ★ score ≤ goal&nbsp; ★ n ≤ goal</Law>
       </FxGroup>
-    </div>
-  );
-}
-
-function HTPCard({ color, icon, title, children, last }) {
-  return (
-    <div style={{
-      background: 'var(--fp-surface)',
-      border: '1px solid var(--fp-line)',
-      borderRadius: 18, overflow: 'hidden',
-      marginBottom: last ? 0 : 12,
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 16px 12px',
-        borderBottom: '1px solid var(--fp-line)',
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10, flex: '0 0 36px',
-          background: color + '18',
-          color: color,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{icon}</div>
-        <div style={{
-          fontSize: 14, fontWeight: 600, color: 'var(--fp-ink)',
-          letterSpacing: '-0.01em',
-        }}>{title}</div>
-      </div>
-      <div style={{
-        padding: '12px 16px',
-        fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.65,
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function CodeLine({ children }) {
-  return (
-    <div className="fp-mono" style={{
-      fontSize: 12.5, color: 'var(--fp-ink-2)',
-      background: 'var(--fp-surface-2)', border: '1px solid var(--fp-line)',
-      borderRadius: 7, padding: '5px 10px', marginBottom: 4,
-      display: 'inline-block', width: '100%', boxSizing: 'border-box',
-    }}>{children}</div>
-  );
-}
-
-// The aside beside a worked example — what it comes out as, not part of it.
-function Note({ children }) {
-  return <span style={{ marginLeft: 10, color: 'var(--fp-ink-4)' }}>{children}</span>;
-}
-
-// One star, one condition. It used to draw 3/2/1 for a ladder the game no
-// longer uses: the three are independent bits, so a run that beats the
-// equation goal and misses the score goal lights the first and the third.
-function RatingRow({ children }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
-      <Stars count={1} total={1} size={9} c="var(--lv-star)" empty="var(--fp-ink-4)"/>
-      <span style={{ fontSize: 12, color: 'var(--fp-ink-2)', lineHeight: 1.4 }}>{children}</span>
     </div>
   );
 }

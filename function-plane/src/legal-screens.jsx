@@ -194,7 +194,9 @@ Service for non-commercial purposes.
 
 ## 5. Premium and in-app purchases
 
-If you purchase a Premium plan or other in-app product:
+**There are no purchases available today.** Function Plane offers no Premium
+plan, no subscription, and no in-app product, and there is no way to pay us
+from inside the game. The terms below apply only if we introduce one:
 
 * The Google Play store handles billing. Their terms also apply.
 * Subscriptions auto-renew until cancelled in your Google Play account.
