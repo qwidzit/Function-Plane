@@ -251,7 +251,7 @@ function LevelStudio({
       // also ends it half a second after the last star, the way play does,
       // so the admin sees the run a player would get.
       const cleared = admin && ph.wonAtS != null && ph.simS - ph.wonAtS >= 0.5;
-      if (ph.dead || outOfWorld(ph) || ph.simS > STUDIO_LIMIT || cleared) {
+      if (ph.dead || outOfWorld(ph, world) || ph.simS > STUDIO_LIMIT || cleared) {
         cancelAnimationFrame(animRef.current);
         setTrail(ph.trail);
         setRunning(false);

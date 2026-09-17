@@ -23,7 +23,20 @@ function App() {
 
   // Active account (null = guest). Re-read on FP_AUTH events.
   const [account, setAccount] = useState(() => FP_AUTH.getActive());
-  useEffect(() => FP_AUTH.subscribe(() => setAccount(FP_AUTH.getActive())), []);
+  useEffect(() => FP_AUTH.subscribe(() => {
+    setAccount(FP_AUTH.getActive());
+    adoptProgress();
+  }), []);
+
+  // Leaving a browser tab throws away whatever run is in flight and any score
+  // still queued for upload, and a tab closes without asking. The native shell
+  // has the hardware back button below and no such dialog, so this is web only.
+  useEffect(() => {
+    if (window.FP_NATIVE) return;
+    const ask = e => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', ask);
+    return () => window.removeEventListener('beforeunload', ask);
+  }, []);
 
   // Bump on every config-override change so screens re-render with new pack/level data.
   // Level/pack data itself is already applied synchronously at boot from the
@@ -43,14 +56,21 @@ function App() {
     return freshProgress();
   });
 
-  // When the active account changes (sign in / out / switch), reload its progress.
-  useEffect(() => {
-    const p = FP_AUTH.getActiveProgress();
-    setProgress(p || freshProgress());
-    // Reset achievement seed so the new account's already-earned ones don't toast.
+  // Progress arriving from FP_AUTH — a sign-in, an account switch, or the
+  // background download landing — replaces what is on screen and re-seeds the
+  // achievement baseline against it.
+  //
+  // It has to re-seed on *every* one of those, not only when the account id
+  // changes. Signing in used to seed against the empty progress that existed
+  // for the half-second before the download arrived, so the moment the real
+  // save landed every achievement in it counted as newly earned and the whole
+  // history toasted at once. And keying the reload on the id alone meant a
+  // download that finished later never reached the screen at all.
+  const adoptProgress = () => {
+    setProgress(FP_AUTH.getActiveProgress() || freshProgress());
     achInitRef.current = false;
     prevUnlockedRef.current = new Set();
-  }, [account?.id]);
+  };
 
   const [nav, setNav] = useState({ route: 'main', pack: null, levelIndex: 0 });
 

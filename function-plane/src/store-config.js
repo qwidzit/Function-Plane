@@ -28,10 +28,14 @@ window.FP_PREMIUM_PRICE = '€4.90';
 // name in native code, and of the two ways to be wrong, offering an outside
 // payment route inside the Play build is the one that gets the app taken down
 // (anti-steering).
-window.FP_PAY_CHANNEL = (function () {
+// Running inside the Capacitor shell rather than a browser tab. Anything that
+// only makes sense in one of the two asks this — the payment channel below,
+// and the browser-only "leave this page?" prompt.
+window.FP_NATIVE = (function () {
   const cap = window.Capacitor;
-  const native = !!(cap && (typeof cap.isNativePlatform === 'function'
+  return !!(cap && (typeof cap.isNativePlatform === 'function'
     ? cap.isNativePlatform()
     : cap.platform && cap.platform !== 'web'));
-  return native ? 'play' : 'web';
 })();
+
+window.FP_PAY_CHANNEL = window.FP_NATIVE ? 'play' : 'web';

@@ -163,6 +163,7 @@ function getLevelData(packId, levelIndex) {
     ...base,
     preplaced: [],
     objects: [],
+    outline: [],
     materials: false,
     explain: null,
     hint
@@ -180,6 +181,9 @@ function getLevelData(packId, levelIndex) {
     preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.filter(s => typeof s === 'string' && s.trim()) : [],
     // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
     objects: Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
+    // The figure the stars are arranged in, as polylines over star indices.
+    // Decoration for the shape pack: it is drawn, and nothing collides with it.
+    outline: Array.isArray(ov.outline) ? ov.outline.filter(Array.isArray) : [],
     // Whether players may set a curve's bounce (steel / rubber).
     materials: !!ov.materials,
     // Which mechanic this level introduces — a key into FP_EXPLAINERS, shown

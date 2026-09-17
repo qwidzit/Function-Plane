@@ -89,8 +89,8 @@ function runLevel(level, modifier, which = 0) {
     ts += TICK_DT * 1000;
     G.drainTicks(ph, colliders, world, ts);
     const wonElapsed = ph.wonAtS != null ? ph.simS - ph.wonAtS : -1;
-    if (ph.wonAtS == null && (ph.dead || G.outOfWorld(ph) || ph.simS > TIME_LIMIT)) {
-      outcome = ph.dead ? 'hazard' : G.outOfWorld(ph) ? 'left the world' : 'ran out of time';
+    if (ph.wonAtS == null && (ph.dead || G.outOfWorld(ph, world) || ph.simS > TIME_LIMIT)) {
+      outcome = ph.dead ? 'hazard' : G.outOfWorld(ph, world) ? 'left the world' : 'ran out of time';
     } else if (ph.wonAtS != null && wonElapsed >= 0.5) {
       outcome = 'cleared';
     }

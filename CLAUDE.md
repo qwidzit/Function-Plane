@@ -190,6 +190,14 @@ believing it.
   a `(`*, because `\b` can't separate `3sin(` from `asin(`. Add the name to
   `FN_CALLS` (runtime), `KNOWN_NAMES` (classifier) and `MATH_FNS` (the
   typeset display) or all three disagree.
+- A level's shape outline collides with the ball → it must not. `outline` on a
+  level is a list of polylines over *star indices*, drawn faintly by
+  `CoordPlane` and nowhere else; it never reaches `makeRunColliders`. If you
+  find yourself giving it an equation, it has stopped being decoration.
+- A ball dies sooner or later than it used to → the world is sized to the
+  level now (`WORLD_MARGIN` past every object, inside `WORLD_RADIUS` of the
+  origin), so moving an object moves the edge. `npm run verify:levels` is the
+  check.
 - Adding a kind of level object → it is one entry in `KINDS` (and `FORCE` /
   `INSIDE` if it acts) in `level-objects.jsx`. The engine, the plane, the
   studio's Objects tab and `getLevelData` are generic; if you find yourself
@@ -200,7 +208,7 @@ believing it.
 - Gravity flips too often, or not at all → flipping is per *tick* in
   `drainTicks` and counts `ph.bounces` (real bounces only), never the
   per-frame `ph.bounced` flag. And a flipped ball needs the ceiling in
-  `outOfWorld`, or it rises until the clock runs out.
+  `outOfWorld` — which it has, because that bound is radial, not a floor.
 - The caret in an equation row lands in the wrong place, or stops moving →
   the typeset layer draws its own cursor from a character offset, and the
   math keyboard has to announce selection changes with the `fp-caret` event

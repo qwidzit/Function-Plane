@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T09:13:41.701Z
+// Generated: 2026-09-17T09:51:26.855Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -11,32 +11,32 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "name": "Foundations",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-05-05T07:58:52.194+00:00",
-    "is_hidden": false
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": true
    },
    {
     "pack_id": "r-II",
     "name": "Crosswinds",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-16T10:01:32.546051+00:00",
-    "is_hidden": false
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": true
    },
    {
     "pack_id": "r-III",
     "name": "Weightless",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:00:06.948+00:00",
-    "is_hidden": false
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": true
    },
    {
     "pack_id": "r-IV",
     "name": "Geometry",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-05-05T07:24:43.472+00:00",
-    "is_hidden": false
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": true
    },
    {
     "pack_id": "r-IX",
@@ -51,8 +51,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "name": "Mastery",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-05-05T07:42:55.582+00:00",
-    "is_hidden": false
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": true
    },
    {
     "pack_id": "r-VI",
@@ -95,11 +95,27 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "is_hidden": true
    },
    {
-    "pack_id": "s-qua",
-    "name": "Quadratic",
-    "allowed_class": "quadratic",
+    "pack_id": "s-lin",
+    "name": "Linear",
+    "allowed_class": "linear",
     "modifier": null,
-    "updated_at": "2026-05-08T16:30:07.069+00:00",
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "s-qua",
+    "name": "Geometry",
+    "allowed_class": null,
+    "modifier": null,
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "s-trig",
+    "name": "Trigonometry",
+    "allowed_class": "trig",
+    "modifier": null,
+    "updated_at": "2026-09-17T09:50:53.553429+00:00",
     "is_hidden": true
    }
   ],
@@ -131,7 +147,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "objects": [],
     "materials": false,
     "explain": "how-to-play",
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -160,7 +177,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "objects": [],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -189,7 +207,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "objects": [],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -226,7 +245,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -263,7 +283,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -300,7 +321,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": "domain",
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -344,7 +366,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -395,7 +418,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -432,7 +456,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-I",
@@ -483,7 +508,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -522,7 +548,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -561,7 +588,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -600,7 +628,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -648,7 +677,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -687,7 +717,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -726,7 +757,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -772,7 +804,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -818,7 +851,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -865,7 +899,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-II",
@@ -921,7 +956,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -962,7 +998,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": "Quadratic"
+    "hint": "Quadratic",
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1006,7 +1043,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1043,7 +1081,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": "Quadratic"
+    "hint": "Quadratic",
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1072,7 +1111,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "objects": [],
     "materials": true,
     "explain": "rubber",
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1105,7 +1145,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": "steel",
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1138,7 +1179,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1178,7 +1220,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1224,7 +1267,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1269,7 +1313,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
    },
    {
     "pack_id": "r-III",
@@ -1394,7 +1439,516 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 0,
+    "name": "One",
+    "ball_x": -4,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 0,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 1,
+    "name": "Two",
+    "ball_x": -5,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -3,
+      "y": 2
+     },
+     {
+      "x": 3,
+      "y": -1
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 2,
+    "name": "Triangle",
+    "ball_x": -4,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 0,
+      "y": 4
+     },
+     {
+      "x": -3.5,
+      "y": -2
+     },
+     {
+      "x": 3.5,
+      "y": -2
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      0
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 3,
+    "name": "Square",
+    "ball_x": -5,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -3,
+      "y": 3
+     },
+     {
+      "x": 3,
+      "y": 3
+     },
+     {
+      "x": 3,
+      "y": -3
+     },
+     {
+      "x": -3,
+      "y": -3
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      0
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 4,
+    "name": "Pentagon",
+    "ball_x": 0,
+    "ball_y": 6.5,
+    "stars": [
+     {
+      "x": 0,
+      "y": 4
+     },
+     {
+      "x": 3.75,
+      "y": 1.25
+     },
+     {
+      "x": 2.25,
+      "y": -3.25
+     },
+     {
+      "x": -2.25,
+      "y": -3.25
+     },
+     {
+      "x": -3.75,
+      "y": 1.25
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      0
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 5,
+    "name": "Hexagon",
+    "ball_x": 0,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 2,
+      "y": 3.5
+     },
+     {
+      "x": 4,
+      "y": 0
+     },
+     {
+      "x": 2,
+      "y": -3.5
+     },
+     {
+      "x": -2,
+      "y": -3.5
+     },
+     {
+      "x": -4,
+      "y": 0
+     },
+     {
+      "x": -2,
+      "y": 3.5
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      0
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 6,
+    "name": "Cube",
+    "ball_x": 0.75,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 0.75,
+      "y": 3.25
+     },
+     {
+      "x": 3.25,
+      "y": 1.75
+     },
+     {
+      "x": 3.25,
+      "y": -2.5
+     },
+     {
+      "x": -0.75,
+      "y": -3.25
+     },
+     {
+      "x": -3.25,
+      "y": -1.75
+     },
+     {
+      "x": -3.25,
+      "y": 2.5
+     },
+     {
+      "x": -0.75,
+      "y": 1
+     }
+    ],
+    "score_goal": 70,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      0
+     ],
+     [
+      6,
+      1
+     ],
+     [
+      6,
+      3
+     ],
+     [
+      6,
+      5
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 7,
+    "name": "Three in a row",
+    "ball_x": -6.5,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -4.5,
+      "y": 1.5
+     },
+     {
+      "x": -1.5,
+      "y": 1.5
+     },
+     {
+      "x": 1.5,
+      "y": 1.5
+     },
+     {
+      "x": 4.5,
+      "y": 1.5
+     },
+     {
+      "x": 4.5,
+      "y": -1.5
+     },
+     {
+      "x": 1.5,
+      "y": -1.5
+     },
+     {
+      "x": -1.5,
+      "y": -1.5
+     },
+     {
+      "x": -4.5,
+      "y": -1.5
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      0
+     ],
+     [
+      1,
+      6
+     ],
+     [
+      2,
+      5
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 8,
+    "name": "Nine",
+    "ball_x": 0,
+    "ball_y": 6.5,
+    "stars": [
+     {
+      "x": 0,
+      "y": 4
+     },
+     {
+      "x": 2.5,
+      "y": 3
+     },
+     {
+      "x": 4,
+      "y": 0.75
+     },
+     {
+      "x": 3.5,
+      "y": -2
+     },
+     {
+      "x": 1.25,
+      "y": -3.75
+     },
+     {
+      "x": -1.25,
+      "y": -3.75
+     },
+     {
+      "x": -3.5,
+      "y": -2
+     },
+     {
+      "x": -4,
+      "y": 0.75
+     },
+     {
+      "x": -2.5,
+      "y": 3
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      0
+     ]
+    ]
+   },
+   {
+    "pack_id": "s-qua",
+    "level_index": 9,
+    "name": "The star",
+    "ball_x": 0,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": 0,
+      "y": 4.5
+     },
+     {
+      "x": 4.25,
+      "y": 1.5
+     },
+     {
+      "x": 2.75,
+      "y": -3.75
+     },
+     {
+      "x": -2.75,
+      "y": -3.75
+     },
+     {
+      "x": -4.25,
+      "y": 1.5
+     },
+     {
+      "x": 1,
+      "y": 1.5
+     },
+     {
+      "x": 1.75,
+      "y": -0.5
+     },
+     {
+      "x": 0,
+      "y": -1.75
+     },
+     {
+      "x": -1.75,
+      "y": -0.5
+     },
+     {
+      "x": -1,
+      "y": 1.5
+     }
+    ],
+    "score_goal": 80,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": false,
+    "explain": null,
+    "hint": null,
+    "outline": [
+     [
+      0,
+      5,
+      1,
+      6,
+      2,
+      7,
+      3,
+      8,
+      4,
+      9,
+      0
+     ]
+    ]
    }
   ],
   "achievements": []

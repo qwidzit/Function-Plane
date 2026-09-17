@@ -271,6 +271,14 @@ Current design:
   every trajectory very slightly, which is why `npm run verify:levels` is part
   of changing it — one authored level's draft answer sat close enough to a
   hazard that a pixel was the difference.
+- **Where the world ends** (`outOfWorld`). Not a floor: the bound is every
+  object on the plane grown by `WORLD_MARGIN` (10), inside a hard circle of
+  `WORLD_RADIUS` (20) about the origin, and a level with nothing placed on it
+  is the circle alone. A fixed floor at −13 was wrong in both directions — it
+  let a ball sail sideways for as long as the clock allowed, and a pack that
+  turns gravity over needed a mirror-image ceiling bolted on to stop the same
+  thing upward. Being radial, it has no sides to special-case. `makeWorld`
+  precomputes the boxes; `outOfWorld(ph, world)` takes the world because of it.
 - Level ends **0.5 s after the last star is collected** (`wonAtS` timestamp),
   not when the ball falls off. Recorded finish time is `wonAtS`, not the
   wind-down endpoint.
@@ -573,9 +581,9 @@ tick's substeps, if `ph.bounces` grew, `ph.gSign` flips — once per *tick*,
 never per frame (a frame can drain several ticks) and never per collider (two
 curves hit in one corner would flip twice into a no-op). Only *real* bounces
 count, which is what keeps a ball resting on a curve from flipping sixty
-times a second. `outOfWorld` mirrors `FALL_LIMIT` into a ceiling while
-gravity points up — without it a flipped ball rises until the clock runs
-out and nothing ever fails it. The HUD shows a `g ↓/↑` chip and the ball
+times a second. A flipped ball needs a bound above it or it rises until the
+clock runs out and nothing ever fails it; `outOfWorld` is radial, so that
+comes for free. The HUD shows a `g ↓/↑` chip and the ball
 wears a chevron pointing the way it currently falls, only in packs that flip.
 
 ## Ball rendering vs the drawn curve
@@ -1361,9 +1369,6 @@ times a second while the ball rests on a curve". Three things it needs:
   `requestAnimationFrame`, and a frame can drain several ticks; counting
   bounces and flipping once per tick keeps it frame-rate independent, and
   stops two curves hit in one corner from flipping twice into a no-op.
-- A **ceiling**. `FALL_LIMIT` is one-sided (`-13`): with gravity reversed the
-  ball leaves upward and nothing fails it, so the run only ends at
-  `TIME_LIMIT`. Needs a symmetric bound.
 - A **visible gravity direction** in the HUD. The trail shows it after the
   fact; the player needs it during.
 

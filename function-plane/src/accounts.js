@@ -11,6 +11,8 @@
 (() => {
   const AVATARS = ['🟢','🟣','🟠','🔵','🟡','🔴','⚫','⚪','🟤'];
   const PROGRESS_PREFIX = 'fp-progress-';
+  const PROFILE_PREFIX  = 'fp-profile-';
+  const LAST_USER_KEY   = 'fp-last-user';
   const GUEST_KEY       = 'fp-progress';
 
   // Module-level cache — keeps getActive() / getActiveProgress() synchronous
@@ -64,6 +66,11 @@
   const readJSON  = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
   const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
   const progressKey = id  => id ? PROGRESS_PREFIX + id : GUEST_KEY;
+  // The profile row and the id of whoever was signed in last, kept on disk for
+  // the same reason the level data is: so a boot with no network shows the
+  // player their own game instead of a stranger's empty one. Progress was
+  // always local; who it belonged to was not, so none of it could be shown.
+  const profileKey  = id  => PROFILE_PREFIX + id;
 
   // ── Initialise ────────────────────────────────────────────────────────────
 
@@ -79,34 +86,74 @@
       auth: { persistSession: true, autoRefreshToken: true },
     });
 
-    // Restore existing session (e.g. returning visitor on same device)
-    const { data: { session } } = await _sb.auth.getSession();
-    if (session) {
-      _currentUser = await _fetchProfile(session.user);
-      await _syncProgressDown(session.user.id, true);
-      _flushQueue();
+    // Show the last account this device saw before asking the network anything.
+    // Its profile and its progress are both on disk, so an offline boot is a
+    // playable game rather than a guest screen.
+    const lastId = readJSON(LAST_USER_KEY, null);
+    const cached = lastId ? readJSON(profileKey(lastId), null) : null;
+    if (cached) { _currentUser = cached; notify(); }
+
+    // Restore the session (returning visitor on the same device). Bounded: an
+    // expired token makes this refresh over the network, and unbounded it is a
+    // boot that never finishes.
+    let session = null;
+    try {
+      ({ data: { session } } = await _withTimeout(_sb.auth.getSession(), 'Session check'));
+    } catch (e) {
+      _emitSyncError(e.message);   // keep the cached account and play offline
+      return;
     }
+    if (session) _adoptSession(session.user, true);
+    else if (cached) { _forgetAccount(); }
+    else notify();
+
+    // Keep the cache in sync when auth state changes (sign-in / sign-out /
+    // token refresh). Deliberately not an async callback: supabase-js runs
+    // these inside its auth lock, and awaiting other Supabase calls in here
+    // deadlocks every later request until the lock times out — which is
+    // exactly what made signing in take minutes and then complete by itself.
+    _sb.auth.onAuthStateChange((event, session) => {
+      if (!session) { _forgetAccount(); return; }
+      _adoptSession(session.user, event === 'SIGNED_IN');
+    });
+  }
+
+  function _forgetAccount() {
+    _currentUser = null;
+    writeJSON(LAST_USER_KEY, null);
+    notify();
+  }
+
+  // Take the session's identity now, from whatever is cached, and confirm it
+  // against the server afterwards. Every await in here used to sit between the
+  // player and their own save file.
+  async function _adoptSession(user, download) {
+    const cached = readJSON(profileKey(user.id), null);
+    _currentUser = {
+      id: user.id, email: user.email,
+      name:       cached?.name   || user.user_metadata?.name   || 'Player',
+      avatar:     cached?.avatar || user.user_metadata?.avatar || '🟢',
+      totalStars: cached?.totalStars || 0,
+      isPremium:  !!cached?.isPremium,
+    };
+    writeJSON(LAST_USER_KEY, user.id);
     notify();
 
-    // Keep cache in sync when auth state changes (sign-in / sign-out / token refresh)
-    _sb.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        _currentUser = await _fetchProfile(session.user);
-        if (event === 'SIGNED_IN') {
-          await _syncProgressDown(session.user.id, false);
-          _flushQueue();
-        }
-      } else {
-        _currentUser = null;
-      }
+    try {
+      _currentUser = await _fetchProfile(user);
+      writeJSON(profileKey(user.id), _currentUser);
       notify();
-    });
+    } catch (e) { _emitSyncError(e.message); }
+
+    if (!download) return;
+    try { await _syncProgressDown(user.id); _flushQueue(); }
+    catch (e) { _emitSyncError(e.message); }
   }
 
   async function _fetchProfile(user) {
     if (!_sb) return null;
-    const { data } = await _sb.from('profiles')
-      .select('name, avatar, total_stars, is_premium').eq('id', user.id).single();
+    const { data } = await _withTimeout(_sb.from('profiles')
+      .select('name, avatar, total_stars, is_premium').eq('id', user.id).single(), 'Profile');
     return {
       id:         user.id,
       email:      user.email,
@@ -120,11 +167,15 @@
   // Download remote progress, merge with local, push merged back up
   async function _syncProgressDown(userId, skipUpload = false) {
     if (!_sb) return;
-    const { data } = await _sb.from('progress').select('data').eq('user_id', userId).single();
+    const { data } = await _withTimeout(
+      _sb.from('progress').select('data').eq('user_id', userId).single(), 'Progress');
     const remote   = data?.data || null;
     const local    = readJSON(progressKey(userId), null);
     const merged   = _mergeProgress(remote, local);
     writeJSON(progressKey(userId), merged);
+    // Whatever came down is on disk but not on screen: the app reads progress
+    // out of here when it is told to, and nothing else tells it.
+    notify();
     if (!skipUpload && merged) _scheduleUpload(userId, merged);
   }
 
@@ -239,9 +290,9 @@
 
   async function signIn({ email, password }) {
     if (!_sb) throw new Error('Supabase is not configured yet');
-    const { error } = await _sb.auth.signInWithPassword({
+    const { error } = await _withTimeout(_sb.auth.signInWithPassword({
       email: (email || '').trim().toLowerCase(), password,
-    });
+    }), 'Sign in');
     if (error) throw new Error(
       error.message.toLowerCase().includes('invalid') ? 'Incorrect email or password' : error.message
     );
@@ -271,9 +322,9 @@
     if (r3.error) errs.push(r3.error.message);
     // Local cleanup
     try {
-      Object.keys(localStorage).forEach(k => {
-        if (k.startsWith('fp-progress-' + id)) localStorage.removeItem(k);
-      });
+      localStorage.removeItem(progressKey(id));
+      localStorage.removeItem(profileKey(id));
+      localStorage.removeItem(LAST_USER_KEY);
     } catch {}
     await _sb.auth.signOut();
     if (errs.length) {

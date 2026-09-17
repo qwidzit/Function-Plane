@@ -36,7 +36,13 @@ const BALL_R = 0.22;
 // its radius.
 const EQ_STROKE = 2.2;
 const BALL_OUTLINE = 1.5;
-const FALL_LIMIT = -13;
+// Where the world ends. It reaches WORLD_MARGIN past whatever the level
+// actually holds, and never further than WORLD_RADIUS from the origin — see
+// outOfWorld. A fixed floor was wrong in both directions at once: it let a ball
+// sail sideways for as long as the clock allowed, and a pack that turns gravity
+// over needed a mirror-image ceiling bolted on to stop the same thing upward.
+const WORLD_MARGIN = 10,
+  WORLD_RADIUS = 20;
 const TIME_LIMIT = 28;
 // Pixels per unit below which a dragged object snaps to a half rather than a
 // quarter — see onPointerMove in CoordPlane.
@@ -493,11 +499,21 @@ function physicsStep(ph, colliders, dt, world) {
   if (world?.hazards?.length && FP_OBJECTS.hazardHit(world.hazards, ph.x, ph.y, BALL_R)) ph.dead = true;
 }
 
-// Left the world: below the floor, or — with gravity pointing up — above the
-// mirror-image ceiling, without which a flipped ball just rises until the
-// clock runs out.
-function outOfWorld(ph) {
-  return ph.y < FALL_LIMIT || ph.gSign < 0 && ph.y > -FALL_LIMIT;
+// Left the world. The bound is the level's own contents grown by
+// WORLD_MARGIN, inside a hard circle of WORLD_RADIUS about the origin: a run
+// ends once the ball is further than the margin from every object on the
+// plane, or simply too far out for the level to be about anything any more.
+// Being radial, it handles a flipped pack without a special case.
+function outOfWorld(ph, world) {
+  if (ph.x * ph.x + ph.y * ph.y > WORLD_RADIUS * WORLD_RADIUS) return true;
+  const boxes = world?.bounds;
+  if (!boxes || !boxes.length) return false; // nothing placed: the circle is the whole rule
+  for (const b of boxes) {
+    const dx = Math.max(b.minX - ph.x, 0, ph.x - b.maxX);
+    const dy = Math.max(b.minY - ph.y, 0, ph.y - b.maxY);
+    if (dx * dx + dy * dy <= WORLD_MARGIN * WORLD_MARGIN) return false;
+  }
+  return true;
 }
 
 // Drains one frame's elapsed time into whole ticks. Shared by the level and
@@ -538,6 +554,8 @@ function makeWorld(objects, gravityFlip) {
     field: FP_OBJECTS.makeField(objects, BALL_R),
     solids: FP_OBJECTS.solidSegs(objects),
     hazards: objects.filter(o => o.kind === 'hazard'),
+    // What the world is built around — outOfWorld measures against these.
+    bounds: objects.map(o => FP_OBJECTS.bounds(o)),
     gravityFlip: !!gravityFlip
   };
 }
@@ -609,6 +627,7 @@ function CoordPlane({
   onMove,
   gridLabels = true,
   objects = [],
+  outline = [],
   gravityDir = null,
   viewRef = null
 }) {
@@ -990,6 +1009,32 @@ function CoordPlane({
     selected: selected === `obj-${i}`
   }));
 
+  // The figure a level's stars are arranged in — a list of polylines over star
+  // indices, joined faintly so the shape reads as a shape. It is decoration
+  // and nothing else: it is not an equation, it never reaches makeColliders,
+  // and the ball passes straight through it.
+  const outlineEl = outline.length ? /*#__PURE__*/React.createElement("g", {
+    fill: "none",
+    stroke: "var(--lv-tick)",
+    strokeWidth: 1.2,
+    strokeDasharray: "3 4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: 0.55
+  }, outline.map((path, i) => {
+    let d = '';
+    for (const idx of path) {
+      const s = levelStars[idx];
+      if (!s) return null;
+      const p = m2p(s.x, s.y);
+      d += `${d ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+    }
+    return /*#__PURE__*/React.createElement("path", {
+      key: i,
+      d: d
+    });
+  })) : null;
+
   // Stars are authored at an outer radius of 11 units in the path below, and
   // STAR_DRAW_R is that radius expressed in *world* units, so a star zooms
   // with the plane exactly as the ball and the curves do. Drawing them at a
@@ -1100,7 +1145,7 @@ function CoordPlane({
     fontFamily: "ui-monospace,monospace",
     fill: "var(--lv-tick)",
     textAnchor: "end"
-  }, "0"), tickLabels, objectsEl, eqPaths, trailPath && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+  }, "0"), tickLabels, outlineEl, objectsEl, eqPaths, trailPath && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "fp-trail",
     gradientUnits: "userSpaceOnUse",
     x1: trailPath.x1,
@@ -1259,6 +1304,7 @@ function PlaneFiller({
   onMove,
   gridLabels = true,
   objects,
+  outline,
   gravityDir,
   viewRef
 }) {
@@ -1302,6 +1348,7 @@ function PlaneFiller({
     onSelect: onSelect,
     onMove: onMove,
     objects: objects,
+    outline: outline,
     gravityDir: gravityDir,
     viewRef: viewRef
   }));
@@ -3493,7 +3540,7 @@ function LevelScreen({
       // 0.5s wind-down). The level then ends 0.5s later regardless of where
       // the ball wanders to.
       const wonElapsed = ph.wonAtS != null ? elapsedS - ph.wonAtS : -1;
-      const failed = ph.wonAtS == null && (ph.dead || outOfWorld(ph) || elapsedS > TIME_LIMIT);
+      const failed = ph.wonAtS == null && (ph.dead || outOfWorld(ph, world) || elapsedS > TIME_LIMIT);
       const succeeded = ph.wonAtS != null && wonElapsed >= 0.5;
       if (failed || succeeded) {
         cancelAnimationFrame(animRef.current);
@@ -3759,6 +3806,7 @@ function LevelScreen({
     levelStars: levelData.stars,
     trail: trail,
     objects: levelData.objects,
+    outline: levelData.outline,
     gravityDir: gravityFlip && running ? gravityDir : null
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => setHintOpen(true),
@@ -4312,6 +4360,7 @@ window.SIM = {
   SUB_STEPS,
   MAX_TICKS,
   BALL_R,
-  FALL_LIMIT,
+  WORLD_MARGIN,
+  WORLD_RADIUS,
   EQ_COLORS
 };
