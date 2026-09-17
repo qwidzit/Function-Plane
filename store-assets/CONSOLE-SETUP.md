@@ -211,8 +211,11 @@ marketing, and Personalization.
 Leave everything else unticked, and know why:
 
 - **App interactions** — no page-view, tap or session telemetry is sent.
-- **Crash logs, Diagnostics, Other app performance data** — no crash reporter
-  ships. Tick them in the same release that adds one (checklist item 30).
+- **Diagnostics, Other app performance data** — no performance telemetry is
+  sent. **Crash logs is ticked**, and is the one App info and performance box
+  that is: `error-log.js` posts uncaught errors to our own Supabase, so it is
+  collected, not shared, and *not linked to the user* — the reports carry no
+  account or identifier at all.
 - **Device or other IDs** — no advertising ID, no Device plugin; the app
   declares `INTERNET` and nothing else.
 - **Approximate location** — no geolocation call and no location permission
