@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T09:51:26.855Z
+// Generated: 2026-09-17T10:20:51.475Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -92,6 +92,14 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "allowed_class": "exp",
     "modifier": null,
     "updated_at": "2026-05-08T16:29:59.47+00:00",
+    "is_hidden": true
+   },
+   {
+    "pack_id": "s-flip",
+    "name": "Inversion",
+    "allowed_class": null,
+    "modifier": "gravityFlip",
+    "updated_at": "2026-09-17T10:20:41.782498+00:00",
     "is_hidden": true
    },
    {
@@ -1456,7 +1464,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1482,7 +1490,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1498,7 +1506,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 2,
-    "name": "Triangle",
+    "name": "Three",
     "ball_x": -4,
     "ball_y": 6,
     "stars": [
@@ -1517,7 +1525,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1535,7 +1543,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 3,
-    "name": "Square",
+    "name": "Four",
     "ball_x": -5,
     "ball_y": 6,
     "stars": [
@@ -1558,7 +1566,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 60,
     "eq_goal": 2,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1577,7 +1585,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 4,
-    "name": "Pentagon",
+    "name": "Five",
     "ball_x": 0,
     "ball_y": 6.5,
     "stars": [
@@ -1604,7 +1612,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1624,7 +1632,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 5,
-    "name": "Hexagon",
+    "name": "Six",
     "ball_x": 0,
     "ball_y": 6,
     "stars": [
@@ -1655,7 +1663,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1676,7 +1684,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 6,
-    "name": "Cube",
+    "name": "Seven",
     "ball_x": 0.75,
     "ball_y": 6,
     "stars": [
@@ -1711,7 +1719,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 70,
     "eq_goal": 2,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1744,7 +1752,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 7,
-    "name": "Three in a row",
+    "name": "Eight",
     "ball_x": -6.5,
     "ball_y": 4,
     "stars": [
@@ -1783,7 +1791,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 60,
     "eq_goal": 2,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1857,7 +1865,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,
@@ -1881,7 +1889,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
    {
     "pack_id": "s-qua",
     "level_index": 9,
-    "name": "The star",
+    "name": "Ten",
     "ball_x": 0,
     "ball_y": 7,
     "stars": [
@@ -1928,7 +1936,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 80,
     "eq_goal": 2,
-    "updated_at": "2026-09-17T09:50:41.133938+00:00",
+    "updated_at": "2026-09-17T10:19:07.392319+00:00",
     "preplaced": [],
     "objects": [],
     "materials": false,

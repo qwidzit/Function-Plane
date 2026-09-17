@@ -438,8 +438,17 @@ the app does **not** trust the network for them:
   / trig / exp); enforcement runs in `level-screen.jsx`'s `classWarning` via
   `classMatches()`, which groups related classes (e.g. `exp` pack allows both
   `exp` and `log`; `trig` pack allows both `trig` and `inverseTrig`).
+  Geometry (`s-qua`) is the one themed pack with no restriction at all — its
+  rule is a shape, not a class.
+- **An override row describes its pack completely.** `getPack` and
+  `applyOverrides` both *assign* `allowedClass` and `modifier` from the row
+  rather than patching over the built-in, so an empty `allowed_class` means
+  "no restriction" and not "keep whatever `data.jsx` says". They used to be
+  set-only, which made a restriction impossible to lift: Geometry kept
+  demanding quadratics long after both its row and its built-in had stopped
+  asking for them. `name` still falls back, because a pack is never nameless.
 - A pack can also carry a **`modifier`** — a rule the whole pack plays under.
-  The `Inversion` pack (`s-flip`, unlocks at 120 stars) has
+  The `Inversion` pack (`s-flip`, unlocks at 80 stars) has
   `modifier: 'gravityFlip'`; `pack_overrides.modifier` overrides it like
   `allowed_class` does. `getLevelData` additionally returns **`objects`**
   (the level's fans/zones/wells/hazards, unknown kinds dropped) and

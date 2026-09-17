@@ -28,7 +28,7 @@ const SPECIAL_PACKS = [{
   name: 'Geometry',
   kind: 'qua',
   type: 'special',
-  tag: 'n stars, one shape'
+  tag: 'just shapes'
 }, {
   id: 's-trig',
   numeral: 'ƒ',
@@ -61,15 +61,14 @@ const SPECIAL_PACKS = [{
 // Stars needed to unlock each special pack
 // Ordered by what each pack depends on, not by its number: Linear is the
 // second tutorial and opens immediately, Trigonometry needs nothing but
-// confidence, Inversion wants a player who reads a bounce, and s-qua — about
-// to become the shape pack — gates last because its closed tracks need
-// Pack III's zero-gravity and rubber. s-exp is hidden and its number is
-// reserved rather than tuned.
+// confidence, Geometry's closed tracks want Pack III's zero-gravity and
+// rubber, and Inversion wants a player who reads a bounce. s-exp is hidden
+// and its number is reserved rather than tuned.
 const SPECIAL_UNLOCK_STARS = {
   's-lin': 0,
   's-trig': 40,
+  's-qua': 50,
   's-flip': 80,
-  's-qua': 120,
   's-exp': 150
 };
 
@@ -205,8 +204,12 @@ function getPack(packId) {
   return {
     ...base,
     name: ov.name || base.name,
-    allowedClass: ov.allowed_class || base.allowedClass,
-    modifier: ov.modifier || base.modifier || null,
+    // An override row describes the pack completely: an empty `allowed_class`
+    // means "no restriction", not "keep whatever was built in". Falling back
+    // to the built-in made a restriction impossible to lift — Geometry went on
+    // demanding quadratics long after its row said otherwise.
+    allowedClass: ov.allowed_class || null,
+    modifier: ov.modifier || null,
     isHidden: !!ov.is_hidden
   };
 }
@@ -238,13 +241,15 @@ function applyOverrides({
   window.FP_PACK_OVERRIDES = packMap;
   window.FP_ACH_OVERRIDES = achievements;
 
-  // Patch in-place so static references update too
+  // Patch in-place so static references update too. Assign rather than patch,
+  // for the reason getPack gives: these used to be set-only, so a pack could
+  // gain a restriction from an override and never lose one.
   [...ROMAN_PACKS, ...SPECIAL_PACKS].forEach(p => {
     const ov = packMap[p.id];
     if (!ov) return;
-    if (ov.name) p.name = ov.name;
-    if (ov.allowed_class) p.allowedClass = ov.allowed_class;
-    if (ov.modifier) p.modifier = ov.modifier;
+    p.name = ov.name || p.name;
+    p.allowedClass = ov.allowed_class || null;
+    p.modifier = ov.modifier || null;
   });
 }
 

@@ -148,6 +148,11 @@ believing it.
   before compiling, and `fixUnaryPow` is the part that matches parentheses
   rather than patterns. `-(5*(x+1))^3` was broken for exactly that reason:
   the pattern it replaced only understood parens with nothing nested inside.
+- A themed pack keeps a restriction you removed → it cannot any more, but this
+  is why: `getPack` and `applyOverrides` *assign* `allowedClass`/`modifier`
+  from the override row instead of patching over the built-in, so an empty
+  `allowed_class` clears one. Set-only patching is what kept Geometry
+  demanding quadratics after its row said otherwise.
 - A themed pack lets through an equation it shouldn't (or blocks one it
   should allow) → the classifier is AST-based; check `detectClass()` in
   `equation-classifier.js` directly against the expression before assuming
