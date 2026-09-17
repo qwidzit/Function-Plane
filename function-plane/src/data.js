@@ -55,12 +55,18 @@ const SPECIAL_PACKS = [{
 }];
 
 // Stars needed to unlock each special pack
+// Ordered by what each pack depends on, not by its number: Linear is the
+// second tutorial and opens immediately, Trigonometry needs nothing but
+// confidence, Inversion wants a player who reads a bounce, and s-qua — about
+// to become the shape pack — gates last because its closed tracks need
+// Pack III's zero-gravity and rubber. s-exp is hidden and its number is
+// reserved rather than tuned.
 const SPECIAL_UNLOCK_STARS = {
   's-lin': 0,
-  's-qua': 50,
-  's-trig': 100,
-  's-exp': 150,
-  's-flip': 120
+  's-trig': 40,
+  's-flip': 80,
+  's-qua': 120,
+  's-exp': 150
 };
 
 // ─── Level data ──────────────────────────────────────────────

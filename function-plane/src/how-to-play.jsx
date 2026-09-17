@@ -495,6 +495,81 @@ const FP_EXPLAINERS = {
       },
     ],
   },
+  materials: {
+    title: 'Set the bounce',
+    color: '#388c46',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M3 20h18" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
+      <path d="M7 17 Q12 3 17 17" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeDasharray="3 2.5"/>
+      <circle cx={7} cy={14} r={2.6} fill="currentColor"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'A third button on the row',
+        art: (
+          <Art>
+            {/* The row, and the one button this card is about. */}
+            <rect x={22} y={30} width={164} height={36} rx={9}
+              fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
+            <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
+            <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#fff">1</text>
+            <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=−0.1x−2</text>
+            <g transform="translate(163,48)" stroke="#388c46" strokeWidth={1.6} strokeLinecap="round" fill="none">
+              <path d="M-7 5.5H7"/>
+              <path d="M-4 2 Q0 -6 4 2" strokeWidth={1.2} strokeDasharray="2 1.5"/>
+              <circle cx={-4} cy={1} r={2.4} fill="#388c46" stroke="none"/>
+              {/* One ring, expanding and gone — the same beat the domain card uses. */}
+              <circle r={10} strokeWidth={1.4}>
+                <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
+                  values="9;19;19" keyTimes={holdTimes}/>
+                <animate attributeName="stroke-opacity" dur="2.6s" repeatCount="indefinite"
+                  values="0.75;0;0" keyTimes={holdTimes}/>
+              </circle>
+            </g>
+          </Art>
+        ),
+        body: <>
+          On this level every equation carries a <strong>bounce</strong> button. Tap it to cycle
+          the curve through three states: normal, none, and perfect.
+        </>,
+      },
+      {
+        heading: 'Perfect keeps everything',
+        art: (
+          <Art>
+            {/* Drawn dashed, the way a perfectly elastic curve is drawn in the
+                game — and every hop comes back to the same height. */}
+            <path d="M12 74H196" fill="none" stroke={CURVE_C} strokeWidth={2.4}
+              strokeLinecap="round" strokeDasharray="7 4"/>
+            <ArtBall dur={3.6} path="M24,20 C 24,50 40,67 48,67 C 56,67 72,50 72,20 C 72,50 88,67 96,67 C 104,67 120,50 120,20 C 120,50 136,67 144,67 C 152,67 168,50 168,20"/>
+            <line x1={12} y1={20} x2={196} y2={20} stroke="var(--fp-ink)" strokeOpacity={0.18}
+              strokeWidth={1.2} strokeDasharray="4 4"/>
+          </Art>
+        ),
+        body: <>
+          A curve set to perfect returns the ball at exactly the speed it arrived with, forever.
+          Every hop reaches the same height as the one before it.
+        </>,
+      },
+      {
+        heading: 'None lands and rolls',
+        art: (
+          <Art>
+            {/* Drawn heavier, the way a dead curve is drawn — and the ball
+                simply arrives and stays on it. */}
+            <path d="M12 34 L196 76" fill="none" stroke={CURVE_C} strokeWidth={4.4} strokeLinecap="round"/>
+            <ArtBall dur={3.4} path="M40,20 C 40,24 44,27 47,28 L190,61"/>
+          </Art>
+        ),
+        body: <>
+          Set to none, the curve takes the bounce out of the landing altogether — useful under
+          a low ceiling, or anywhere the first bounce is what ruins the run.
+          Neither setting changes what the equation costs.
+        </>,
+      },
+    ],
+  },
 };
 
 // ─── Object tutorials ────────────────────────────────────────

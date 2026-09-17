@@ -61,7 +61,7 @@ simply silent.
 - **Availability.** The game is not on Google Play yet — it is entering closed
   testing. Do not add a "Get it on Google Play" badge, store link, or "download
   now" copy until I send you the listing URL.
-- **Scale.** 70 levels, 210 stars maximum. Do not print a different number.
+- **Scale.** 90 levels, 270 stars maximum. Do not print a different number.
 - **Contact.** `functionplane.support@gmail.com` everywhere, and check no
   address is reversed or mistyped.
 
