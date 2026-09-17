@@ -264,10 +264,12 @@ for (const file of files) {
   console.log(`\n${spec.packId}${spec.modifier ? ` (${spec.modifier})` : ''} — ${path.basename(file)}`);
   console.log('  #  name                 outcome        time   eqs  score/goal  stars');
   for (const level of spec.levels) {
-    // A level authored and playtested by hand carries no `solutions`. Say so and
-    // move on: pretending to verify it would be worse than admitting we didn't.
+    // A level with no `solutions` has no answer to replay — either it was
+    // playtested by hand, or it is geometry authored before anyone solved it.
+    // Say which of those is unknowable from here, so say neither: pretending to
+    // verify it would be worse than admitting we didn't.
     if (!level.solutions || !level.solutions.length) {
-      console.log(`  – ${level.index}. ${(level.name || '').padEnd(20).slice(0, 20)} author-tested, no replay`);
+      console.log(`  – ${level.index}. ${(level.name || '').padEnd(20).slice(0, 20)} no answer recorded, not replayed`);
       report.push({ packId: spec.packId, level, results: [] });
       continue;
     }

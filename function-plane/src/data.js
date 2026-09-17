@@ -17,14 +17,18 @@ const SPECIAL_PACKS = [{
   type: 'special',
   tag: 'mx + b',
   allowedClass: 'linear'
-}, {
+},
+// Geometry is the one themed pack with no class restriction: level n holds
+// n stars in a recognisable figure, so the shape is the clue rather than a
+// rule about what you may write. It keeps the s-qua id because the SQL
+// guard hard-codes the five themed ids.
+{
   id: 's-qua',
-  numeral: 'ƒ',
-  name: 'Quadratic',
+  numeral: '△',
+  name: 'Geometry',
   kind: 'qua',
   type: 'special',
-  tag: 'ax² + bx + c',
-  allowedClass: 'quadratic'
+  tag: 'n stars, one shape'
 }, {
   id: 's-trig',
   numeral: 'ƒ',

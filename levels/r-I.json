@@ -153,7 +153,7 @@
     {
       "materials": false,
       "preplaced": [],
-      "explain": "hazards",
+      "explain": null,
       "objects": [
         {
           "kind": "hazard",

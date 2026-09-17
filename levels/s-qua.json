@@ -1,0 +1,397 @@
+{
+  "packId": "s-qua",
+  "name": "Geometry",
+  "notes": "Shapes only. Level n holds n stars arranged in a recognisable figure, so the picture tells you the equation. Every level here carries NO objects and NO solutions on purpose: the geometry is authored, and the answers, the goals and the machinery each level needs are still open. Coordinates are snapped to the quarter unit the studio snaps to; the regular shapes sit on a circumcircle of radius 4 (the star on 4.5 and 1.75), and no vertex is more than a quarter unit off it against a 0.77 star hitbox. Score and equation goals are written from the shape’s own equation and are the first thing to re-tune once the answers exist. A closed shape cannot be entered from outside, so every ring level spawns the ball inside it, off the vertical axis so it does not balance.",
+  "levels": [
+    {
+      "index": 0,
+      "name": "One",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "One star, so the shape is a point and the answer is whatever line reaches it. The pack opens by saying what it is: the stars are the picture, and the picture is the equation."
+    },
+    {
+      "index": 1,
+      "name": "Two",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 2
+        },
+        {
+          "x": 3,
+          "y": -1
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Two stars are a line, and a line is one equation. Goal 30 is a sloped line; a level line would be 20 but cannot move the ball on its own."
+    },
+    {
+      "index": 2,
+      "name": "Triangle",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": -4
+        },
+        {
+          "x": -3.5,
+          "y": 2
+        },
+        {
+          "x": 3.5,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "A 60-60-60 triangle, point down, on a circle of radius 4. Its three vertices sit exactly on one parabola (y = 0.49x² − 4), which is why this one is point down and why the goal is a single quadratic. Plain gravity, no billiard."
+    },
+    {
+      "index": 3,
+      "name": "Square",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -5,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": -3
+        },
+        {
+          "x": -3,
+          "y": -3
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Four corners. They lie on one circle (x² + y² = 18), but a ball under plain gravity settles at the bottom of a closed curve rather than lapping it — measured at 4/8 on a square billiard — so the goal assumes two curves: something to catch the lower pair and something for the upper. Retune it to 40/1 if one curve turns out to do it."
+    },
+    {
+      "index": 4,
+      "name": "Pentagon",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -1.25,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 4
+        },
+        {
+          "x": 3.75,
+          "y": 1.25
+        },
+        {
+          "x": 2.25,
+          "y": -3.25
+        },
+        {
+          "x": -2.25,
+          "y": -3.25
+        },
+        {
+          "x": -3.75,
+          "y": 1.25
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "From here the shapes are regular and their vertices are all one circumcircle of radius 4, so the intended answer is x² + y² = 16 — one quadratic, 40. The spawn is inside the ring, which is where a lapping run has to start: a closed curve cannot be entered from outside."
+    },
+    {
+      "index": 5,
+      "name": "Cube",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -1.25,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 4
+        },
+        {
+          "x": 3.5,
+          "y": 2
+        },
+        {
+          "x": 3.5,
+          "y": -2
+        },
+        {
+          "x": 0,
+          "y": -4
+        },
+        {
+          "x": -3.5,
+          "y": -2
+        },
+        {
+          "x": -3.5,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Six stars: the silhouette of a cube stood on a corner, which is a regular hexagon with two vertical sides. Same circumcircle of radius 4 as the pentagon, so the same single equation — the shape changes, the answer does not, which is the joke."
+    },
+    {
+      "index": 6,
+      "name": "Heptagon",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -1.25,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 4
+        },
+        {
+          "x": 3.25,
+          "y": 2.5
+        },
+        {
+          "x": 4,
+          "y": -1
+        },
+        {
+          "x": 1.75,
+          "y": -3.5
+        },
+        {
+          "x": -1.75,
+          "y": -3.5
+        },
+        {
+          "x": -4,
+          "y": -1
+        },
+        {
+          "x": -3.25,
+          "y": 2.5
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Seven, the first shape with no tidy coordinates at all. Every vertex is still within a quarter of a unit of the radius-4 circle, and the star hitbox is 0.77, so the circle still fits them comfortably."
+    },
+    {
+      "index": 7,
+      "name": "Three in a row",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -6.5,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -4.5,
+          "y": 1.5
+        },
+        {
+          "x": -1.5,
+          "y": 1.5
+        },
+        {
+          "x": 1.5,
+          "y": 1.5
+        },
+        {
+          "x": 4.5,
+          "y": 1.5
+        },
+        {
+          "x": 4.5,
+          "y": -1.5
+        },
+        {
+          "x": 1.5,
+          "y": -1.5
+        },
+        {
+          "x": -1.5,
+          "y": -1.5
+        },
+        {
+          "x": -4.5,
+          "y": -1.5
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Eight stars as three squares of side 3 sharing their edges — a 2 × 4 grid. The shape breaks the run of circles: two horizontal rows, so two equations. Goal 60 is two sloped lines; two constants would be 40, since a constant costs nothing, and that is the level’s real prize if a flat track can be made to carry the ball."
+    },
+    {
+      "index": 8,
+      "name": "Nine",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": -1.25,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 4
+        },
+        {
+          "x": 2.5,
+          "y": 3
+        },
+        {
+          "x": 4,
+          "y": 0.75
+        },
+        {
+          "x": 3.5,
+          "y": -2
+        },
+        {
+          "x": 1.25,
+          "y": -3.75
+        },
+        {
+          "x": -1.25,
+          "y": -3.75
+        },
+        {
+          "x": -3.5,
+          "y": -2
+        },
+        {
+          "x": -4,
+          "y": 0.75
+        },
+        {
+          "x": -2.5,
+          "y": 3
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Nine evenly around the radius-4 circle — the pack’s cleanest statement of its own rule. One equation, and the only question is how to keep the ball going round."
+    },
+    {
+      "index": 9,
+      "name": "The star",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "objects": [],
+      "ball": {
+        "x": 1.75,
+        "y": 2.75
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": 4.5
+        },
+        {
+          "x": 4.25,
+          "y": 1.5
+        },
+        {
+          "x": 2.75,
+          "y": -3.75
+        },
+        {
+          "x": -2.75,
+          "y": -3.75
+        },
+        {
+          "x": -4.25,
+          "y": 1.5
+        },
+        {
+          "x": 1,
+          "y": 1.5
+        },
+        {
+          "x": 1.75,
+          "y": -0.5
+        },
+        {
+          "x": 0,
+          "y": -1.75
+        },
+        {
+          "x": -1.75,
+          "y": -0.5
+        },
+        {
+          "x": -1,
+          "y": 1.5
+        }
+      ],
+      "scoreGoal": 80,
+      "eqGoal": 2,
+      "intent": "Ten: the five outer points and five inner corners of a five-pointed star. They sit on two concentric circles, radius 4.5 and radius 1.75 — the pentagram ratio — so the goal is two quadratics, 80. The spawn sits between the two rings."
+    }
+  ]
+}

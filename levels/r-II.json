@@ -6,7 +6,7 @@
     {
       "materials": false,
       "preplaced": [],
-      "explain": "fans",
+      "explain": null,
       "objects": [
         {
           "kind": "fan",

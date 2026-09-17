@@ -16,7 +16,11 @@ const ROMAN_PACKS = ROMAN.map((r, i) => ({
 
 const SPECIAL_PACKS = [
   { id: 's-lin',  numeral: 'ƒ', name: 'Linear',       kind: 'lin',  type: 'special', tag: 'mx + b',         allowedClass: 'linear' },
-  { id: 's-qua',  numeral: 'ƒ', name: 'Quadratic',    kind: 'qua',  type: 'special', tag: 'ax² + bx + c',   allowedClass: 'quadratic' },
+  // Geometry is the one themed pack with no class restriction: level n holds
+  // n stars in a recognisable figure, so the shape is the clue rather than a
+  // rule about what you may write. It keeps the s-qua id because the SQL
+  // guard hard-codes the five themed ids.
+  { id: 's-qua',  numeral: '△', name: 'Geometry',     kind: 'qua',  type: 'special', tag: 'n stars, one shape' },
   { id: 's-trig', numeral: 'ƒ', name: 'Trigonometry', kind: 'trig', type: 'special', tag: 'sin · cos · tan', allowedClass: 'trig' },
   { id: 's-exp',  numeral: 'ƒ', name: 'Exponential',  kind: 'exp',  type: 'special', tag: 'aᵇˣ · log',      allowedClass: 'exp' },
   // modifier: a rule the whole pack plays under. 'gravityFlip' turns gravity
