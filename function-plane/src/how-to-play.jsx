@@ -375,6 +375,68 @@ function Advanced() {
   );
 }
 
+function HTPCard({ color, icon, title, children, last }) {
+  return (
+    <div style={{
+      background: 'var(--fp-surface)',
+      border: '1px solid var(--fp-line)',
+      borderRadius: 18, overflow: 'hidden',
+      marginBottom: last ? 0 : 12,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px 12px',
+        borderBottom: '1px solid var(--fp-line)',
+      }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flex: '0 0 36px',
+          background: color + '18',
+          color: color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</div>
+        <div style={{
+          fontSize: 14, fontWeight: 600, color: 'var(--fp-ink)',
+          letterSpacing: '-0.01em',
+        }}>{title}</div>
+      </div>
+      <div style={{
+        padding: '12px 16px',
+        fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.65,
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CodeLine({ children }) {
+  return (
+    <div className="fp-mono" style={{
+      fontSize: 12.5, color: 'var(--fp-ink-2)',
+      background: 'var(--fp-surface-2)', border: '1px solid var(--fp-line)',
+      borderRadius: 7, padding: '5px 10px', marginBottom: 4,
+      display: 'inline-block', width: '100%', boxSizing: 'border-box',
+    }}>{children}</div>
+  );
+}
+
+// The aside beside a worked example — what it comes out as, not part of it.
+function Note({ children }) {
+  return <span style={{ marginLeft: 10, color: 'var(--fp-ink-4)' }}>{children}</span>;
+}
+
+// One star, one condition. It used to draw 3/2/1 for a ladder the game no
+// longer uses: the three are independent bits, so a run that beats the
+// equation goal and misses the score goal lights the first and the third.
+function RatingRow({ children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
+      <Stars count={1} total={1} size={9} c="var(--lv-star)" empty="var(--fp-ink-4)"/>
+      <span style={{ fontSize: 12, color: 'var(--fp-ink-2)', lineHeight: 1.4 }}>{children}</span>
+    </div>
+  );
+}
+
 // ─── Tutorial art ────────────────────────────────────────────
 // Little animated diagrams for the popups below. SMIL, like the wind streaks
 // on a real fan, so a page costs no state and no timers — and, like them, the
