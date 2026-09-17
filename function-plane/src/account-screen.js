@@ -457,7 +457,7 @@ function SignedInView({
     onConfirm: doSignOut
   }), deleteOpen && /*#__PURE__*/React.createElement(ConfirmPopup, {
     title: "Delete account permanently?",
-    body: "This removes your profile, all gameplay progress, and your leaderboard entries. This cannot be undone.",
+    body: "This removes your profile, all gameplay progress, and your leaderboard entries \u2014 including the equations you submitted with them. This cannot be undone.",
     confirmLabel: "Delete account",
     danger: true,
     busy: busy,

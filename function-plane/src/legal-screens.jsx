@@ -15,14 +15,19 @@ const LEGAL_PUBLISHER  = 'Nikolay Yaremko';
 const LEGAL_JURIS      = 'the Netherlands';
 const LEGAL_EMAIL      = 'functionplane.support@gmail.com';
 const LEGAL_WEBSITE    = 'https://functionplane.pages.dev';         // public site (privacy/terms hosted here)
-const LEGAL_EFFECTIVE  = '4 May 2026';
+// The two documents were corrected at different times and carry their own
+// dates. They must match the hosted copies in `legal/` exactly: Google reads
+// the published policy against the Play Data safety declaration, and a player
+// reading a different one in the app is the same document saying two things.
+const PRIVACY_EFFECTIVE = '28 August 2026';
+const TERMS_EFFECTIVE   = '4 May 2026';
 const APP_NAME         = 'Function Plane';
 
 // ── Privacy Policy ────────────────────────────────────────────────────────
 
 const PRIVACY_TEXT = `# Privacy Policy
 
-**Effective date:** ${LEGAL_EFFECTIVE}
+**Effective date:** ${PRIVACY_EFFECTIVE}
 
 This Privacy Policy describes how ${LEGAL_PUBLISHER} ("we", "us") collects, uses,
 and shares information about you when you use the ${APP_NAME} mobile application
@@ -34,14 +39,16 @@ and related services (the "Service").
 display name, email address, and password. Passwords are never stored in
 plaintext — they are salted and hashed by our authentication provider.
 
-**Gameplay data.** We store your level progress (stars earned, best score, best
-time per level) so it can sync between your devices and appear on global
-leaderboards.
+**Gameplay data.** We store your level progress — the stars earned, best score
+and best time for each level, and the equations you submitted for it — so it
+can sync between your devices and appear on global leaderboards.
 
-**Device information.** Standard technical information your browser or app
-sends automatically, such as approximate region, language, operating system,
-and version. We do not collect your precise location, contacts, photos, or
-microphone input.
+**Technical data.** The app collects no device identifiers and no location of
+any kind, and it requests no location, contacts, photo, microphone, or storage
+permission. As with any internet service, our hosting provider records the IP
+address and basic request details of each connection in its server logs; those
+logs exist to keep the Service running and to prevent abuse, and we do not use
+them to profile you or to work out where you are.
 
 **No advertising identifiers.** We do not collect Google Advertising ID or
 serve advertisements.
@@ -130,7 +137,7 @@ ${LEGAL_WEBSITE}
 
 const TERMS_TEXT = `# Terms of Service
 
-**Effective date:** ${LEGAL_EFFECTIVE}
+**Effective date:** ${TERMS_EFFECTIVE}
 
 By using ${APP_NAME} (the "Service") you agree to these Terms of Service. If
 you do not agree, please do not use the Service.

@@ -188,7 +188,7 @@ function SignedInView({ account, progress, onBack, padX, onPremium, onAdmin }) {
       {deleteOpen && (
         <ConfirmPopup
           title="Delete account permanently?"
-          body="This removes your profile, all gameplay progress, and your leaderboard entries. This cannot be undone."
+          body="This removes your profile, all gameplay progress, and your leaderboard entries — including the equations you submitted with them. This cannot be undone."
           confirmLabel="Delete account"
           danger={true}
           busy={busy}

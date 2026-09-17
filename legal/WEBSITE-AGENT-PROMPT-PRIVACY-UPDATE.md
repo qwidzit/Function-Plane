@@ -1,4 +1,4 @@
-# Handoff prompt — resync the website before the Play submission
+# Handoff prompt — resync the website
 
 Copy the text below to the agent working on the **website repo** (the one that
 deploys `functionplane.pages.dev`), and attach the current `privacy.html` and
@@ -8,8 +8,15 @@ Context for you, not for that agent: the old policy claimed the app collects
 "approximate region, language, operating system, and version", which nothing in
 the app does, and it never mentioned that submitted equations are uploaded with
 a score. Google cross-checks the published privacy policy against the Play Data
-safety declaration, and that declaration is now filed, so the live pages have to
-match it before the first release is reviewed.
+safety declaration, and that declaration is filed, so the live pages have to
+match it. Build 1 is already in review on closed testing, which does not make
+this less urgent — the policy is read again on every release, and it is the
+document a player is shown when they ask what the game collects. The in-app
+copies in `function-plane/src/legal-screens.jsx` now match these files
+exactly; the live site is the only place still serving the old text.
+
+The level count below is what ships today: seven visible packs of ten. Send a
+new number only when Trigonometry and Inversion are unhidden.
 
 ---
 
@@ -61,7 +68,7 @@ simply silent.
 - **Availability.** The game is not on Google Play yet — it is entering closed
   testing. Do not add a "Get it on Google Play" badge, store link, or "download
   now" copy until I send you the listing URL.
-- **Scale.** 90 levels, 270 stars maximum. Do not print a different number.
+- **Scale.** 70 levels, 210 stars maximum. Do not print a different number.
 - **Contact.** `functionplane.support@gmail.com` everywhere, and check no
   address is reversed or mistyped.
 

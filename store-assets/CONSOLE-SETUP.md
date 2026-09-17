@@ -42,7 +42,7 @@ for review at all. Filed as:
 |---|---|
 | Name | `Optional account sign-in` |
 | Username / password | a throwaway account made through the app's own sign-up |
-| Other instructions | An account is optional. All 90 levels, the sandbox and settings work signed out — tap the account chip at the top right of the main screen to sign in and see cross-device sync and the leaderboards. |
+| Other instructions | An account is optional. All 70 levels, the sandbox and settings work signed out — tap the account chip at the top right of the main screen to sign in and see cross-device sync and the leaderboards. |
 
 Never hand over the `Test Account` credentials: that display name is the admin
 gate in both the client and the Supabase policies. Keep the reviewer account
