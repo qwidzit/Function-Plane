@@ -782,8 +782,10 @@ const FP_EXPLAINERS = {
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A restricted curve scores exactly what the full one does. When one shaped track can be cut into the two you need, that is one equation instead of two.")
     }]
   },
-  materials: {
-    title: 'Set the bounce',
+  // Two cards, not one: a level teaches rubber or steel, never both at once,
+  // and the button page belongs with the first of them a player meets.
+  rubber: {
+    title: 'Rubber',
     color: '#388c46',
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -838,25 +840,30 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "var(--fp-ink-2)"
       }, "y=\u22120.1x\u22122"), /*#__PURE__*/React.createElement("g", {
-        transform: "translate(163,48)",
-        stroke: "#388c46",
-        strokeWidth: 1.6,
-        strokeLinecap: "round",
+        transform: "translate(155,40) scale(1.05)",
         fill: "none"
       }, /*#__PURE__*/React.createElement("path", {
-        d: "M-7 5.5H7"
+        d: "M1.5 13.5H14.5",
+        stroke: "#388c46",
+        strokeWidth: 1.6,
+        strokeLinecap: "round"
       }), /*#__PURE__*/React.createElement("path", {
-        d: "M-4 2 Q0 -6 4 2",
-        strokeWidth: 1.2,
+        d: "M4 13 Q8 -1 12 13",
+        stroke: "#388c46",
+        strokeWidth: 1.3,
+        strokeLinecap: "round",
         strokeDasharray: "2 1.5"
       }), /*#__PURE__*/React.createElement("circle", {
-        cx: -4,
-        cy: 1,
+        cx: 4,
+        cy: 10.5,
         r: 2.4,
-        fill: "#388c46",
-        stroke: "none"
-      }), /*#__PURE__*/React.createElement("circle", {
+        fill: "#388c46"
+      })), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(163,48)",
+        fill: "none"
+      }, /*#__PURE__*/React.createElement("circle", {
         r: 10,
+        stroke: "#388c46",
         strokeWidth: 1.4
       }, /*#__PURE__*/React.createElement("animate", {
         attributeName: "r",
@@ -871,11 +878,20 @@ const FP_EXPLAINERS = {
         values: "0.75;0;0",
         keyTimes: holdTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "On this level every equation carries a ", /*#__PURE__*/React.createElement("strong", null, "bounce"), " button. Tap it to cycle the curve through three states: normal, none, and perfect.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "On this level every equation carries a ", /*#__PURE__*/React.createElement("strong", null, "bounce"), " button. It cycles the curve through three states: normal, ", /*#__PURE__*/React.createElement("strong", null, "steel"), ", and ", /*#__PURE__*/React.createElement("strong", null, "rubber"), ".")
     }, {
-      heading: 'Perfect keeps everything',
-      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M12 74H196",
+      heading: 'Rubber keeps everything',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("line", {
+        x1: 10,
+        y1: 22,
+        x2: 198,
+        y2: 22,
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.18,
+        strokeWidth: 1.2,
+        strokeDasharray: "4 4"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M10 74H198",
         fill: "none",
         stroke: CURVE_C,
         strokeWidth: 2.4,
@@ -883,31 +899,124 @@ const FP_EXPLAINERS = {
         strokeDasharray: "7 4"
       }), /*#__PURE__*/React.createElement(ArtBall, {
         dur: 3.6,
-        path: "M24,20 C 24,50 40,67 48,67 C 56,67 72,50 72,20 C 72,50 88,67 96,67 C 104,67 120,50 120,20 C 120,50 136,67 144,67 C 152,67 168,50 168,20"
-      }), /*#__PURE__*/React.createElement("line", {
-        x1: 12,
-        y1: 20,
-        x2: 196,
-        y2: 20,
-        stroke: "var(--fp-ink)",
-        strokeOpacity: 0.18,
-        strokeWidth: 1.2,
-        strokeDasharray: "4 4"
+        path: "M28,22 C38.7,22 49.3,37 60,67 C70.7,37 81.3,22 92,22 C102.7,22 113.3,37 124,67 C134.7,37 145.3,22 156,22 C166.7,22 177.3,37 188,67"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A curve set to perfect returns the ball at exactly the speed it arrived with, forever. Every hop reaches the same height as the one before it.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A rubber curve returns the ball at exactly the speed it arrived with. Every hop reaches the height of the one before it, and it never runs down.")
     }, {
-      heading: 'None lands and rolls',
+      heading: 'It is free',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
-        d: "M12 34 L196 76",
+        d: "M16 40H96",
+        fill: "none",
+        stroke: CURVE_C,
+        strokeWidth: 2.4,
+        strokeLinecap: "round"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M112 40H192",
+        fill: "none",
+        stroke: CURVE_C,
+        strokeWidth: 2.4,
+        strokeLinecap: "round",
+        strokeDasharray: "7 4"
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 56,
+        y: 70,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "30"), /*#__PURE__*/React.createElement("text", {
+        x: 152,
+        y: 70,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "30")),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The bounce is a property of the curve, not another equation. A rubber line scores exactly what the same plain line scores.")
+    }]
+  },
+  steel: {
+    title: 'Steel',
+    color: '#5b6670',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M3 20h18",
+      stroke: "currentColor",
+      strokeWidth: 2.6,
+      strokeLinecap: "round"
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: 8,
+      cy: 16,
+      r: 2.6,
+      fill: "currentColor"
+    })),
+    pages: [{
+      heading: 'Steel does not bounce',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
+        d: "M12 26 L196 76",
         fill: "none",
         stroke: CURVE_C,
         strokeWidth: 4.4,
         strokeLinecap: "round"
       }), /*#__PURE__*/React.createElement(ArtBall, {
         dur: 3.4,
-        path: "M40,20 C 40,24 44,27 47,28 L190,61"
+        path: "M60,10 L60,32 L196,69"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Set to none, the curve takes the bounce out of the landing altogether \u2014 useful under a low ceiling, or anywhere the first bounce is what ruins the run. Neither setting changes what the equation costs.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The ball lands on a steel curve and rolls along it. It keeps the speed it had", /*#__PURE__*/React.createElement("em", null, " along"), " the curve and loses the part that would have thrown it back up.")
+    }, {
+      heading: 'Which is how you get under things',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
+        x: 30,
+        y: 8,
+        width: 166,
+        height: 16,
+        rx: 3,
+        fill: HAZ_C,
+        fillOpacity: 0.09,
+        stroke: HAZ_C,
+        strokeWidth: 1.4,
+        strokeDasharray: "5 3"
+      }), [0, 1, 2, 3, 4, 5].map(k => /*#__PURE__*/React.createElement("line", {
+        key: k,
+        x1: 36 + k * 28,
+        y1: 22,
+        x2: 44 + k * 28,
+        y2: 10,
+        stroke: HAZ_C,
+        strokeWidth: 1.2,
+        opacity: 0.45
+      })), /*#__PURE__*/React.createElement("path", {
+        d: "M8 40 L196 80",
+        fill: "none",
+        stroke: CURVE_C,
+        strokeWidth: 4.4,
+        strokeLinecap: "round"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M16,35 C 21,28 27,25 33,29",
+        fill: "none",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.22,
+        strokeWidth: 1.4,
+        strokeDasharray: "3 3"
+      }), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(26,25)",
+        stroke: HAZ_C,
+        strokeWidth: 1.8,
+        strokeLinecap: "round"
+      }, /*#__PURE__*/React.createElement("path", {
+        d: "M-5 -5L5 5M5 -5L-5 5",
+        opacity: 0.6
+      })), /*#__PURE__*/React.createElement(ArtBall, {
+        dur: 3.4,
+        path: "M16,8 L16,35 L196,73"
+      })),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A normal curve throws the ball up off the landing, and there is not always room for that. Steel takes the first bounce out of the run entirely.")
     }]
   }
 };
@@ -1190,7 +1299,7 @@ const FP_OBJECT_TUTORIALS = {
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "Its speed and direction stay exactly as they were on the way in \u2014 a curve straight through the box, and the fall picked up again on the way out.")
     }, {
-      heading: 'Weightless, not upward',
+      heading: 'It cannot start the ball',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
         x: 56,
         y: 22,
@@ -1202,26 +1311,20 @@ const FP_OBJECT_TUTORIALS = {
         stroke: ZG_C,
         strokeWidth: 1.4,
         strokeDasharray: "5 4"
-      }), /*#__PURE__*/React.createElement("g", {
-        transform: "translate(104,49)",
-        stroke: ZG_C,
-        strokeWidth: 2,
-        strokeLinecap: "round",
-        fill: "none"
-      }, /*#__PURE__*/React.createElement("path", {
-        d: "M-11 -14 L11 14M11 -14L-11 14",
-        opacity: 0.35
       }), /*#__PURE__*/React.createElement("path", {
-        d: "M0 -20 L0 20",
-        opacity: 0
-      })), /*#__PURE__*/React.createElement("text", {
-        x: 104,
-        y: 88,
-        textAnchor: "middle",
-        fontSize: 10,
-        fill: "var(--fp-ink-4)"
-      }, "no arrows: there is no direction")),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "It will not lift the ball, and two overlapping boxes do not cancel back to normal. A ball that enters with nothing left simply drifts to a stop and stays there.")
+        d: "M104 49 C 104 64, 108 78, 118 92",
+        fill: "none",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.24,
+        strokeWidth: 1.4,
+        strokeDasharray: "3 3"
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 104,
+        cy: 49,
+        r: 7,
+        fill: "var(--fp-ink)"
+      })),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "It will not lift the ball, and two overlapping boxes do not cancel back to normal. A ball with no speed of its own does not start moving inside one \u2014 it sits exactly where it is until something outside the box gives it a push.")
     }]
   },
   well: {

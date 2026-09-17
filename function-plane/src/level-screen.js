@@ -2220,10 +2220,13 @@ const MAT_NEXT = {
   dead: 'rubber',
   rubber: null
 };
+// The three states have names, because the hints and the explainer cards use
+// them: `dead` is steel and `rubber` is rubber. The stored values stay as they
+// are — run history and every saved level are written in terms of them.
 const MAT_TITLE = {
   none: 'Bounce: normal',
-  dead: 'Bounce: none — the ball lands and rolls',
-  rubber: 'Bounce: perfect — the ball keeps all its speed'
+  dead: 'Steel — the ball lands and rolls',
+  rubber: 'Rubber — the ball keeps all its speed'
 };
 function MaterialIcon({
   m
@@ -3213,7 +3216,7 @@ function EquationsPanel({
     }
   }, "Bounce is adjustable here \u2014 tap a curve's ", /*#__PURE__*/React.createElement(MaterialIcon, {
     m: null
-  }), " to make it dead or perfectly elastic."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
+  }), " to make it steel or rubber."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
       flex: '1 1 auto',

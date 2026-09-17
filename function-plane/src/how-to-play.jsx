@@ -495,8 +495,10 @@ const FP_EXPLAINERS = {
       },
     ],
   },
-  materials: {
-    title: 'Set the bounce',
+  // Two cards, not one: a level teaches rubber or steel, never both at once,
+  // and the button page belongs with the first of them a player meets.
+  rubber: {
+    title: 'Rubber',
     color: '#388c46',
     icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <path d="M3 20h18" stroke="currentColor" strokeWidth={2} strokeLinecap="round"/>
@@ -508,19 +510,23 @@ const FP_EXPLAINERS = {
         heading: 'A third button on the row',
         art: (
           <Art>
-            {/* The row, and the one button this card is about. */}
+            {/* The row, and the one button this card is about. The button face
+                is MaterialIcon's own geometry so the drawing and the control
+                cannot drift apart. */}
             <rect x={22} y={30} width={164} height={36} rx={9}
               fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
             <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
             <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
               fontFamily="ui-monospace,monospace" fill="#fff">1</text>
             <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=−0.1x−2</text>
-            <g transform="translate(163,48)" stroke="#388c46" strokeWidth={1.6} strokeLinecap="round" fill="none">
-              <path d="M-7 5.5H7"/>
-              <path d="M-4 2 Q0 -6 4 2" strokeWidth={1.2} strokeDasharray="2 1.5"/>
-              <circle cx={-4} cy={1} r={2.4} fill="#388c46" stroke="none"/>
-              {/* One ring, expanding and gone — the same beat the domain card uses. */}
-              <circle r={10} strokeWidth={1.4}>
+            <g transform="translate(155,40) scale(1.05)" fill="none">
+              <path d="M1.5 13.5H14.5" stroke="#388c46" strokeWidth={1.6} strokeLinecap="round"/>
+              <path d="M4 13 Q8 -1 12 13" stroke="#388c46" strokeWidth={1.3} strokeLinecap="round" strokeDasharray="2 1.5"/>
+              <circle cx={4} cy={10.5} r={2.4} fill="#388c46"/>
+            </g>
+            <g transform="translate(163,48)" fill="none">
+              {/* One ring, expanding and gone — the beat the domain card uses. */}
+              <circle r={10} stroke="#388c46" strokeWidth={1.4}>
                 <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
                   values="9;19;19" keyTimes={holdTimes}/>
                 <animate attributeName="stroke-opacity" dur="2.6s" repeatCount="indefinite"
@@ -530,42 +536,102 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          On this level every equation carries a <strong>bounce</strong> button. Tap it to cycle
-          the curve through three states: normal, none, and perfect.
+          On this level every equation carries a <strong>bounce</strong> button. It cycles the
+          curve through three states: normal, <strong>steel</strong>, and <strong>rubber</strong>.
         </>,
       },
       {
-        heading: 'Perfect keeps everything',
+        heading: 'Rubber keeps everything',
         art: (
           <Art>
-            {/* Drawn dashed, the way a perfectly elastic curve is drawn in the
-                game — and every hop comes back to the same height. */}
-            <path d="M12 74H196" fill="none" stroke={CURVE_C} strokeWidth={2.4}
-              strokeLinecap="round" strokeDasharray="7 4"/>
-            <ArtBall dur={3.6} path="M24,20 C 24,50 40,67 48,67 C 56,67 72,50 72,20 C 72,50 88,67 96,67 C 104,67 120,50 120,20 C 120,50 136,67 144,67 C 152,67 168,50 168,20"/>
-            <line x1={12} y1={20} x2={196} y2={20} stroke="var(--fp-ink)" strokeOpacity={0.18}
+            {/* Dashed, the way a rubber curve is drawn on the plane. Each arc is
+                the exact cubic form of a parabola, so the hops are the shape a
+                bounce really makes — and every apex returns to the same line. */}
+            <line x1={10} y1={22} x2={198} y2={22} stroke="var(--fp-ink)" strokeOpacity={0.18}
               strokeWidth={1.2} strokeDasharray="4 4"/>
+            <path d="M10 74H198" fill="none" stroke={CURVE_C} strokeWidth={2.4}
+              strokeLinecap="round" strokeDasharray="7 4"/>
+            <ArtBall dur={3.6} path="M28,22 C38.7,22 49.3,37 60,67 C70.7,37 81.3,22 92,22 C102.7,22 113.3,37 124,67 C134.7,37 145.3,22 156,22 C166.7,22 177.3,37 188,67"/>
           </Art>
         ),
         body: <>
-          A curve set to perfect returns the ball at exactly the speed it arrived with, forever.
-          Every hop reaches the same height as the one before it.
+          A rubber curve returns the ball at exactly the speed it arrived with. Every hop
+          reaches the height of the one before it, and it never runs down.
         </>,
       },
       {
-        heading: 'None lands and rolls',
+        heading: 'It is free',
         art: (
           <Art>
-            {/* Drawn heavier, the way a dead curve is drawn — and the ball
-                simply arrives and stays on it. */}
-            <path d="M12 34 L196 76" fill="none" stroke={CURVE_C} strokeWidth={4.4} strokeLinecap="round"/>
-            <ArtBall dur={3.4} path="M40,20 C 40,24 44,27 47,28 L190,61"/>
+            {/* The same curve twice, plain and rubber, priced the same. */}
+            <path d="M16 40H96" fill="none" stroke={CURVE_C} strokeWidth={2.4} strokeLinecap="round"/>
+            <path d="M112 40H192" fill="none" stroke={CURVE_C} strokeWidth={2.4}
+              strokeLinecap="round" strokeDasharray="7 4"/>
+            <text x={56} y={70} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">30</text>
+            <text x={152} y={70} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">30</text>
           </Art>
         ),
         body: <>
-          Set to none, the curve takes the bounce out of the landing altogether — useful under
-          a low ceiling, or anywhere the first bounce is what ruins the run.
-          Neither setting changes what the equation costs.
+          The bounce is a property of the curve, not another equation. A rubber line scores
+          exactly what the same plain line scores.
+        </>,
+      },
+    ],
+  },
+  steel: {
+    title: 'Steel',
+    color: '#5b6670',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M3 20h18" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round"/>
+      <circle cx={8} cy={16} r={2.6} fill="currentColor"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'Steel does not bounce',
+        art: (
+          <Art>
+            {/* Drawn heavier, the way a steel curve is drawn on the plane. The
+                ball falls, meets it, and turns the corner without leaving it —
+                the normal part of its speed is gone, the part along the curve
+                is not. */}
+            <path d="M12 26 L196 76" fill="none" stroke={CURVE_C} strokeWidth={4.4} strokeLinecap="round"/>
+            <ArtBall dur={3.4} path="M60,10 L60,32 L196,69"/>
+          </Art>
+        ),
+        body: <>
+          The ball lands on a steel curve and rolls along it. It keeps the speed it had
+          <em> along</em> the curve and loses the part that would have thrown it back up.
+        </>,
+      },
+      {
+        heading: 'Which is how you get under things',
+        art: (
+          <Art>
+            {/* The lid, and the two answers to it: the bounce that meets it, and
+                the roll that does not. */}
+            <rect x={30} y={8} width={166} height={16} rx={3} fill={HAZ_C} fillOpacity={0.09}
+              stroke={HAZ_C} strokeWidth={1.4} strokeDasharray="5 3"/>
+            {[0, 1, 2, 3, 4, 5].map(k => (
+              <line key={k} x1={36 + k * 28} y1={22} x2={44 + k * 28} y2={10}
+                stroke={HAZ_C} strokeWidth={1.2} opacity={0.45}/>
+            ))}
+            <path d="M8 40 L196 80" fill="none" stroke={CURVE_C} strokeWidth={4.4} strokeLinecap="round"/>
+            {/* What a normal bounce would do instead, ghosted, and where it ends.
+                The ball itself drops clear of the lid — it starts to the left of
+                where the lid begins. */}
+            <path d="M16,35 C 21,28 27,25 33,29" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.22}
+              strokeWidth={1.4} strokeDasharray="3 3"/>
+            <g transform="translate(26,25)" stroke={HAZ_C} strokeWidth={1.8} strokeLinecap="round">
+              <path d="M-5 -5L5 5M5 -5L-5 5" opacity={0.6}/>
+            </g>
+            <ArtBall dur={3.4} path="M16,8 L16,35 L196,73"/>
+          </Art>
+        ),
+        body: <>
+          A normal curve throws the ball up off the landing, and there is not always room for
+          that. Steel takes the first bounce out of the run entirely.
         </>,
       },
     ],
@@ -742,21 +808,23 @@ const FP_OBJECT_TUTORIALS = {
         </>,
       },
       {
-        heading: 'Weightless, not upward',
+        heading: 'It cannot start the ball',
         art: (
           <Art>
             <rect x={56} y={22} width={96} height={54} rx={6} fill={ZG_C} fillOpacity={0.08}
               stroke={ZG_C} strokeWidth={1.4} strokeDasharray="5 4"/>
-            <g transform="translate(104,49)" stroke={ZG_C} strokeWidth={2} strokeLinecap="round" fill="none">
-              <path d="M-11 -14 L11 14M11 -14L-11 14" opacity={0.35}/>
-              <path d="M0 -20 L0 20" opacity={0}/>
-            </g>
-            <text x={104} y={88} textAnchor="middle" fontSize={10} fill="var(--fp-ink-4)">no arrows: there is no direction</text>
+            {/* Where the fall would have gone, ghosted, and the ball that is
+                not taking it: standing still is the whole behaviour, so the
+                picture holds and nothing moves. */}
+            <path d="M104 49 C 104 64, 108 78, 118 92" fill="none" stroke="var(--fp-ink)"
+              strokeOpacity={0.24} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <circle cx={104} cy={49} r={7} fill="var(--fp-ink)"/>
           </Art>
         ),
         body: <>
           It will not lift the ball, and two overlapping boxes do not cancel back to normal.
-          A ball that enters with nothing left simply drifts to a stop and stays there.
+          A ball with no speed of its own does not start moving inside one — it sits exactly
+          where it is until something outside the box gives it a push.
         </>,
       },
     ],

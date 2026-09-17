@@ -459,7 +459,7 @@ function LevelStudio({
         marginTop: 2,
         lineHeight: 1.4
       }
-    }, "Lets a player make any of their curves dead (no bounce) or perfectly elastic. Off by default.")), /*#__PURE__*/React.createElement("input", {
+    }, "Lets a player make any of their curves steel (no bounce) or rubber (perfectly elastic). Off by default.")), /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: materials,
       onChange: e => setMaterials(e.target.checked),

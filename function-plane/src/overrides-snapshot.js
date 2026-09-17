@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T07:31:40.482Z
+// Generated: 2026-09-17T08:44:36.324Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -20,6 +20,14 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "allowed_class": null,
     "modifier": null,
     "updated_at": "2026-09-16T10:01:32.546051+00:00",
+    "is_hidden": false
+   },
+   {
+    "pack_id": "r-III",
+    "name": "Weightless",
+    "allowed_class": null,
+    "modifier": null,
+    "updated_at": "2026-09-17T08:43:26.097883+00:00",
     "is_hidden": false
    },
    {
@@ -912,6 +920,475 @@ window.FP_OVERRIDES_SNAPSHOT = {
      }
     ],
     "materials": false,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 0,
+    "name": "Weightless",
+    "ball_x": -5,
+    "ball_y": 3,
+    "stars": [
+     {
+      "x": 1,
+      "y": 2
+     },
+     {
+      "x": 2,
+      "y": 5
+     },
+     {
+      "x": 3,
+      "y": 8
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 12,
+      "w": 10,
+      "x": 4,
+      "y": 4,
+      "kind": "zerog"
+     }
+    ],
+    "materials": false,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 1,
+    "name": "Crossing",
+    "ball_x": -8,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 1,
+      "y": 0.5
+     },
+     {
+      "x": 6,
+      "y": 0.5
+     },
+     {
+      "x": 11,
+      "y": 0.5
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 8,
+      "w": 14,
+      "x": 6,
+      "y": 3,
+      "kind": "zerog"
+     },
+     {
+      "h": 2,
+      "w": 14,
+      "x": 6,
+      "y": -2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": false,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 2,
+    "name": "Uprise",
+    "ball_x": -6,
+    "ball_y": 1,
+    "stars": [
+     {
+      "x": 2,
+      "y": 0.5
+     },
+     {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": 5,
+      "y": 2
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 5,
+      "w": 8,
+      "x": 2,
+      "y": 0.5,
+      "kind": "zerog"
+     }
+    ],
+    "materials": false,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 3,
+    "name": "Elastic",
+    "ball_x": -4,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -2,
+      "y": 2
+     },
+     {
+      "x": 2,
+      "y": 4
+     },
+     {
+      "x": 6,
+      "y": 6
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": "rubber",
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 4,
+    "name": "Dead weight",
+    "ball_x": -4,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": 0.5,
+      "y": 0.75
+     },
+     {
+      "x": 3.5,
+      "y": -0.75
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 1,
+      "w": 2,
+      "x": -2,
+      "y": 2.5,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": "steel",
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 5,
+    "name": "Longshot",
+    "ball_x": -5,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 6,
+      "y": 6
+     },
+     {
+      "x": -5,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 10,
+      "w": 10,
+      "x": 2,
+      "y": 2,
+      "kind": "zerog"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 6,
+    "name": "Jumper",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": 1.5,
+      "y": 5
+     },
+     {
+      "x": 4,
+      "y": 3
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 3,
+      "x": -1.5,
+      "y": 1.5,
+      "kind": "zerog"
+     },
+     {
+      "h": 2,
+      "w": 1,
+      "x": 0.5,
+      "y": 2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 7,
+    "name": "Redirection",
+    "ball_x": -2,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 1.25,
+      "y": 4.25
+     },
+     {
+      "x": -1.5,
+      "y": -2.25
+     },
+     {
+      "x": 2,
+      "y": 0.25
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 6,
+      "w": 4,
+      "x": 2,
+      "y": 0,
+      "kind": "zerog"
+     },
+     {
+      "w": 2,
+      "x": 6,
+      "y": 1.5,
+      "len": 6,
+      "kind": "fan",
+      "angle": 180,
+      "strength": 20
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 8,
+    "name": "Ricochet",
+    "ball_x": -6,
+    "ball_y": 3,
+    "stars": [
+     {
+      "x": -3,
+      "y": 1
+     },
+     {
+      "x": 5,
+      "y": -2
+     },
+     {
+      "x": -3,
+      "y": -3
+     },
+     {
+      "x": 1,
+      "y": 5
+     },
+     {
+      "x": 5,
+      "y": 7
+     }
+    ],
+    "score_goal": 90,
+    "eq_goal": 3,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 10,
+      "w": 10,
+      "x": 1,
+      "y": 1,
+      "kind": "zerog"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null
+   },
+   {
+    "pack_id": "r-III",
+    "level_index": 9,
+    "name": "Space Exploration",
+    "ball_x": -6,
+    "ball_y": 3.5,
+    "stars": [
+     {
+      "x": -4,
+      "y": -4
+     },
+     {
+      "x": -0.5,
+      "y": -3
+     },
+     {
+      "x": 3.5,
+      "y": -1
+     },
+     {
+      "x": -2,
+      "y": 4.5
+     },
+     {
+      "x": 6,
+      "y": 4
+     }
+    ],
+    "score_goal": 120,
+    "eq_goal": 4,
+    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 15,
+      "w": 15,
+      "x": 0,
+      "y": 0,
+      "kind": "zerog"
+     },
+     {
+      "w": 2,
+      "x": -4,
+      "y": -5.5,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 20
+     },
+     {
+      "w": 5,
+      "x": 6,
+      "y": -1,
+      "len": 3,
+      "kind": "fan",
+      "angle": 180,
+      "strength": 10
+     },
+     {
+      "w": 3,
+      "x": -7.5,
+      "y": 5,
+      "len": 4,
+      "kind": "fan",
+      "angle": -45,
+      "strength": 20
+     },
+     {
+      "w": 2,
+      "x": 7.5,
+      "y": -5.5,
+      "len": 8,
+      "kind": "fan",
+      "angle": 180,
+      "strength": 20
+     },
+     {
+      "w": 2,
+      "x": 0.5,
+      "y": 8,
+      "len": 6,
+      "kind": "fan",
+      "angle": -90,
+      "strength": 30
+     },
+     {
+      "h": 1,
+      "w": 1,
+      "x": -2,
+      "y": 2,
+      "kind": "hazard"
+     },
+     {
+      "h": 1,
+      "w": 2,
+      "x": 5,
+      "y": -4,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 1.5,
+      "y": -6,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 3.5,
+      "y": 4,
+      "kind": "hazard"
+     },
+     {
+      "h": 1,
+      "w": 2,
+      "x": -5,
+      "y": -2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
     "explain": null,
     "hint": null
    }

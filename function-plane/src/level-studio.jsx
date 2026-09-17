@@ -293,7 +293,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
           <div>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--fp-ink)' }}>Players can set bounce</div>
             <div style={{ fontSize: 11, color: 'var(--fp-ink-3)', marginTop: 2, lineHeight: 1.4 }}>
-              Lets a player make any of their curves dead (no bounce) or perfectly elastic. Off by default.
+              Lets a player make any of their curves steel (no bounce) or rubber (perfectly elastic). Off by default.
             </div>
           </div>
           <input type="checkbox" checked={materials} onChange={e => setMaterials(e.target.checked)}

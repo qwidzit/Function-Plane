@@ -5,7 +5,7 @@ const ROMAN_PACKS = ROMAN.map((r, i) => ({
   id: `r-${r}`,
   numeral: r,
   index: i + 1,
-  name: ['Foundations', 'Slopes', 'Curves', 'Reflections', 'Intersections', 'Asymptotes', 'Compositions', 'Discontinuities', 'Transforms', 'Mastery'][i],
+  name: ['Foundations', 'Crosswinds', 'Weightless', 'Reflections', 'Intersections', 'Asymptotes', 'Compositions', 'Discontinuities', 'Transforms', 'Mastery'][i],
   kind: r,
   type: 'roman'
 }));
@@ -107,6 +107,10 @@ const LEVELS = {
 // the thing worth knowing, so it says that instead: which families they are
 // would be most of the solution.
 //
+// From Pack III a hint may name a *mechanic* instead — "Use rubber material"
+// — because a level whose answer is an ordinary line set to a different bounce
+// is not described at all by the family of its equation.
+//
 // Each one follows from the level's own goals, not from taste: a run scores
 // complexity + 20 per equation, so `score_goal - 20 * eq_goal` is the
 // complexity the author left room for — 0 a constant, 10 a line, 20 a
@@ -135,7 +139,17 @@ const LEVEL_HINTS = {
   'r-II-6': 'Linear',
   'r-II-7': 'Linear',
   'r-II-8': 'Use 2 functions',
-  'r-II-9': 'Use 2 functions'
+  'r-II-9': 'Use 2 functions',
+  'r-III-0': 'Quadratic',
+  'r-III-1': 'Quadratic',
+  'r-III-2': 'Quadratic',
+  'r-III-3': 'Use rubber material',
+  'r-III-4': 'Use steel material',
+  'r-III-5': 'Use rubber material',
+  'r-III-6': 'Use rubber material',
+  'r-III-7': 'Linear',
+  'r-III-8': 'Use 3 functions'
+  // Level X is the finale and deliberately has none.
 };
 function getHint(packId, levelIndex) {
   const ov = window.FP_LEVEL_OVERRIDES?.[`${packId}-${levelIndex}`];
@@ -166,7 +180,7 @@ function getLevelData(packId, levelIndex) {
     preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.filter(s => typeof s === 'string' && s.trim()) : [],
     // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
     objects: Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
-    // Whether players may set a curve's bounce (dead / perfectly elastic).
+    // Whether players may set a curve's bounce (steel / rubber).
     materials: !!ov.materials,
     // Which mechanic this level introduces — a key into FP_EXPLAINERS, shown
     // once on the player's first visit. Null on levels that teach nothing new.

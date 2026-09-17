@@ -1416,7 +1416,10 @@ function mathHitOffset(root, cx, cy) {
 // Three states, one button: how the curve returns the ball. Drawn as the ball
 // over a floor with the arc it would take, so the state reads without words.
 const MAT_NEXT  = { none: 'dead', dead: 'rubber', rubber: null };
-const MAT_TITLE = { none: 'Bounce: normal', dead: 'Bounce: none — the ball lands and rolls', rubber: 'Bounce: perfect — the ball keeps all its speed' };
+// The three states have names, because the hints and the explainer cards use
+// them: `dead` is steel and `rubber` is rubber. The stored values stay as they
+// are — run history and every saved level are written in terms of them.
+const MAT_TITLE = { none: 'Bounce: normal', dead: 'Steel — the ball lands and rolls', rubber: 'Rubber — the ball keeps all its speed' };
 function MaterialIcon({ m }) {
   const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
   return (
@@ -1929,7 +1932,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
       )}
       {tab === 'eq' && materialsOn && (
         <div style={{ padding:'6px 14px', fontSize:11, color:'var(--fp-ink-3)', borderTop:'1px solid var(--lv-line)' }}>
-          Bounce is adjustable here — tap a curve's <MaterialIcon m={null}/> to make it dead or perfectly elastic.
+          Bounce is adjustable here — tap a curve's <MaterialIcon m={null}/> to make it steel or rubber.
         </div>
       )}
 
