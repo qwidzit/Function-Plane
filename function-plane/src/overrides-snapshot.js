@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T10:20:51.475Z
+// Generated: 2026-09-17T10:25:21.818Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -11,32 +11,32 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "name": "Foundations",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "updated_at": "2026-09-17T10:25:00.505477+00:00",
+    "is_hidden": false
    },
    {
     "pack_id": "r-II",
     "name": "Crosswinds",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "updated_at": "2026-09-17T10:25:00.505477+00:00",
+    "is_hidden": false
    },
    {
     "pack_id": "r-III",
     "name": "Weightless",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "updated_at": "2026-09-17T10:25:00.505477+00:00",
+    "is_hidden": false
    },
    {
     "pack_id": "r-IV",
-    "name": "Geometry",
+    "name": "Attraction",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "updated_at": "2026-09-17T10:25:10.50308+00:00",
+    "is_hidden": false
    },
    {
     "pack_id": "r-IX",
@@ -51,8 +51,8 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "name": "Mastery",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "updated_at": "2026-09-17T10:25:00.505477+00:00",
+    "is_hidden": false
    },
    {
     "pack_id": "r-VI",
