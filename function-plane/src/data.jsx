@@ -6,8 +6,11 @@ const ROMAN_PACKS = ROMAN.map((r, i) => ({
   id: `r-${r}`,
   numeral: r,
   index: i + 1,
+  // The fallback names, for a boot with no snapshot and no network. They are
+  // what pack_overrides says, because a pack that answers to two names
+  // depending on where the data came from is the bug this table caused.
   name: [
-    'Foundations','Crosswinds','Weightless','Reflections','Intersections',
+    'Foundations','Crosswinds','Weightless','Attraction','Mastery',
     'Asymptotes','Compositions','Discontinuities','Transforms','Mastery'
   ][i],
   kind: r,
@@ -102,6 +105,14 @@ const LEVEL_HINTS = {
   'r-III-7': 'Linear',
   'r-III-8': 'Use 3 functions',
   // Level X is the finale and deliberately has none.
+
+  // Geometry. Only the two levels that have an answer are hinted: I and II
+  // clear with one line. III–X collect at most 7 of their stars under a sweep
+  // of ~1000 single curves and a greedy search up to three, so there is no
+  // family to name yet — see the note in RELEASE-CHECKLIST item 1e. A hint
+  // pointing at a curve that cannot finish the level is worse than none.
+  's-qua-0': 'Linear',
+  's-qua-1': 'Linear',
 };
 
 function getHint(packId, levelIndex) {
