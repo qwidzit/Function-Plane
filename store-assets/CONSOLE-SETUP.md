@@ -22,10 +22,12 @@ answers to the screens that file does not cover.
 https://functionplane.pages.dev/privacy.html
 ```
 
-Live and byte-identical to `legal/privacy.html`. It names the data collected
-(display name, email, progress), names Supabase as the only processor, states
-the 13+ floor, and links account deletion — everything the Data safety form
-below declares.
+**The live page is out of date** — see checklist item 17. `legal/privacy.html`
+was corrected for this filing (no device-information claim, equations
+disclosed, crash reports disclosed, effective 28 August 2026) and the site
+still serves the older text. The URL is right and resolves; the content is
+what needs re-deploying, and Google reads it against the declarations below on
+every release.
 
 ## 2. App access ("Is any part of your app restricted?")
 

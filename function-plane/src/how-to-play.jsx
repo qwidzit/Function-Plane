@@ -10,8 +10,11 @@ function M({ e }) {
   </span>;
 }
 
+const { useState: useHTS } = React;
+
 function HowToPlayScreen({ onBack, density = 'comfortable' }) {
   const padX = density === 'compact' ? 22 : 26;
+  const [advanced, setAdvanced] = useHTS(false);
 
   return (
     <div className="fp-screen" style={{
@@ -91,12 +94,14 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Star rating"
         >
           <div style={{ marginBottom: 8 }}>
-            Collecting every star always clears the level. Which rating you get is
-            decided by the first of these that holds:
+            Three stars, and each is earned on its own — any combination of them:
           </div>
-          <RatingRow n={3}>You used no more equations than the equation goal</RatingRow>
-          <RatingRow n={2}>Otherwise — your score is at or below the score goal</RatingRow>
-          <RatingRow n={1}>Otherwise — you cleared it</RatingRow>
+          <RatingRow>You collected every star</RatingRow>
+          <RatingRow>Your score is at or below the score goal</RatingRow>
+          <RatingRow>You used no more equations than the equation goal</RatingRow>
+          <div style={{ marginTop: 8 }}>
+            So beating the equation goal while missing the score goal earns two, not three.
+          </div>
         </HTPCard>
 
         {/* Scoring section — card with table */}
@@ -194,7 +199,131 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           to zoom in and out. The crosshair button resets the view to the origin.
         </HTPCard>
 
+        {!advanced && (
+          <button onClick={() => setAdvanced(true)} style={{
+            width: '100%', marginTop: 12, padding: '12px 16px',
+            borderRadius: 14, border: '1px dashed var(--fp-line)',
+            background: 'transparent', color: 'var(--fp-ink-3)',
+            fontSize: 13, letterSpacing: '-0.01em',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+            Advanced — the engine, exactly
+            <Icon.Chevron dir="down" size={14}/>
+          </button>
+        )}
+
+        {advanced && <Advanced/>}
+
       </div>
+    </div>
+  );
+}
+
+// ─── Advanced ────────────────────────────────────────────────
+// Every number the simulation actually uses, for players who would rather
+// solve a level than feel their way through it. Deliberately almost wordless:
+// anyone who opens this wants the constants, not the prose.
+//
+// These are physics, not player expressions, so they are written in the
+// engine's own terms rather than through MathExpr — which knows the game's
+// grammar and nothing about subscripts, vectors or hats.
+function Fx({ children }) {
+  return (
+    <div className="fp-mono" style={{
+      fontSize: 12.5, lineHeight: 1.85, color: 'var(--fp-ink)',
+      whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+    }}>{children}</div>
+  );
+}
+
+function FxGroup({ title, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+        textTransform: 'uppercase', color: 'var(--fp-ink-4)', marginBottom: 6,
+      }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Advanced() {
+  return (
+    <div style={{
+      marginTop: 12, padding: '16px 16px 4px',
+      background: 'var(--fp-surface)',
+      border: '1px solid var(--fp-line)', borderRadius: 18,
+    }}>
+      <div style={{
+        fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic',
+        fontSize: 20, color: 'var(--fp-ink)', marginBottom: 12,
+      }}>The engine, exactly</div>
+
+      <FxGroup title="Constants">
+        <Fx>g = 12          gravity, units/s²</Fx>
+        <Fx>r = 0.22        ball radius</Fx>
+        <Fx>Δt = 1/60 s     one tick, 20 substeps each</Fx>
+        <Fx>h = Δt/20       one substep</Fx>
+        <Fx>e = 0.5   ρ = 0.985   k = 0.6</Fx>
+        <Fx>T = 28 s        clock</Fx>
+        <Fx>+0.5 s          after the last star</Fx>
+      </FxGroup>
+
+      <FxGroup title="Step, per substep">
+        <Fx>v ← v + (a − g·m·ŷ)·h</Fx>
+        <Fx>p ← p + v·h</Fx>
+        <Fx>a, m from the field; else a = 0, m = 1</Fx>
+      </FxGroup>
+
+      <FxGroup title="Field">
+        <Fx>zero-g box:  m = 0</Fx>
+        <Fx>fan:         a += F·c·(cos α, sin α)</Fx>
+        <Fx>             c = c<sub>u</sub>·c<sub>v</sub>,  c &lt; 1/3 → 0</Fx>
+        <Fx>             c<sub>u</sub> = |[x−r, x+r] ∩ box| / 2r</Fx>
+        <Fx>well, |p−q| ≤ R:</Fx>
+        <Fx>             a += S·(q−p)/|q−p| − D·v</Fx>
+      </FxGroup>
+
+      <FxGroup title="Contact">
+        <Fx>q = nearest point on the curve</Fx>
+        <Fx>n = (p−q)/|p−q|,   p ← q + r·n</Fx>
+        <Fx>v<sub>n</sub> = v·n</Fx>
+        <Fx>v<sub>n</sub> &lt; 0:   v ← v − (1+e)·v<sub>n</sub>·n</Fx>
+        <Fx>−v<sub>n</sub> &gt; 1.5: v ← ρ·v          (a real bounce)</Fx>
+        <Fx>always:    v<sub>t</sub> ← v<sub>t</sub>·exp(−k·h)</Fx>
+      </FxGroup>
+
+      <FxGroup title="Materials">
+        <Fx>normal   e = 0.5   ρ = 0.985</Fx>
+        <Fx>steel    e = 0</Fx>
+        <Fx>rubber   e = 1     ρ = 1</Fx>
+        <Fx>k = 0.6 for all three</Fx>
+      </FxGroup>
+
+      <FxGroup title="Consequences">
+        <Fx>drop H, bounce back to  (e·ρ)²·H</Fx>
+        <Fx>   normal 0.242·H    rubber H    steel 0</Fx>
+        <Fx>slope θ, terminal speed  g·sin θ / k</Fx>
+        <Fx>   45° → 14.1      10° → 3.5</Fx>
+        <Fx>fan lifts the ball when  F·c &gt; g</Fx>
+        <Fx>   c = 1/2 at the mouth → F &gt; 24 there</Fx>
+        <Fx>zero-g: |v| constant, path straight</Fx>
+        <Fx>flip packs: g ← −g per tick with a bounce</Fx>
+      </FxGroup>
+
+      <FxGroup title="Bounds">
+        <Fx>star taken when  |p − s| &lt; 0.77</Fx>
+        <Fx>spawn at  (x + 0.025, y)</Fx>
+        <Fx>alive while |p| ≤ 20 and ≤ 10 from an object</Fx>
+        <Fx>hazard kills on |p − box| ≤ r</Fx>
+      </FxGroup>
+
+      <FxGroup title="Score">
+        <Fx>score = Σ complexity + 20·n</Fx>
+        <Fx>★ cleared   ★ score ≤ goal   ★ n ≤ goal</Fx>
+        <Fx>the three are independent</Fx>
+      </FxGroup>
     </div>
   );
 }
@@ -249,10 +378,13 @@ function Note({ children }) {
   return <span style={{ marginLeft: 10, color: 'var(--fp-ink-4)' }}>{children}</span>;
 }
 
-function RatingRow({ n, children }) {
+// One star, one condition. It used to draw 3/2/1 for a ladder the game no
+// longer uses: the three are independent bits, so a run that beats the
+// equation goal and misses the score goal lights the first and the third.
+function RatingRow({ children }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
-      <Stars count={n} total={3} size={9} c="var(--lv-star)" empty="var(--fp-ink-4)"/>
+      <Stars count={1} total={1} size={9} c="var(--lv-star)" empty="var(--fp-ink-4)"/>
       <span style={{ fontSize: 12, color: 'var(--fp-ink-2)', lineHeight: 1.4 }}>{children}</span>
     </div>
   );

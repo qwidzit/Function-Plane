@@ -111,13 +111,18 @@ Answer exactly this. Every line is true of the app as it stands.
 | Personal info → **Email address** | Yes | No | Yes — account is optional | Account management |
 | Personal info → **User IDs** (display name) | Yes | No | Yes | Account management, app functionality |
 | App activity → **In-app actions** (level progress, scores, times) | Yes | No | Yes | App functionality (cross-device sync, leaderboards) |
+| App info and performance → **Crash logs** | Yes | No | No — sent automatically | App functionality (diagnosing faults) |
+
+**Crash logs are not linked to a user.** Answer *No* to "Is this data linked to
+a user's identity?" — the report carries the message, the trace, the screen and
+the build, and no account, name or device identifier. See `error-log.js`.
 
 ### Declare NOT collected
 
 Location, financial info, health, messages, photos/videos, audio, files,
-calendar, contacts, app info and performance (no crash or diagnostic
-reporting is shipped — revisit if checklist item 30 lands), device or other
-IDs, **advertising ID**.
+calendar, contacts, device or other IDs, **advertising ID**. Under *App info
+and performance*, **Diagnostics** and **Other app performance data** are not
+collected either — only Crash logs above.
 
 ### Other declarations
 

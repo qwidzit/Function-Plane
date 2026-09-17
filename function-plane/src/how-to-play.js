@@ -16,11 +16,15 @@ function M({
     src: e
   }) : e);
 }
+const {
+  useState: useHTS
+} = React;
 function HowToPlayScreen({
   onBack,
   density = 'comfortable'
 }) {
   const padX = density === 'compact' ? 22 : 26;
+  const [advanced, setAdvanced] = useHTS(false);
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",
     style: {
@@ -146,13 +150,11 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Collecting every star always clears the level. Which rating you get is decided by the first of these that holds:"), /*#__PURE__*/React.createElement(RatingRow, {
-    n: 3
-  }, "You used no more equations than the equation goal"), /*#__PURE__*/React.createElement(RatingRow, {
-    n: 2
-  }, "Otherwise \u2014 your score is at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, {
-    n: 1
-  }, "Otherwise \u2014 you cleared it")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "Three stars, and each is earned on its own \u2014 any combination of them:"), /*#__PURE__*/React.createElement(RatingRow, null, "You collected every star"), /*#__PURE__*/React.createElement(RatingRow, null, "Your score is at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, null, "You used no more equations than the equation goal"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, "So beating the equation goal while missing the score goal earns two, not three.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#fa7e19",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -275,7 +277,104 @@ function HowToPlayScreen({
     })),
     title: "Pan & zoom",
     last: true
-  }, "Drag the plane with one finger to pan. Pinch with two fingers (or use the +/\u2212 buttons) to zoom in and out. The crosshair button resets the view to the origin.")));
+  }, "Drag the plane with one finger to pan. Pinch with two fingers (or use the +/\u2212 buttons) to zoom in and out. The crosshair button resets the view to the origin."), !advanced && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAdvanced(true),
+    style: {
+      width: '100%',
+      marginTop: 12,
+      padding: '12px 16px',
+      borderRadius: 14,
+      border: '1px dashed var(--fp-line)',
+      background: 'transparent',
+      color: 'var(--fp-ink-3)',
+      fontSize: 13,
+      letterSpacing: '-0.01em',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8
+    }
+  }, "Advanced \u2014 the engine, exactly", /*#__PURE__*/React.createElement(Icon.Chevron, {
+    dir: "down",
+    size: 14
+  })), advanced && /*#__PURE__*/React.createElement(Advanced, null)));
+}
+
+// ─── Advanced ────────────────────────────────────────────────
+// Every number the simulation actually uses, for players who would rather
+// solve a level than feel their way through it. Deliberately almost wordless:
+// anyone who opens this wants the constants, not the prose.
+//
+// These are physics, not player expressions, so they are written in the
+// engine's own terms rather than through MathExpr — which knows the game's
+// grammar and nothing about subscripts, vectors or hats.
+function Fx({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fp-mono",
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.85,
+      color: 'var(--fp-ink)',
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word'
+    }
+  }, children);
+}
+function FxGroup({
+  title,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color: 'var(--fp-ink-4)',
+      marginBottom: 6
+    }
+  }, title), children);
+}
+function Advanced() {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: '16px 16px 4px',
+      background: 'var(--fp-surface)',
+      border: '1px solid var(--fp-line)',
+      borderRadius: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Instrument Serif', Georgia, serif",
+      fontStyle: 'italic',
+      fontSize: 20,
+      color: 'var(--fp-ink)',
+      marginBottom: 12
+    }
+  }, "The engine, exactly"), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Constants"
+  }, /*#__PURE__*/React.createElement(Fx, null, "g = 12          gravity, units/s\xB2"), /*#__PURE__*/React.createElement(Fx, null, "r = 0.22        ball radius"), /*#__PURE__*/React.createElement(Fx, null, "\u0394t = 1/60 s     one tick, 20 substeps each"), /*#__PURE__*/React.createElement(Fx, null, "h = \u0394t/20       one substep"), /*#__PURE__*/React.createElement(Fx, null, "e = 0.5   \u03C1 = 0.985   k = 0.6"), /*#__PURE__*/React.createElement(Fx, null, "T = 28 s        clock"), /*#__PURE__*/React.createElement(Fx, null, "+0.5 s          after the last star")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Step, per substep"
+  }, /*#__PURE__*/React.createElement(Fx, null, "v \u2190 v + (a \u2212 g\xB7m\xB7\u0177)\xB7h"), /*#__PURE__*/React.createElement(Fx, null, "p \u2190 p + v\xB7h"), /*#__PURE__*/React.createElement(Fx, null, "a, m from the field; else a = 0, m = 1")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Field"
+  }, /*#__PURE__*/React.createElement(Fx, null, "zero-g box:  m = 0"), /*#__PURE__*/React.createElement(Fx, null, "fan:         a += F\xB7c\xB7(cos \u03B1, sin \u03B1)"), /*#__PURE__*/React.createElement(Fx, null, "             c = c", /*#__PURE__*/React.createElement("sub", null, "u"), "\xB7c", /*#__PURE__*/React.createElement("sub", null, "v"), ",  c < 1/3 \u2192 0"), /*#__PURE__*/React.createElement(Fx, null, "             c", /*#__PURE__*/React.createElement("sub", null, "u"), " = |[x\u2212r, x+r] \u2229 box| / 2r"), /*#__PURE__*/React.createElement(Fx, null, "well, |p\u2212q| \u2264 R:"), /*#__PURE__*/React.createElement(Fx, null, "             a += S\xB7(q\u2212p)/|q\u2212p| \u2212 D\xB7v")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Contact"
+  }, /*#__PURE__*/React.createElement(Fx, null, "q = nearest point on the curve"), /*#__PURE__*/React.createElement(Fx, null, "n = (p\u2212q)/|p\u2212q|,   p \u2190 q + r\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "v", /*#__PURE__*/React.createElement("sub", null, "n"), " = v\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "v", /*#__PURE__*/React.createElement("sub", null, "n"), " < 0:   v \u2190 v \u2212 (1+e)\xB7v", /*#__PURE__*/React.createElement("sub", null, "n"), "\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "\u2212v", /*#__PURE__*/React.createElement("sub", null, "n"), " > 1.5: v \u2190 \u03C1\xB7v          (a real bounce)"), /*#__PURE__*/React.createElement(Fx, null, "always:    v", /*#__PURE__*/React.createElement("sub", null, "t"), " \u2190 v", /*#__PURE__*/React.createElement("sub", null, "t"), "\xB7exp(\u2212k\xB7h)")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Materials"
+  }, /*#__PURE__*/React.createElement(Fx, null, "normal   e = 0.5   \u03C1 = 0.985"), /*#__PURE__*/React.createElement(Fx, null, "steel    e = 0"), /*#__PURE__*/React.createElement(Fx, null, "rubber   e = 1     \u03C1 = 1"), /*#__PURE__*/React.createElement(Fx, null, "k = 0.6 for all three")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Consequences"
+  }, /*#__PURE__*/React.createElement(Fx, null, "drop H, bounce back to  (e\xB7\u03C1)\xB2\xB7H"), /*#__PURE__*/React.createElement(Fx, null, "   normal 0.242\xB7H    rubber H    steel 0"), /*#__PURE__*/React.createElement(Fx, null, "slope \u03B8, terminal speed  g\xB7sin \u03B8 / k"), /*#__PURE__*/React.createElement(Fx, null, "   45\xB0 \u2192 14.1      10\xB0 \u2192 3.5"), /*#__PURE__*/React.createElement(Fx, null, "fan lifts the ball when  F\xB7c > g"), /*#__PURE__*/React.createElement(Fx, null, "   c = 1/2 at the mouth \u2192 F > 24 there"), /*#__PURE__*/React.createElement(Fx, null, "zero-g: |v| constant, path straight"), /*#__PURE__*/React.createElement(Fx, null, "flip packs: g \u2190 \u2212g per tick with a bounce")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Bounds"
+  }, /*#__PURE__*/React.createElement(Fx, null, "star taken when  |p \u2212 s| < 0.77"), /*#__PURE__*/React.createElement(Fx, null, "spawn at  (x + 0.025, y)"), /*#__PURE__*/React.createElement(Fx, null, "alive while |p| \u2264 20 and \u2264 10 from an object"), /*#__PURE__*/React.createElement(Fx, null, "hazard kills on |p \u2212 box| \u2264 r")), /*#__PURE__*/React.createElement(FxGroup, {
+    title: "Score"
+  }, /*#__PURE__*/React.createElement(Fx, null, "score = \u03A3 complexity + 20\xB7n"), /*#__PURE__*/React.createElement(Fx, null, "\u2605 cleared   \u2605 score \u2264 goal   \u2605 n \u2264 goal"), /*#__PURE__*/React.createElement(Fx, null, "the three are independent")));
 }
 function HTPCard({
   color,
@@ -359,8 +458,11 @@ function Note({
     }
   }, children);
 }
+
+// One star, one condition. It used to draw 3/2/1 for a ladder the game no
+// longer uses: the three are independent bits, so a run that beats the
+// equation goal and misses the score goal lights the first and the third.
 function RatingRow({
-  n,
   children
 }) {
   return /*#__PURE__*/React.createElement("div", {
@@ -371,8 +473,8 @@ function RatingRow({
       marginBottom: 5
     }
   }, /*#__PURE__*/React.createElement(Stars, {
-    count: n,
-    total: 3,
+    count: 1,
+    total: 1,
     size: 9,
     c: "var(--lv-star)",
     empty: "var(--fp-ink-4)"
