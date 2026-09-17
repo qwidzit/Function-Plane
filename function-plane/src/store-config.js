@@ -28,6 +28,11 @@ window.FP_PREMIUM_PRICE = '€4.90';
 // name in native code, and of the two ways to be wrong, offering an outside
 // payment route inside the Play build is the one that gets the app taken down
 // (anti-steering).
+// The build this is, for crash reports. It is the same number the version
+// string on the main and settings screens prints, and `npm test` fails if the
+// three drift — bump all of them with `versionCode` at upload time.
+window.FP_BUILD = 1;
+
 // Running inside the Capacitor shell rather than a browser tab. Anything that
 // only makes sense in one of the two asks this — the payment channel below,
 // and the browser-only "leave this page?" prompt.

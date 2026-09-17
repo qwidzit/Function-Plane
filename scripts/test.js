@@ -963,6 +963,13 @@ it('reports one version per release', () => {
     if (m) versions.add(m[1] || m[2]);
   }
   eq(versions.size, 1, `screens disagree on the build number: ${[...versions].join(' vs ')}`);
+
+  // Crash reports carry the build too, from a third copy of the number that
+  // cannot be interpolated into the screens without breaking the match above.
+  const b = read(path.join(SRC, 'store-config.js')).match(/FP_BUILD\s*=\s*(\d+)/);
+  ok(b, 'store-config.js must set FP_BUILD');
+  eq(b[1], [...versions][0],
+    `FP_BUILD is ${b[1]} but the screens say build ${[...versions][0]}`);
 });
 
 // ── 4b. Networking ─────────────────────────────────────────────────────────

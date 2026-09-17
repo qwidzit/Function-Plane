@@ -50,6 +50,14 @@ address and basic request details of each connection in its server logs; those
 logs exist to keep the Service running and to prevent abuse, and we do not use
 them to profile you or to work out where you are.
 
+**Crash reports.** When the app hits an error it sends us the error message,
+the technical trace that goes with it, which screen you were on, and which
+build you are running. These reports carry no account, name or identifier of
+any kind, so they cannot be traced back to you and are not removed when an
+account is deleted. They are stored for thirty days and then deleted
+automatically. They go to the same Supabase database as everything else —
+there is no crash-reporting or analytics provider involved.
+
 **No advertising identifiers.** We do not collect Google Advertising ID or
 serve advertisements.
 
@@ -72,8 +80,9 @@ terms:
 * **Supabase, Inc.** — authentication, database, and storage. Data is hosted
   on Supabase infrastructure. See https://supabase.com/privacy
 
-Supabase is the only one. The app bundles all of its code, fonts and images,
-so it contacts no content delivery network, font service, analytics provider
+Supabase is the only one — crash reports go to that same database rather than
+to a crash-reporting service. The app bundles all of its code, fonts and
+images, so it contacts no content delivery network, font service, analytics provider
 or advertising network — there are none in the app.
 
 ## 4. Leaderboards and public information

@@ -99,7 +99,7 @@ approved — and each one says so.
 | # | Item | Description | Who |
 |---|---|---|---|
 | 29 | Point the Rate button at the store | **Done** — the button opens `FP_STORE_LINKS.android` when it's set and falls back to the existing popup when it isn't. **Paste the listing URL** into `src/store-config.js` once the app is live. | Both |
-| 30 | Add crash and error reporting | Without it, production failures are invisible. Needs a Sentry (or equivalent) DSN from you. | Both |
+| 30 | ~~Add crash and error reporting~~ | **Done, without a provider.** `error-log.js` posts uncaught errors and unhandled rejections to `client_errors` in the project's own Supabase: message, trace, screen, build, and whether it is the native shell. No account id, no device identifier, no user agent — anonymous by construction, which is what keeps *Supabase is the only processor* true and lets the Data safety answer be "not linked to your identity". Write-only from the client (verified: `anon` can insert and reads back zero rows), capped at five distinct reports per session, bounded by an 8s abort, and pruned after thirty days by the `client-errors-prune` cron job. Sentry was declined for the first release; it would have meant a new processor, a vendored SDK and another round of policy and Data safety edits. **Left to you:** tick **App info and performance ▸ Crash logs** on the Data safety form — collected, not shared, not linked to the user — and re-take it before the next release. | Both |
 | 31 | Test on a real low-end device | Frame rate, touch targets, the custom keyboard, and cold-start offline behaviour. | You |
 | 32 | Final pass on the whole game | Play every level start to finish on a phone before strangers do. | You |
 

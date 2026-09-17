@@ -46,6 +46,12 @@ collection. What changed:
 3. `privacy.html` — the effective date is now 28 August 2026.
 4. `delete-account.html` — the "what gets deleted" table row for level progress
    now names submitted equations too.
+5. `privacy.html`, section 1 — a new paragraph headed **Crash reports**, and
+   section 3 now says crash reports go to the same Supabase database. The app
+   sends an error message, its trace, the screen and the build when it hits a
+   fault; the reports carry no account or identifier, are not linked to anyone,
+   and are deleted after thirty days. There is still no crash-reporting or
+   analytics provider — that sentence must survive any rewording.
 
 ## 2. Sweep the rest of the site for stale claims
 
@@ -55,9 +61,11 @@ these facts. Fix what disagrees; do not invent new copy where the site is
 simply silent.
 
 - **Data.** The game collects a display name, an email address, an account ID,
-  level progress, and the equations submitted with a score. Nothing else. No
-  location, no device identifiers, no advertising ID, no analytics, no crash
-  reporting, no third-party sharing. Supabase is the only processor.
+  level progress, and the equations submitted with a score. It also sends
+  anonymous crash reports, kept thirty days and linked to nobody. Nothing else.
+  No location, no device identifiers, no advertising ID, no analytics, no
+  third-party sharing. Supabase is the only processor — crash reports go to
+  that same database, not to a crash-reporting service.
 - **Accounts are optional.** The whole game is playable signed out, with
   progress stored on the device.
 - **Money.** There are no purchases available today. If any page advertises

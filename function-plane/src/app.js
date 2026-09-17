@@ -89,6 +89,12 @@ function App() {
     levelIndex: 0
   });
 
+  // Which screen a crash report belongs to. Nothing else about the session
+  // goes with it — see error-log.js.
+  useEffect(() => {
+    window.FP_ERRORS?.setRoute(nav.route);
+  }, [nav.route]);
+
   // Achievement toast queue
   const [toastQueue, setToastQueue] = useState([]);
   const achInitRef = useRef(false);
