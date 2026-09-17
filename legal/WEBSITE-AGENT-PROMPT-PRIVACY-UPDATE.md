@@ -1,8 +1,8 @@
 # Handoff prompt — resync the website
 
 Copy the text below to the agent working on the **website repo** (the one that
-deploys `functionplane.pages.dev`), and attach the current `privacy.html` and
-`delete-account.html` from this folder.
+deploys `functionplane.pages.dev`), and attach the current `privacy.html`,
+`delete-account.html` and `terms.html` from this folder.
 
 Context for you, not for that agent: the old policy claimed the app collects
 "approximate region, language, operating system, and version", which nothing in
@@ -24,13 +24,14 @@ The Function Plane game is being submitted to Google Play, and Google compares
 the live website against what the app declares. Two things: replace two legal
 pages, then check the rest of the site for claims that are no longer true.
 
-## 1. Replace two pages, byte-for-byte
+## 1. Replace three pages, byte-for-byte
 
-I'm providing updated `privacy.html` and `delete-account.html`. They must keep
-exactly the URLs they already serve:
+I'm providing updated `privacy.html`, `delete-account.html` and `terms.html`.
+They must keep exactly the URLs they already serve:
 
 - `https://functionplane.pages.dev/privacy.html`
 - `https://functionplane.pages.dev/delete-account.html`
+- `https://functionplane.pages.dev/terms.html`
 
 Do not reword, reformat, re-indent, or run them through a formatter. The
 wording is final and has to stay identical to the copies in the app repo,
@@ -52,6 +53,11 @@ collection. What changed:
    fault; the reports carry no account or identifier, are not linked to anyone,
    and are deleted after thirty days. There is still no crash-reporting or
    analytics provider — that sentence must survive any rewording.
+6. `terms.html`, section 5 — the clause about purchases no longer mentions
+   subscriptions or auto-renewal. Premium is one lifetime unlock bought through
+   Google Play, so a recurring charge is something this game will never have,
+   and a forward-looking clause describing one is a claim about a product that
+   does not exist. The effective date is now 17 September 2026.
 
 ## 2. Sweep the rest of the site for stale claims
 

@@ -1125,6 +1125,28 @@ it('sells one lifetime unlock through Google Play only', () => {
   ok(/'Restore purchases'/.test(acct), 'restore stays reachable on both channels');
 });
 
+it('keeps the two Terms saying one thing, and never a subscription', () => {
+  // The in-app screen and the hosted page are the same document. Google reads
+  // the published one against the Data safety declaration, and a player
+  // reading a different one in the app is that document saying two things.
+  // They drifted once already: the app kept the 4 May policy for months after
+  // the hosted copy was corrected.
+  const inApp  = read(path.join(SRC, 'legal-screens.js'));
+  const hosted = read(path.join(ROOT, 'legal', 'terms.html'));
+
+  const appDate = inApp.match(/TERMS_EFFECTIVE\s*=\s*'([^']+)'/)?.[1];
+  const webDate = hosted.match(/Effective date:\s*([^<]+)</)?.[1]?.trim();
+  ok(appDate && webDate, 'both Terms must carry an effective date');
+  eq(webDate, appDate, 'the hosted Terms must carry the app\'s effective date');
+
+  // Premium is one lifetime unlock, so neither document may describe a
+  // recurring charge — not even in a clause about purchases we might add.
+  for (const [name, text] of [['in-app Terms', inApp], ['legal/terms.html', hosted]]) {
+    ok(!/auto-renew|renew(s|ed)? until|billed monthly|cancel anytime|per month/i.test(text),
+      `${name} must not describe a subscription`);
+  }
+});
+
 it('derives the star total instead of believing it', () => {
   // total_stars is what the stars leaderboard ranks on. While the client
   // asserted it, one PATCH with the publishable key put anyone at the top.

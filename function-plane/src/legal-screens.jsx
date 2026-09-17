@@ -20,7 +20,7 @@ const LEGAL_WEBSITE    = 'https://functionplane.pages.dev';         // public si
 // the published policy against the Play Data safety declaration, and a player
 // reading a different one in the app is the same document saying two things.
 const PRIVACY_EFFECTIVE = '28 August 2026';
-const TERMS_EFFECTIVE   = '4 May 2026';
+const TERMS_EFFECTIVE   = '17 September 2026';
 const APP_NAME         = 'Function Plane';
 
 // ── Privacy Policy ────────────────────────────────────────────────────────
@@ -195,11 +195,12 @@ Service for non-commercial purposes.
 ## 5. Premium and in-app purchases
 
 **There are no purchases available today.** Function Plane offers no Premium
-plan, no subscription, and no in-app product, and there is no way to pay us
-from inside the game. The terms below apply only if we introduce one:
+plan and no in-app product, and there is no way to pay us from inside the
+game. If we introduce one it will be a single one-time purchase — a permanent
+unlock tied to your account, never a subscription, with nothing to renew and
+nothing to cancel — and the terms below will apply to it:
 
 * The Google Play store handles billing. Their terms also apply.
-* Subscriptions auto-renew until cancelled in your Google Play account.
 * Refunds are governed by Google Play's refund policy.
 * "Lifetime" means for the operational lifetime of the Service; we will give
   reasonable advance notice if we ever shut down.
