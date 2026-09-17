@@ -615,7 +615,7 @@ function LevelStudio({
     onClick: () => setSelected(selected === `star-${i}` ? null : `star-${i}`)
   })), /*#__PURE__*/React.createElement(StudioChip, {
     label: "+ star",
-    disabled: running || stars.length >= 8,
+    disabled: running || stars.length >= 10,
     onClick: addStar
   }), /*#__PURE__*/React.createElement("div", {
     style: {

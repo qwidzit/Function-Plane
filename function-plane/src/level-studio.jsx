@@ -370,7 +370,12 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
           <StudioChip key={i} label={`Star ${i + 1}`} active={selected === `star-${i}`} disabled={running}
             onClick={() => setSelected(selected === `star-${i}` ? null : `star-${i}`)}/>
         ))}
-        <StudioChip label="+ star" disabled={running || stars.length >= 8} onClick={addStar}/>
+        {/* Ten, not eight: the shape pack's rule is that level n holds n
+            stars, and its last two shapes are a circle of nine and a
+            five-pointed star's ten vertices. Nothing downstream counts
+            them — `stars` is a jsonb array and the rating a level awards
+            is a separate 1-3. */}
+        <StudioChip label="+ star" disabled={running || stars.length >= 10} onClick={addStar}/>
         <div style={{ flex: 1 }}/>
         <button onClick={reset} disabled={running} style={{
           fontSize: 11.5, color: 'var(--fp-ink-3)', opacity: running ? 0.4 : 1,
