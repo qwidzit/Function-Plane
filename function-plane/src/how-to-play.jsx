@@ -296,6 +296,59 @@ function ArtBall({ path, dur = 3.2, r = 7, c = 'var(--fp-ink)' }) {
   );
 }
 
+// Where a ball's motion *is* the thing being explained, walking a drawn path
+// is not good enough: animateMotion's keyPoints are fractions of path length,
+// so at a constant rate a bouncing ball crawls through the bottom of its arc
+// and races over the top, which is backwards. `at(u)` is position against
+// time, sampled straight out of the equations, and cx/cy are animated from it.
+function ArtMotion({ at, dur = 3.4, r = 7, n = 44 }) {
+  const ts = [], xs = [], ys = [];
+  for (let k = 0; k <= n; k++) {
+    const [x, y] = at(k / n);
+    ts.push(+(RUN * (k / n)).toFixed(4));
+    xs.push(+x.toFixed(2));
+    ys.push(+y.toFixed(2));
+  }
+  const keyTimes = [...ts, FADE, 1].join(';');
+  return (
+    <circle r={r} fill="var(--fp-ink)" opacity={0}>
+      <animate attributeName="cx" dur={`${dur}s`} repeatCount="indefinite"
+        values={[...xs, xs[n], xs[0]].join(';')} keyTimes={keyTimes}/>
+      <animate attributeName="cy" dur={`${dur}s`} repeatCount="indefinite"
+        values={[...ys, ys[n], ys[0]].join(';')} keyTimes={keyTimes}/>
+      <animate attributeName="opacity" dur={`${dur}s`} repeatCount="indefinite"
+        values="0;1;1;0;0" keyTimes={`0;0.05;${RUN};${FADE};1`}/>
+    </circle>
+  );
+}
+
+// A perfectly elastic bounce. Horizontal speed never changes, and the drop
+// from an apex is (g/2)t², so the height above the floor goes as the square of
+// the time since the last apex — the ball hangs at the top and snaps through
+// the bottom, and every apex is the same height as the last.
+const bounceAt = (x0, x1, yApex, yFloor, hops) => u => {
+  const s = (u * hops) % 1, f = Math.min(2 * s, 2 * (1 - s));
+  return [x0 + (x1 - x0) * u, yApex + (yFloor - yApex) * f * f];
+};
+
+// A fall across a zero-gravity box. Nothing acts sideways anywhere, so x is
+// linear in time throughout and the whole trajectory can be integrated against
+// x: gravity adds to the downward slope outside the box and adds nothing
+// inside it. The ball does not level off in there — it keeps the slope it
+// arrived with, which is what makes the arc straighten rather than flatten.
+const ZG = { x0: 8, x1: 192, y0: 14, boxL: 56, boxR: 152, g: 0.00625, v0: 0.1 };
+const zgAt = u => {
+  const { x0, x1, y0, boxL, boxR, g, v0 } = ZG;
+  const x    = x0 + (x1 - x0) * u;
+  const fall = Math.min(x, boxL) - x0;              // accelerating, before the box
+  const free = Math.max(0, Math.min(x, boxR) - boxL); // weightless, inside it
+  const out  = Math.max(0, x - boxR);               // accelerating again, after it
+  const vIn  = v0 + g * fall;                       // the slope at the mouth
+  return [x, y0 + v0 * fall + 0.5 * g * fall * fall
+             + vIn * free
+             + vIn * out + 0.5 * g * out * out];
+};
+
 // The same cadence for anything else that plays once and waits: a value that
 // holds where it lands rather than easing straight back.
 const holdTimes = `0;${RUN};1`;
@@ -544,14 +597,15 @@ const FP_EXPLAINERS = {
         heading: 'Rubber keeps everything',
         art: (
           <Art>
-            {/* Dashed, the way a rubber curve is drawn on the plane. Each arc is
-                the exact cubic form of a parabola, so the hops are the shape a
-                bounce really makes — and every apex returns to the same line. */}
+            {/* Dashed, the way a rubber curve is drawn on the plane. The ball is
+                not walked along a drawn arc — it is the bounce equations
+                sampled against time, so it slows into each apex and drops
+                through the floor at speed, and every apex is the same height. */}
             <line x1={10} y1={22} x2={198} y2={22} stroke="var(--fp-ink)" strokeOpacity={0.18}
               strokeWidth={1.2} strokeDasharray="4 4"/>
             <path d="M10 74H198" fill="none" stroke={CURVE_C} strokeWidth={2.4}
               strokeLinecap="round" strokeDasharray="7 4"/>
-            <ArtBall dur={3.6} path="M28,22 C38.7,22 49.3,37 60,67 C70.7,37 81.3,22 92,22 C102.7,22 113.3,37 124,67 C134.7,37 145.3,22 156,22 C166.7,22 177.3,37 188,67"/>
+            <ArtMotion at={bounceAt(24, 192, 22, 67, 3)} dur={3.6} n={72}/>
           </Art>
         ),
         body: <>
@@ -794,17 +848,21 @@ const FP_OBJECT_TUTORIALS = {
         heading: 'It keeps whatever it arrived with',
         art: (
           <Art>
-            <rect x={56} y={22} width={96} height={54} rx={6} fill={ZG_C} fillOpacity={0.08}
+            <rect x={56} y={16} width={96} height={66} rx={6} fill={ZG_C} fillOpacity={0.08}
               stroke={ZG_C} strokeWidth={1.4} strokeDasharray="5 4"/>
-            <path d="M8 18 C 30 28, 44 38, 56 42" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
-            <path d="M56 42 L152 42" fill="none" stroke={ZG_C} strokeOpacity={0.45} strokeWidth={1.4} strokeDasharray="3 3"/>
-            <path d="M152 42 C 166 48, 178 62, 190 84" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
-            <ArtBall dur={3.2} path="M8,18 C 30,28 44,38 56,42 L152,42 C 166,48 178,62 190,84"/>
+            {/* The trace is the same trajectory zgAt walks, drawn exactly: the
+                two parabolas are quadratic Béziers, whose control point is the
+                start plus half the run along the starting slope. */}
+            <path d="M8 14 Q32 16.4 56 26" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <path d="M56 26 L152 64.4" fill="none" stroke={ZG_C} strokeOpacity={0.45} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <path d="M152 64.4 Q172 72.4 192 85.4" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.2} strokeWidth={1.4} strokeDasharray="3 3"/>
+            <ArtMotion at={zgAt} dur={3.2}/>
           </Art>
         ),
         body: <>
-          Its speed and direction stay exactly as they were on the way in — a curve straight
-          through the box, and the fall picked up again on the way out.
+          Its speed and direction stay exactly as they were on the way in. It does not level
+          off; it stops <em>gaining</em> speed downward, so the arc becomes the straight line it
+          was already heading along — and the fall picks up again on the way out.
         </>,
       },
       {

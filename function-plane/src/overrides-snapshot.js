@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T08:44:36.324Z
+// Generated: 2026-09-17T09:13:41.701Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -27,7 +27,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "name": "Weightless",
     "allowed_class": null,
     "modifier": null,
-    "updated_at": "2026-09-17T08:43:26.097883+00:00",
+    "updated_at": "2026-09-17T09:00:06.948+00:00",
     "is_hidden": false
    },
    {
@@ -935,30 +935,34 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 2
      },
      {
+      "x": -1,
+      "y": -1
+     },
+     {
       "x": 2,
       "y": 5
      },
      {
-      "x": 3,
-      "y": 8
+      "x": -4,
+      "y": -1
      }
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "updated_at": "2026-09-17T08:59:58.012+00:00",
     "preplaced": [],
     "objects": [
      {
-      "h": 12,
-      "w": 10,
-      "x": 4,
-      "y": 4,
+      "h": 8,
+      "w": 5,
+      "x": 1.5,
+      "y": 3,
       "kind": "zerog"
      }
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": "Quadratic"
    },
    {
     "pack_id": "r-III",
@@ -1017,7 +1021,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
      },
      {
       "x": -1,
-      "y": 1
+      "y": -1
      },
      {
       "x": 5,
@@ -1026,7 +1030,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "score_goal": 40,
     "eq_goal": 1,
-    "updated_at": "2026-09-17T08:43:49.695683+00:00",
+    "updated_at": "2026-09-17T08:58:29.17+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -1039,7 +1043,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": false,
     "explain": null,
-    "hint": null
+    "hint": "Quadratic"
    },
    {
     "pack_id": "r-III",

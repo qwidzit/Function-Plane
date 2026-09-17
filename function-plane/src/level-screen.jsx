@@ -1220,16 +1220,38 @@ function buildMath(toks, src, caret) {
     return caretEl();
   };
   // One token's glyphs, with the cursor slipped in if it sits inside it.
+  //
+  // A number is drawn one digit to a span, each carrying its own position.
+  // The caret could always be *rendered* inside 0.75, but mathHitOffset can
+  // only return an offset some element on screen owns, so as one span the
+  // whole number had exactly two reachable offsets — its two ends. Only
+  // numbers are split: every other multi-character token either draws a glyph
+  // that is not its own source text (π for "pi", ≤ for "<=") or is a function
+  // name, where the middle of `sin` is not somewhere anyone means to tap.
   const tokEl = (tk, text) => {
     const before = cut(tk.i);
-    let body;
-    if (!done && caret > tk.i && caret < tk.j) {
-      done = true;
-      const k = caret - tk.i;
-      body = <>{text.slice(0, k)}{caretEl()}{text.slice(k)}</>;
-    } else body = text;
+    const perChar = tk.t === 'num' && text.length > 1 && text.length === tk.j - tk.i;
+    let glyphs;
+    if (perChar) {
+      glyphs = [];
+      for (let k = 0; k < text.length; k++) {
+        const at = tk.i + k;
+        const inside = !done && caret === at && k > 0 ? (done = true, caretEl()) : null;
+        glyphs.push(
+          <React.Fragment key={k}>{inside}<span data-pos={at} data-end={at + 1}>{text[k]}</span></React.Fragment>
+        );
+      }
+    } else {
+      let body = text;
+      if (!done && caret > tk.i && caret < tk.j) {
+        done = true;
+        const k = caret - tk.i;
+        body = <>{text.slice(0, k)}{caretEl()}{text.slice(k)}</>;
+      }
+      glyphs = <span data-pos={tk.i} data-end={tk.j}>{body}</span>;
+    }
     const after = !done && caret === tk.j ? (done = true, caretEl()) : null;
-    return <>{before}<span data-pos={tk.i} data-end={tk.j}>{body}</span>{after}</>;
+    return <>{before}{glyphs}{after}</>;
   };
   // Where an operand should have been. The cursor lands inside it, which is
   // what makes a fresh fraction or power feel like a box you type into.
@@ -2448,7 +2470,13 @@ function TutorialPopup({ tip, onClose }) {
 // remember to set a level's `explain` — then whatever mechanic the level was
 // authored to introduce. Seen-ness is per device and deliberately not part of
 // progress: it is a reading state, not something worth syncing or restoring.
+// Admins are the people writing these decks, and a card you can only look at
+// again by clearing site data is a card nobody proofreads. For them it is not
+// a reading state at all: every deck runs on every visit. The flag is still
+// written, so the moment an account stops being an admin it picks up where the
+// stored state left off.
 const tutorialSeen = key => {
+  if (window.FP_AUTH?.isAdmin?.()) return false;
   try { return !!localStorage.getItem(`fp-tip-${key}`); } catch { return false; }
 };
 function pendingTutorials(levelData) {

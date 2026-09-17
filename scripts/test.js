@@ -401,6 +401,21 @@ it('gives every bracket a position to put the cursor at', () => {
   ok(p.includes(7), `and so is its ")", got ${p}`);
 });
 
+it('gives every digit of a number its own position', () => {
+  // The caret could always be drawn inside 0.75, but mathHitOffset can only
+  // return an offset that some element on screen carries, so as one span the
+  // whole number had two reachable offsets — its two ends — and the middle of
+  // a number was untappable.
+  for (const src of ['y=0.75x', 'y=x+12.5', 'y=1024']) {
+    const p = positions(src);
+    const at = src.search(/[0-9]/);
+    const end = at + src.slice(at).match(/[0-9.]+/)[0].length;
+    for (let c = at; c < end; c++) {
+      ok(p.includes(c), `offset ${c} of ${src} is a tap target, got ${p}`);
+    }
+  }
+});
+
 // ── 1c. Achievements ───────────────────────────────────────────────────────
 
 describe('Achievements');
