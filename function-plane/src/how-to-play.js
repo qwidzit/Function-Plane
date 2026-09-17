@@ -1770,7 +1770,7 @@ const FP_OBJECT_TUTORIALS = {
         cy: 48,
         r: 3.5,
         fill: WELL_C
-      }), [0, 90, 180, 270].map(a => /*#__PURE__*/React.createElement("line", {
+      }), [0, 90, 180, 270].map((a, k) => /*#__PURE__*/React.createElement("line", {
         key: a,
         x1: 104,
         y1: 12,
@@ -1779,16 +1779,34 @@ const FP_OBJECT_TUTORIALS = {
         stroke: WELL_C,
         strokeWidth: 1.6,
         strokeLinecap: "round",
-        opacity: 0.6,
+        opacity: 0,
         transform: `rotate(${a} 104 48)`
-      }))),
+      }, /*#__PURE__*/React.createElement("animate", {
+        attributeName: "y1",
+        values: "12;38",
+        dur: "1.8s",
+        begin: `${k * 0.45}s`,
+        repeatCount: "indefinite"
+      }), /*#__PURE__*/React.createElement("animate", {
+        attributeName: "y2",
+        values: "20;46",
+        dur: "1.8s",
+        begin: `${k * 0.45}s`,
+        repeatCount: "indefinite"
+      }), /*#__PURE__*/React.createElement("animate", {
+        attributeName: "opacity",
+        values: "0;0.65;0",
+        dur: "1.8s",
+        begin: `${k * 0.45}s`,
+        repeatCount: "indefinite"
+      })))),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "Anywhere inside the ring the ball is pulled toward the centre by the same amount \u2014 the number on it. Outside the ring it does nothing at all.")
     }, {
       heading: 'It bends the flight',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("circle", {
-        cx: 116,
-        cy: 52,
-        r: 32,
+        cx: 104,
+        cy: 62,
+        r: 28,
         fill: WELL_C,
         fillOpacity: 0.07,
         stroke: WELL_C,
@@ -1796,19 +1814,19 @@ const FP_OBJECT_TUTORIALS = {
         strokeDasharray: "5 4",
         opacity: 0.8
       }), /*#__PURE__*/React.createElement("circle", {
-        cx: 116,
-        cy: 52,
+        cx: 104,
+        cy: 62,
         r: 3.5,
         fill: WELL_C
       }), /*#__PURE__*/React.createElement("path", {
-        d: "M8 20 C 60 26, 96 26, 116 52",
+        d: "M8 22 L200 22",
         fill: "none",
         stroke: "var(--fp-ink)",
         strokeOpacity: 0.18,
         strokeWidth: 1.4,
         strokeDasharray: "3 3"
       }), /*#__PURE__*/React.createElement(ArtBall, {
-        path: "M8,20 C 60,26 96,26 116,52"
+        path: "M8,22 C 56,22 78,36 104,42 C 130,48 158,40 200,30"
       })),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A pull from the side turns a straight throw into an arc. Aim past a well and it will curve the ball round for you \u2014 no extra equation needed.")
     }, {

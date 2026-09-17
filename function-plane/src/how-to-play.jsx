@@ -1087,9 +1087,15 @@ const FP_OBJECT_TUTORIALS = {
             <circle cx={104} cy={48} r={36} fill="url(#fp-tut-well)"/>
             <circle cx={104} cy={48} r={36} fill="none" stroke={WELL_C} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.7}/>
             <circle cx={104} cy={48} r={3.5} fill={WELL_C}/>
-            {[0, 90, 180, 270].map(a => (
+            {/* The pull runs inward the whole time the ball is in there, so the
+                marks travel rather than point: a still arrow reads as a label. */}
+            {[0, 90, 180, 270].map((a, k) => (
               <line key={a} x1={104} y1={12} x2={104} y2={20} stroke={WELL_C} strokeWidth={1.6}
-                strokeLinecap="round" opacity={0.6} transform={`rotate(${a} 104 48)`}/>
+                strokeLinecap="round" opacity={0} transform={`rotate(${a} 104 48)`}>
+                <animate attributeName="y1" values="12;38" dur="1.8s" begin={`${k * 0.45}s`} repeatCount="indefinite"/>
+                <animate attributeName="y2" values="20;46" dur="1.8s" begin={`${k * 0.45}s`} repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0;0.65;0" dur="1.8s" begin={`${k * 0.45}s`} repeatCount="indefinite"/>
+              </line>
             ))}
           </Art>
         ),
@@ -1102,12 +1108,15 @@ const FP_OBJECT_TUTORIALS = {
         heading: 'It bends the flight',
         art: (
           <Art>
-            <circle cx={116} cy={52} r={32} fill={WELL_C} fillOpacity={0.07}
+            <circle cx={104} cy={62} r={28} fill={WELL_C} fillOpacity={0.07}
               stroke={WELL_C} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.8}/>
-            <circle cx={116} cy={52} r={3.5} fill={WELL_C}/>
-            <path d="M8 20 C 60 26, 96 26, 116 52" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.18}
+            <circle cx={104} cy={62} r={3.5} fill={WELL_C}/>
+            {/* The throw it would have been, flat, against the one it becomes:
+                the ball has to come out the far side, or the picture says the
+                well swallows everything, which is the next page's job. */}
+            <path d="M8 22 L200 22" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.18}
               strokeWidth={1.4} strokeDasharray="3 3"/>
-            <ArtBall path="M8,20 C 60,26 96,26 116,52"/>
+            <ArtBall path="M8,22 C 56,22 78,36 104,42 C 130,48 158,40 200,30"/>
           </Art>
         ),
         body: <>
