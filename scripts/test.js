@@ -14,6 +14,8 @@
 //      clock, or a 120Hz phone posts times a 60Hz phone can never match.
 //   4. Shell integrity — a new source file has to land in BOTH index.html and
 //      sw.js's SHELL, and every .jsx needs its compiled .js.
+//   5. Screens render — every top-level screen called once. A screen that
+//      throws on its first render loads perfectly clean and shows nothing.
 //
 // Content coverage is reported but never fails the suite: levels are authored
 // in Supabase while the app ships, so a gap is news, not breakage.
@@ -1162,6 +1164,118 @@ it('explains an empty leaderboard rather than implying there are no scores', () 
   ok(/_emitSyncError\('Leaderboard unavailable: '/.test(accountsJs),
     'a failed leaderboard fetch with no cached copy must surface the reason');
 });
+
+// ── 4c. Screens render ─────────────────────────────────────────────────────
+
+describe('Screens render');
+
+// A screen that throws on its first render loads clean — every script parses,
+// every global resolves — and then shows nothing. How to play shipped that way
+// for a commit, because nothing here had ever called a screen. So call them:
+// the components are plain functions, and a createElement that builds objects
+// instead of DOM is enough to run a whole tree of them.
+const screens = (() => {
+  const h = (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) });
+  const React = {
+    createElement: h, Fragment: 'fragment',
+    isValidElement: x => !!x && typeof x === 'object' && 'type' in x,
+    useState: init => [typeof init === 'function' ? init() : init, () => {}],
+    useRef: init => ({ current: init === undefined ? null : init }),
+    useEffect: () => {}, useLayoutEffect: () => {},
+    useMemo: fn => fn(), useCallback: fn => fn,
+    useReducer: (r, init) => [init, () => {}],
+    memo: c => c, forwardRef: c => c,
+  };
+  const el = () => ({
+    style: {}, classList: { add() {}, remove() {} },
+    appendChild() {}, removeChild() {}, setAttribute() {}, getAttribute: () => null,
+    addEventListener() {}, removeEventListener() {}, focus() {}, getContext: () => null,
+    querySelector: () => null, querySelectorAll: () => [],
+    getBoundingClientRect: () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0 }),
+  });
+  const store = {};
+  const w = {
+    React,
+    ReactDOM: { createRoot: () => ({ render() {} }) },
+    // Enough of a browser to get through module scope. Nothing here is under
+    // test — a screen that needs a real one is testing the wrong thing.
+    localStorage: {
+      getItem: k => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: k => { delete store[k]; },
+    },
+    supabase: { createClient: () => new Proxy({}, { get: () => () => new Promise(() => {}) }) },
+    location: { href: 'http://localhost/', origin: 'http://localhost', search: '', hash: '' },
+    navigator: { userAgent: 'node', onLine: true },
+    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    addEventListener() {}, removeEventListener() {},
+    requestAnimationFrame: () => 0, cancelAnimationFrame() {},
+    setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
+    fetch: () => new Promise(() => {}),
+  };
+  w.window = w; w.self = w;
+  w.document = {
+    createElement: el, createElementNS: el, body: el(), head: el(), documentElement: el(),
+    getElementById: () => null, querySelector: () => null, querySelectorAll: () => [],
+    addEventListener() {}, removeEventListener() {},
+  };
+  // In a browser each file's top-level `const` is a global the next file can
+  // name; under require() it is module-scoped, so mirror window by hand.
+  // Some of Node's own globals are getter-only — those are ours already.
+  const publish = () => { for (const k of Object.keys(w)) { try { global[k] = w[k]; } catch {} } };
+  global.window = w; global.self = w;
+  publish();
+  // In index.html's own order — vendor is stubbed above, not loaded.
+  for (const f of scriptSrcs.filter(p => p.startsWith('src/')).map(p => p.slice(4))) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    publish();
+  }
+  return w;
+})();
+
+// Real shapes, because a screen that reads `settings.theme` or `pack.id` off
+// an empty object fails for a reason that is the test's fault, not the code's.
+const SCREEN_PROPS = {
+  onBack() {}, onHome() {}, onExit() {}, onDone() {}, onNext() {}, onRetry() {},
+  onSelect() {}, onPickLevel() {}, onPickPack() {}, onOpen() {}, onClose() {},
+  onNav() {}, onLegal() {}, updateSetting() {},
+  density: 'comfortable', levelIndex: 0, index: 0, account: null,
+  pack: screens.ROMAN_PACKS[0], progress: screens.freshProgress(),
+  legalKind: 'privacy', which: 'privacy',
+  settings: {
+    theme: 'light', density: 'comfortable', sound: true, volume: 70,
+    gridLabels: true, autoZoom: true, notation: 'pretty',
+  },
+};
+
+// Depth-first through the tree, each component type once — enough to reach a
+// card nested three deep without re-rendering the same row forty times.
+function renderTree(type, props, depth, seen) {
+  if (depth > 6) return;
+  const walk = n => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) return void n.forEach(walk);
+    if (typeof n.type === 'function' && !seen.has(n.type)) {
+      seen.add(n.type);
+      renderTree(n.type, { ...SCREEN_PROPS, ...n.props }, depth + 1, seen);
+    }
+    walk(n.kids);
+    walk(n.props && n.props.children);
+  };
+  walk(type(props));
+}
+
+for (const name of [
+  'MainScreen', 'PackSelector', 'LevelSelector', 'LevelScreen', 'HowToPlayScreen',
+  'AchievementsScreen', 'SettingsScreen', 'AccountScreen', 'LegalScreen',
+  'AdminScreen', 'LevelStudio',
+]) {
+  it(`renders ${name} without throwing`, () => {
+    ok(typeof screens[name] === 'function', `${name} is not on window`);
+    renderTree(screens[name], { ...SCREEN_PROPS }, 0, new Set());
+  });
+}
 
 // ── 5. Level data ──────────────────────────────────────────────────────────
 
