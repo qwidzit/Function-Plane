@@ -97,8 +97,15 @@ believing it.
 - The cursor disappears somewhere → something consumed a token with `cut()`
   and threw the returned element away. `cut` marks the caret *placed*, so
   discarding it loses the cursor entirely. Build every token through `tokEl`,
-  in source order, even where it draws nothing. `npm test` renders `MathExpr`
-  at every offset of a few expressions and counts the cursors.
+  in source order, even where it draws nothing. It has happened twice: the
+  closer of `sin(x)`, and then the brackets of a group's `bare` rendering — the
+  one an exponent and a fraction's half use, which does not typeset them, so
+  the cursor vanished at the end of `a^(x+1)`. *Not drawn* is not *not built*.
+  `npm test` renders `MathExpr` at every offset of a set of expressions and
+  counts the cursors.
+- The caret draws somewhere you cannot tap → `mathHitOffset` skips anything
+  measuring 0×0, so a token drawn as `''` carries a `data-pos` no tap can
+  reach. Give it a zero-width box with a height rather than an empty span.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.

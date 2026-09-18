@@ -1257,6 +1257,15 @@ function buildMath(toks, src, caret) {
     done = true;
     return caretEl();
   };
+  // A token that draws no glyph still has to be tappable, and mathHitOffset
+  // keeps only what has an area on screen — an empty span measures 0x0 and is
+  // skipped. So an empty glyph becomes a zero-width box with a real height: it
+  // takes no room in the line and is still something a tap can land on. The
+  // brackets of √(x) and |x| are drawn by the head rather than by themselves,
+  // and the brackets an exponent or a fraction's half does not typeset are the
+  // same case.
+  const MARK = { display:'inline-block', width:0, height:'1.05em', verticalAlign:'middle' };
+
   // One token's glyphs, with the cursor slipped in if it sits inside it.
   //
   // A number is drawn one digit to a span, each carrying its own position.
@@ -1286,11 +1295,29 @@ function buildMath(toks, src, caret) {
         const k = caret - tk.i;
         body = <>{text.slice(0, k)}{caretEl()}{text.slice(k)}</>;
       }
-      glyphs = <span data-pos={tk.i} data-end={tk.j}>{body}</span>;
+      glyphs = <span data-pos={tk.i} data-end={tk.j} style={text === '' ? MARK : undefined}>{body}</span>;
     }
     const after = !done && caret === tk.j ? (done = true, caretEl()) : null;
     return <>{before}{glyphs}{after}</>;
   };
+  // A bracket, built once and drawn two ways: with its glyph inside an
+  // ordinary group, and as a bare marker above a fraction bar or up in an
+  // exponent, where the brackets are not typeset at all. Both renderings have
+  // to keep the caret that may sit on either side of it and the position a tap
+  // lands on, so the pieces are kept apart here and composed by the caller —
+  // tokEl cannot do it, because it builds one element and marks the caret
+  // placed as a side effect, so it cannot be called twice for one token.
+  const bracket = (tk, text) => {
+    const lead = cut(tk.i);
+    const hit  = <span data-pos={tk.i} data-end={tk.j}>{text}</span>;
+    // Drawn nowhere and still tappable — see MARK.
+    const mark = <span data-pos={tk.i} data-end={tk.j} style={MARK}/>;
+    const trail = !done && caret === tk.j ? (done = true, caretEl()) : null;
+    return { lead, hit, mark, trail };
+  };
+  const shown = b => <>{b.lead}{b.hit}{b.trail}</>;
+  const bared = b => <>{b.lead}{b.mark}{b.trail}</>;
+
   // Where an operand should have been. The cursor lands inside it, which is
   // what makes a fresh fraction or power feel like a box you type into.
   const slot = () => {
@@ -1398,12 +1425,24 @@ function buildMath(toks, src, caret) {
     if (tk.t === 'name') { i++; return { el: <span>{tokEl(tk, tk.v)}</span>, bare: null }; }
     if (tk.t === '(') {
       i++;
+      // In source order: `cut` places the caret the first time it is reached,
+      // so the opening bracket has to be built before what it holds or a caret
+      // at the bracket is drawn one character late, inside the group.
+      const open = bracket(tk, '(');
       const inner = rel();
       let close = null;
-      if (peek() && peek().t === ')') { const ct = peek(); i++; close = tokEl(ct, ')'); }
+      if (peek() && peek().t === ')') { const ct = peek(); i++; close = bracket(ct, ')'); }
       return {
-        el: seq([<span>{tokEl(tk, '(')}</span>, inner, <span style={{ opacity: close ? 1 : 0.4 }}>{close || ')'}</span>]),
-        bare: inner,
+        el: seq([<span>{shown(open)}</span>, inner,
+          close ? <span>{shown(close)}</span> : <span style={{ opacity:0.4 }}>)</span>]),
+        // `bare` is this group with the brackets not drawn — what belongs above
+        // a fraction bar and in an exponent. It used to be `inner` alone, which
+        // threw both brackets away: the caret that `cut` had already placed on
+        // one of them went with them, so the cursor vanished at the end of
+        // a^(x+1) and in the middle of (x+1)/2, and neither bracket could be
+        // tapped. The markers cost nothing and keep both.
+        bare: seq([<span>{bared(open)}</span>, inner,
+          close ? <span>{bared(close)}</span> : null]),
       };
     }
     if (tk.t === 'fn') {

@@ -690,9 +690,26 @@ Three things make that work:
   them *without consuming*, so the `args()` that opened the bracket can close
   it. Swallowing the `)` of an empty `sin()` as a stray token took the call's
   own closer away and left the fallback to draw a second one — `sin((`.
-- `npm test` renders `MathExpr` at **every offset** of a few expressions and
-  counts the cursors, and counts the brackets it draws. Both of those bugs
-  shipped because this layer was only ever checked by eye.
+- **A bracket that is not typeset is still there.** A group returns two
+  renderings: `el`, with its brackets drawn, and `bare`, without them — what
+  belongs above a fraction bar and up in an exponent, because `(x+1)/2` is a
+  fraction over `x+1`, not over `(x+1)`. `bare` used to be the *inside* of the
+  group and nothing else, which threw both bracket elements away — and with
+  them any caret `cut()` had already placed on one. The cursor vanished at the
+  end of `a^(x+1)` and in the middle of `(x+1)/2`, which is the same bug as
+  `sin(x)` by a different route. A group now builds each bracket once, in
+  source order, and keeps its caret in both renderings; only the glyph differs.
+- **A hit target that draws nothing needs a size.** `mathHitOffset` skips
+  anything measuring 0×0, so an empty glyph is a position on paper and nowhere
+  on screen. Every token drawn as `''` — the brackets of `√(x)` and `|x|`,
+  which their head draws instead, and the undrawn brackets above — gets a
+  zero-width box with a real height, which takes no room in the line and is
+  still something a tap can land on.
+- `npm test` renders `MathExpr` at **every offset** of a set of expressions and
+  counts the cursors, counts the brackets it draws, checks that every bracket
+  carries a position, and checks that a target which draws nothing has a
+  height. Every one of those bugs shipped because this layer was only ever
+  checked by eye.
 
 The math keyboard moves the selection directly on the DOM node, which React's
 `onSelect` does not reliably see, so `setCaret()` in `keyboard.jsx` dispatches

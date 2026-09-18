@@ -369,6 +369,17 @@ const carets = (src, caret) => draw(src, caret).filter(n => n && n.props && n.pr
 const positions = src => draw(src, null)
   .filter(n => n && n.props && n.props['data-pos'] != null)
   .map(n => Number(n.props['data-pos']));
+// Every offset a tap can actually land on: mathHitOffset returns data-pos from
+// the left half of an element and data-end from the right, so both count.
+const reachable = src => {
+  const out = new Set();
+  for (const n of draw(src, null)) {
+    if (!n || !n.props || n.props['data-pos'] == null) continue;
+    out.add(Number(n.props['data-pos']));
+    if (n.props['data-end'] != null) out.add(Number(n.props['data-end']));
+  }
+  return out;
+};
 
 it('draws the cursor wherever it is put, including after a call', () => {
   // The closing bracket of a call used to be consumed with its caret element
@@ -384,6 +395,59 @@ it('draws the cursor wherever it is put, including after a call', () => {
     eq(carets('y=sqrt(x)', c), 1, `one cursor at offset ${c} of y=sqrt(x)`);
   }
   eq(carets('y=x^2', 5), 1, 'and at the end of a power');
+  // Then it came back for powers and fractions, by a different route: the
+  // brackets round an exponent or a fraction's half are not typeset, and the
+  // element that carried them — caret and all — was being thrown away. The
+  // cursor vanished at the end of a^(x+1) and in the middle of (x+1)/2.
+  for (const src of ['a^(x+1)', 'y=2^(x+1)', 'y=(x+1)/2', 'y=1/(x+1)',
+                     'y=(x+1)/(x-1)', 'y=x^(x^(x+1))', 'y=sin(x)/(x+1)',
+                     'y=-(x+1)/2', 'y=a^(x', 'y=1/(x']) {
+    for (let c = 0; c <= src.length; c++) {
+      eq(carets(src, c), 1, `one cursor at offset ${c} of ${src}`);
+    }
+  }
+});
+
+it('keeps a bracket tappable even where it is not drawn', () => {
+  // A bracket the typeset layer does not draw is still a place the caret can
+  // sit, so it still has to carry a position. Without one there was nothing
+  // between the exponent's last glyph and the end of the row: you could not
+  // put the cursor after a^(x+1) to type the next thing.
+  for (const [src, offsets] of [
+    ['a^(x+1)',   [2, 6, 7]],
+    ['y=2^(x+1)', [4, 8, 9]],
+    ['y=(x+1)/2', [2, 6, 7]],
+    ['y=1/(x+1)', [4, 8, 9]],
+  ]) {
+    const r = reachable(src);
+    for (const o of offsets) ok(r.has(o), `offset ${o} of ${src} is tappable, got ${[...r].sort((a,b)=>a-b)}`);
+  }
+});
+
+it('gives a hit target that draws nothing a size to be hit on', () => {
+  // mathHitOffset throws away anything measuring 0x0, so a bracket drawn by
+  // something else — the head of sqrt( and abs(, and the brackets an exponent
+  // or a fraction's half does not typeset — needs a box with a height or it is
+  // a position on paper and nowhere on screen.
+  for (const src of ['a^(x+1)', 'y=(x+1)/2', 'y=sqrt(x)', 'y=abs(x)', 'y=1/(x+1)']) {
+    for (const n of draw(src, null)) {
+      if (!n || !n.props || n.props['data-pos'] == null) continue;
+      const kids = [].concat(n.kids || [], n.props.children == null ? [] : n.props.children);
+      if (kids.some(k => k !== '' && k != null)) continue;   // draws a glyph
+      ok(n.props.style && n.props.style.height,
+        `the empty target at offset ${n.props['data-pos']} of ${src} has no height`);
+    }
+  }
+});
+
+it('draws a bracket once whether or not it is typeset', () => {
+  // The bare rendering must not leak a second pair of brackets into a
+  // fraction or an exponent.
+  for (const src of ['y=(x+1)/2', 'y=2^(x+1)', 'y=1/(x+1)']) {
+    eq(text(src, null).split('(').length - 1, 0, `no "(" drawn in ${src}`);
+    eq(text(src, null).split(')').length - 1, 0, `no ")" drawn in ${src}`);
+  }
+  eq(text('y=(x+1)*2', null).split('(').length - 1, 1, 'a group that is not bare keeps its brackets');
 });
 
 it('draws one bracket per bracket', () => {
