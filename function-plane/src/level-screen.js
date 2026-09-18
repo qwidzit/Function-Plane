@@ -3078,12 +3078,23 @@ function EquationsPanel({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 6,
       padding: '0 12px 8px'
     }
-  }, objectsEditable || extraTab ? /*#__PURE__*/React.createElement("div", {
+  }, objectsEditable || extraTab ?
+  /*#__PURE__*/
+  // The studio puts three tabs left of the same controls, which is more
+  // than a narrow phone has room for: below about 400px the row ran off
+  // the edge and took Add equation with it. The strip takes whatever is
+  // left over and scrolls; the controls never shrink, because a button
+  // you cannot reach is worse than a label you have to scroll to.
+  React.createElement("div", {
+    className: "fp-scroll",
     style: {
       display: 'flex',
-      gap: 4
+      gap: 3,
+      minWidth: 0,
+      overflowX: 'auto'
     }
   }, [{
     id: 'eq',
@@ -3103,12 +3114,14 @@ function EquationsPanel({
       switchTab(t.id);
     },
     style: {
-      padding: '4px 10px',
+      padding: '4px 6px',
       borderRadius: 999,
-      fontSize: 11,
-      letterSpacing: '0.06em',
+      fontSize: 10,
+      letterSpacing: '0.02em',
       textTransform: 'uppercase',
       fontWeight: 500,
+      flex: '0 0 auto',
+      whiteSpace: 'nowrap',
       background: tab === t.id ? 'var(--fp-ink)' : 'transparent',
       color: tab === t.id ? 'var(--fp-bg)' : 'var(--fp-ink-3)',
       border: `1px solid ${tab === t.id ? 'var(--fp-ink)' : 'var(--lv-line)'}`
@@ -3116,7 +3129,7 @@ function EquationsPanel({
   }, t.label, t.n != null && /*#__PURE__*/React.createElement("span", {
     className: "fp-mono",
     style: {
-      marginLeft: 5,
+      marginLeft: 3,
       opacity: 0.7
     }
   }, t.n)))) : /*#__PURE__*/React.createElement("div", {
@@ -3136,8 +3149,9 @@ function EquationsPanel({
   }, eqCount)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      gap: 6,
-      alignItems: 'center'
+      gap: 3,
+      alignItems: 'center',
+      flex: '0 0 auto'
     }
   }, tab === 'eq' && activeId !== null && !disabled && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {

@@ -114,6 +114,13 @@ believing it.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.
+- Something in the panel header runs off the edge of a narrow phone → the
+  header is the tab strip against the controls, and by default neither gives.
+  The strip is the part that may shrink (`minWidth: 0`, `overflowX: 'auto'` —
+  a flex item will not shrink below its content without the first); the
+  controls take `flex: '0 0 auto'`, because a label you scroll to beats a
+  button you cannot reach. The studio's three tabs pushed Add equation clean
+  off screen below about 400px, which is most phones.
 - A list inside `EquationsPanel` collapses to a sliver when a keyboard opens →
   `flex: 1` has a zero basis, so it contributes nothing to the panel's own
   height. Use `flex: '1 1 auto'` with `minHeight: 0`.

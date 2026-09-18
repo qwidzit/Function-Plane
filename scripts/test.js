@@ -561,6 +561,51 @@ it('leaves a bracket the way every other key does', () => {
   eq(typeKeys(['1', 'fraction', 'x', ')', '+', '2']).value, '1/(x)+2');
 });
 
+// ── 1b4. The equations panel header ────────────────────────────────────────
+
+describe('Equations panel header');
+
+it('keeps the panel controls on screen next to three tabs', () => {
+  // The studio puts Equations / Objects / Level left of the keyboard toggle,
+  // Done, Hide panel and Add equation. On a 360px phone that is wider than the
+  // row, and Add equation was pushed clean off the edge. The strip has to be
+  // the part that gives — shrinkable and scrollable — and the controls the
+  // part that does not, because a label you scroll to beats a button you
+  // cannot reach. Measured in a browser at 320-420px; this pins the two style
+  // properties that decide it.
+  const w2 = { React: {
+    createElement: (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) }),
+    Fragment: 'fragment',
+    isValidElement: x => !!x && typeof x === 'object' && 'type' in x,
+    useState: init => [typeof init === 'function' ? init() : init, () => {}],
+    useRef: init => ({ current: init === undefined ? null : init }),
+    useEffect: () => {}, useMemo: fn => fn(),
+  } };
+  global.window = w2; global.React = w2.React;
+  global.document = { createElement: () => ({}), addEventListener() {}, removeEventListener() {}, body: {} };
+  global.navigator = { userAgent: 'node' };
+  for (const f of ['physics-config.js', 'physics-engine.js', 'equation-classifier.js',
+                   'keyboard.js', 'level-objects.js', 'data.js', 'level-screen.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w2);
+  }
+  const nodes = flatten(w2.EquationsPanel({
+    equations: [], setEquations() {}, expanded: true, onToggle() {}, disabled: false,
+    notation: 'pretty', allowedClass: null, classWarning: null, materialsOn: true,
+    objects: [], setObjects() {}, selectedObj: null, onSelectObj() {}, placeAt: () => ({ x: 0, y: 0 }),
+    extraTab: { label: 'Level', content: null }, suppressKeyboard: false,
+  })).filter(n => n && n.props && n.props.style);
+
+  const strip = nodes.find(n => n.props.className === 'fp-scroll' && n.props.style.overflowX === 'auto');
+  ok(strip, 'the tab strip scrolls rather than pushing the controls off');
+  eq(strip.props.style.minWidth, 0, 'and it may shrink — a flex item will not without this');
+
+  const ctrl = nodes.find(n => n.props.style.flex === '0 0 auto' && n.props.style.display === 'flex'
+    && n.props.style.alignItems === 'center');
+  ok(ctrl, 'the control cluster holds its width');
+});
+
 // ── 1c. Achievements ───────────────────────────────────────────────────────
 
 describe('Achievements');

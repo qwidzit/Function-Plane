@@ -1909,18 +1909,24 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
       </button>
 
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px 8px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, padding:'0 12px 8px' }}>
         {(objectsEditable || extraTab) ? (
-          <div style={{ display:'flex', gap:4 }}>
+          // The studio puts three tabs left of the same controls, which is more
+          // than a narrow phone has room for: below about 400px the row ran off
+          // the edge and took Add equation with it. The strip takes whatever is
+          // left over and scrolls; the controls never shrink, because a button
+          // you cannot reach is worse than a label you have to scroll to.
+          <div className="fp-scroll" style={{ display:'flex', gap:3, minWidth:0, overflowX:'auto' }}>
             {[{ id:'eq', label:'Equations', n: eqCount },
               ...(objectsEditable ? [{ id:'obj', label:'Objects', n: objects.length }] : []),
               ...(extraTab ? [{ id:'extra', label: extraTab.label }] : [])].map(t => (
               <button key={t.id} onPointerDown={e=>{e.preventDefault(); switchTab(t.id);}} style={{
-                padding:'4px 10px', borderRadius:999, fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase', fontWeight:500,
+                padding:'4px 6px', borderRadius:999, fontSize:10, letterSpacing:'0.02em', textTransform:'uppercase', fontWeight:500,
+                flex:'0 0 auto', whiteSpace:'nowrap',
                 background: tab === t.id ? 'var(--fp-ink)' : 'transparent',
                 color: tab === t.id ? 'var(--fp-bg)' : 'var(--fp-ink-3)',
                 border: `1px solid ${tab === t.id ? 'var(--fp-ink)' : 'var(--lv-line)'}`,
-              }}>{t.label}{t.n != null && <span className="fp-mono" style={{ marginLeft:5, opacity:0.7 }}>{t.n}</span>}</button>
+              }}>{t.label}{t.n != null && <span className="fp-mono" style={{ marginLeft:3, opacity:0.7 }}>{t.n}</span>}</button>
             ))}
           </div>
         ) : (
@@ -1930,7 +1936,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
             </span>
           </div>
         )}
-        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+        <div style={{ display:'flex', gap:3, alignItems:'center', flex:'0 0 auto' }}>
           {tab === 'eq' && activeId !== null && !disabled && (
             <button onPointerDown={e=>{e.preventDefault(); setKbVisible(v=>!v);}}
               title={kbVisible ? 'Hide keyboard' : 'Show keyboard'}
