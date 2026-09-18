@@ -3,8 +3,13 @@
 // One screen, two jobs. As the *sandbox* it is the game with the goals taken
 // away: graph anything, place fans and hazards, run the ball, see what
 // happens. As the *admin editor* it is the same screen with a level loaded
-// into it, a Level tab for the name and goals, and a Save button — so a level
-// is authored by playing it, not by typing coordinates into a form.
+// into it, the goals and the Save button on the Level tab — so a level is
+// authored by playing it, not by typing coordinates into a form.
+//
+// Both modes have that Level tab, and both can write the board to a file and
+// read one back (see *Level files* below). That is the bridge between them:
+// the sandbox is where a level gets worked out, and the editor is where it
+// gets saved, and until now nothing carried a board from one to the other.
 //
 // Objects, stars and the spawn are things you select and move — by dragging
 // on the plane or by editing their numbers — never things you scatter by
@@ -34,6 +39,108 @@ const STUDIO_STARS = [{
   y: -2
 }];
 const STUDIO_LIMIT = 30; // seconds of sim before a free run stops on its own
+
+// ── Level files ──────────────────────────────────────────────────────────
+// The whole board as one JSON document — what Export writes and Import reads,
+// in both modes, so a level worked out in the sandbox can be carried into the
+// admin editor and a saved level can be taken back out to play with. The
+// fields are named as levels/*.json names them, so an export drops straight
+// into a pack draft.
+//
+// The sandbox shows only the name, but it holds the goals, hint and explainer
+// it read and writes them back out: a file that survives a round trip through
+// the sandbox is the point, and silently dropping the half it cannot display
+// would defeat it.
+const LEVEL_FILE = 'function-plane/level';
+
+// Export and Import are peers, and neither is the primary action on the tab —
+// outlined rather than filled, so Save still reads as the thing to press.
+const FILE_BTN = {
+  flex: 1,
+  height: 38,
+  borderRadius: 10,
+  background: 'var(--fp-surface)',
+  border: '1px solid var(--lv-line)',
+  color: 'var(--fp-ink)',
+  fontSize: 13,
+  fontWeight: 500
+};
+const pt = p => ({
+  x: Number(p?.x) || 0,
+  y: Number(p?.y) || 0
+});
+// The goal fields are edited as strings, because a half-typed one is not a
+// number yet. Empty stays empty rather than becoming 0.
+const goalOut = s => {
+  const t = String(s).trim();
+  return t && isFinite(Number(t)) ? Number(t) : null;
+};
+const goalIn = v => v == null || !isFinite(v) ? '' : String(v);
+function levelToFile(b) {
+  return {
+    format: LEVEL_FILE,
+    version: 1,
+    name: b.name.trim() || null,
+    ball: pt(b.ball),
+    stars: b.stars.map(pt),
+    objects: b.objects.map(o => ({
+      ...o
+    })),
+    // A blank row is something you are about to type into, not part of the level.
+    equations: b.equations.filter(e => e.expr.trim()).map(e => ({
+      expr: e.expr,
+      domain: e.domain || null,
+      material: e.material || null,
+      visible: e.visible !== false
+    })),
+    scoreGoal: goalOut(b.scoreGoal),
+    eqGoal: goalOut(b.eqGoal),
+    materials: !!b.materials,
+    hint: b.hint.trim() || null,
+    explain: b.explain || null
+  };
+}
+function fileToLevel(doc) {
+  if (!doc || doc.format !== LEVEL_FILE) throw new Error('Not a Function Plane level file');
+  const stars = Array.isArray(doc.stars) ? doc.stars.map(pt) : [];
+  if (!stars.length) throw new Error('That file has no stars');
+  // Sliders are per-board, the way they are when the studio first opens.
+  window.FP_PARAMS = {};
+  const equations = (Array.isArray(doc.equations) ? doc.equations : []).filter(e => e && typeof e.expr === 'string' && e.expr.trim()).map((e, i) => {
+    const segs = (Array.isArray(e.domain) ? e.domain : []).filter(d => isFinite(d?.xMin) && isFinite(d?.xMax)).map(d => ({
+      xMin: Number(d.xMin),
+      xMax: Number(d.xMax)
+    }));
+    return {
+      id: i + 1,
+      expr: e.expr,
+      ...parseEquation(e.expr),
+      color: SIM.EQ_COLORS[i % SIM.EQ_COLORS.length],
+      visible: e.visible !== false,
+      // An empty segment list is not "no restriction" — it is a curve with
+      // nowhere to draw. Only a real segment becomes a domain.
+      domain: segs.length ? segs : null,
+      material: e.material === 'dead' || e.material === 'rubber' ? e.material : null,
+      preplaced: false
+    };
+  });
+  return {
+    name: typeof doc.name === 'string' ? doc.name : '',
+    ball: pt(doc.ball),
+    stars,
+    // An unknown kind draws nothing and does nothing; getLevelData drops one
+    // on the same grounds rather than carrying a hole around.
+    objects: (Array.isArray(doc.objects) ? doc.objects : []).filter(o => o && FP_OBJECTS.KINDS[o.kind]).map(o => ({
+      ...o
+    })),
+    equations,
+    scoreGoal: goalIn(doc.scoreGoal),
+    eqGoal: goalIn(doc.eqGoal),
+    materials: !!doc.materials,
+    hint: typeof doc.hint === 'string' ? doc.hint : '',
+    explain: typeof doc.explain === 'string' ? doc.explain : ''
+  };
+}
 
 // mode: 'sandbox' | 'admin'. In admin mode pack/levelIndex name the level
 // being edited and onSaved runs after a successful write.
@@ -99,7 +206,9 @@ function LevelStudio({
   const [explain, setExplain] = useLS(admin ? level.explain || '' : '');
   const [hint, setHint] = useLS(admin ? level.hint || '' : '');
   const [busy, setBusy] = useLS(false);
-  const [msg, setMsg] = useLS('');
+  // { text, bad } — Save, Export and Import all report here, and only some of
+  // what they report is a failure.
+  const [msg, setMsg] = useLS(null);
   // The selected thing's x / y, edited with the game's keypad rather than the
   // device's: an <input type="number"> cannot reliably suppress the native
   // keyboard on Android, and it mangles a half-typed "-" on the way through.
@@ -292,7 +401,7 @@ function LevelStudio({
   };
   const save = async () => {
     setBusy(true);
-    setMsg('');
+    setMsg(null);
     try {
       const patch = {
         name: name.trim() || null,
@@ -313,10 +422,15 @@ function LevelStudio({
       if (!patch.stars.length) throw new Error('At least one star is required');
       if (!isFinite(patch.score_goal) || !isFinite(patch.eq_goal)) throw new Error('Both star goals are required');
       await FP_AUTH.saveLevelOverride(pack.id, levelIndex, patch);
-      setMsg('Saved');
+      setMsg({
+        text: 'Saved'
+      });
       onSaved && (await onSaved());
     } catch (e) {
-      setMsg(e.message);
+      setMsg({
+        text: e.message,
+        bad: true
+      });
     } finally {
       setBusy(false);
     }
@@ -328,7 +442,65 @@ function LevelStudio({
       y: Math.round(c.cy * 4) / 4
     };
   };
-  const levelTab = admin ? {
+  const fileRef = useLSR(null);
+  const exportLevel = () => {
+    const doc = levelToFile({
+      name,
+      ball,
+      stars,
+      objects,
+      equations,
+      scoreGoal,
+      eqGoal,
+      materials,
+      hint,
+      explain
+    });
+    const slug = (doc.name || (admin ? `${pack.id}-${levelIndex + 1}` : 'sandbox')).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'level';
+    const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], {
+      type: 'application/json'
+    }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slug}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoking in the same tick cancels the download before the WebView has
+    // read the blob.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setMsg({
+      text: `Exported ${slug}.json`
+    });
+  };
+  const importLevel = file => {
+    if (!file) return;
+    file.text().then(txt => {
+      const next = fileToLevel(JSON.parse(txt));
+      setName(next.name);
+      setBall(next.ball);
+      setStars(next.stars);
+      setObjects(next.objects);
+      setEquations(next.equations);
+      setScoreGoal(next.scoreGoal);
+      setEqGoal(next.eqGoal);
+      setMaterials(next.materials);
+      setHint(next.hint);
+      setExplain(next.explain);
+      setSelected(null);
+      setTrail(null);
+      // A board from somewhere else is somewhere else on the plane; this is
+      // the one moment re-framing is not throwing away a composed view.
+      setFitTrigger(v => (v || 0) + 1);
+      setMsg({
+        text: `Imported ${file.name}`
+      });
+    }).catch(e => setMsg({
+      text: e instanceof SyntaxError ? 'That file is not JSON' : e.message,
+      bad: true
+    }));
+  };
+  const levelTab = {
     label: 'Level',
     content: /*#__PURE__*/React.createElement("div", {
       style: {
@@ -338,8 +510,8 @@ function LevelStudio({
       label: "Level name",
       value: name,
       onChange: setName,
-      placeholder: window.LEVEL_NAMES?.[levelIndex]
-    }), /*#__PURE__*/React.createElement("div", {
+      placeholder: admin ? window.LEVEL_NAMES?.[levelIndex] : 'Untitled'
+    }), admin && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 10
@@ -476,7 +648,54 @@ function LevelStudio({
         lineHeight: 1.5,
         marginBottom: 10
       }
-    }, "Every equation on the Equations tab is saved as pre-placed: players see it, can't change it, and aren't charged for it.", gravityFlip && ' This pack flips gravity on every bounce — test runs here do too.'), /*#__PURE__*/React.createElement("button", {
+    }, "Every equation on the Equations tab is saved as pre-placed: players see it, can't change it, and aren't charged for it.", gravityFlip && ' This pack flips gravity on every bounce — test runs here do too.')), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: 'var(--fp-ink-3)',
+        marginBottom: 6,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase'
+      }
+    }, "File"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: exportLevel,
+      disabled: running,
+      style: {
+        ...FILE_BTN,
+        opacity: running ? 0.4 : 1
+      }
+    }, "Export"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => fileRef.current?.click(),
+      disabled: running,
+      style: {
+        ...FILE_BTN,
+        opacity: running ? 0.4 : 1
+      }
+    }, "Import")), /*#__PURE__*/React.createElement("input", {
+      ref: fileRef,
+      type: "file",
+      accept: "application/json,.json",
+      style: {
+        display: 'none'
+      },
+      onChange: e => {
+        importLevel(e.target.files?.[0]);
+        e.target.value = '';
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--fp-ink-4)',
+        marginTop: 4,
+        marginBottom: 12,
+        lineHeight: 1.5
+      }
+    }, "The spawn, the stars, the objects, every equation and the goals, as one JSON file. Import replaces the whole board", admin ? ' — it does not save; the button below does' : '', "."), admin && /*#__PURE__*/React.createElement("button", {
       onClick: save,
       disabled: busy || running,
       style: {
@@ -494,10 +713,10 @@ function LevelStudio({
         marginTop: 8,
         fontSize: 12,
         textAlign: 'center',
-        color: msg === 'Saved' ? 'var(--fp-accent)' : '#e34'
+        color: msg.bad ? '#e34' : 'var(--fp-accent)'
       }
-    }, msg))
-  } : null;
+    }, msg.text))
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",
     style: {
@@ -868,3 +1087,11 @@ function StudioField({
   }));
 }
 window.LevelStudio = LevelStudio;
+// The two halves of the level file, out where npm test can round-trip them.
+// The format is not only the studio's: a levels/*.json draft is the same
+// shape written by hand, so a change here has to stay honest about both.
+window.FP_LEVEL_FILE = {
+  LEVEL_FILE,
+  levelToFile,
+  fileToLevel
+};

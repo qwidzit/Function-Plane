@@ -507,6 +507,30 @@ the ball leaves the world, dies on a hazard, or a 30s clock expires;
 collecting every star just makes the noise. In admin mode the run also ends
 half a second after the last star, the way a level does.
 
+**The Level tab, and level files.** Both modes carry a Level tab. In the
+sandbox it holds the level's name and the two file buttons; in admin it holds
+the goals, the hint, the explainer, the bounce switch and Save as well. Export
+writes the whole board — spawn, stars, objects, every equation with its cut and
+its material, and the goals — as one JSON document, and Import reads one back
+and replaces the board with it. That is the bridge the two modes never had: a
+level is worked out in the sandbox and saved in the editor, and until now
+nothing carried a board from one screen to the other.
+
+The document's fields are named the way `levels/*.json` names them, so an
+export drops into a pack draft, and `format: 'function-plane/level'` is checked
+on the way in — a JSON file that does not say what it is is not a level, and
+nor is one with no stars. An object of an unknown kind is dropped on the same
+grounds `getLevelData` drops one, an unknown material reads as none, and an
+empty domain segment list becomes no domain rather than a curve with nowhere to
+draw. Import re-frames the view: that is the one moment re-framing is not
+throwing away a view someone composed.
+
+The sandbox shows only the name, but it **holds** the goals, hint and explainer
+it read and writes them back out unchanged. A file that survives a round trip
+through the sandbox is the whole point, and quietly dropping the half that
+screen cannot display would defeat it — `npm test` exports a board, parses it
+back and exports again, and the second document has to equal the first.
+
 In admin mode every row on the Equations tab is saved as **pre-placed** —
 players see it, can't change it, and aren't charged for it — and the test run
 uses the pack's `modifier`, so an Inversion level flips during authoring too.
@@ -578,7 +602,8 @@ hardware (see *Sim timing*); the wind animation is the *drawing*, the force
 is the same every tick, and `npm test` runs the same field twice to prove it.
 
 **Materials** are not objects — they belong to the curve. On a level with
-`materials` on (and always in the sandbox) every row gets a three-state
+`materials` on (and in the sandbox, unless an imported level says otherwise)
+every row gets a three-state
 bounce toggle: normal, **dead** (the ball lands and rolls) and **rubber**
 (perfectly elastic). Dead curves draw heavier, rubber ones dashed like a
 spring, so the material reads from the plane and not only from the row. Run

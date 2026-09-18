@@ -1330,6 +1330,82 @@ it('keeps the star count and the lit stars in step', () => {
   eq(w.starCount(0), 0);
 });
 
+it('round-trips a studio board through a level file', () => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w; global.self = w; global.React = w.React;
+  global.document  = { createElement: () => ({ style: {} }), addEventListener() {}, body: {} };
+  global.navigator = { userAgent: 'node' };
+  for (const f of ['physics-config.js', 'physics-engine.js', 'equation-classifier.js',
+                   'level-objects.js', 'data.js', 'level-screen.js', 'level-studio.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  const { levelToFile, fileToLevel } = w.FP_LEVEL_FILE;
+
+  const board = {
+    name: '  The fold  ',
+    ball: { x: -8, y: 6 },
+    stars: [{ x: -5.5, y: 1.5 }, { x: 2.25, y: 2 }],
+    objects: [{ kind: 'hazard', x: -7, y: -2, w: 4, h: 2 }],
+    equations: [
+      { expr: 'y=-1.15x-4.75', domain: [{ xMin: -16, xMax: -4 }], material: null,     visible: true },
+      { expr: 'y=-3',          domain: null,                      material: 'rubber', visible: true },
+      { expr: 'y=x^2',         domain: null,                      material: null,     visible: false },
+      { expr: '   ',           domain: null,                      material: null,     visible: true },
+    ],
+    scoreGoal: '50', eqGoal: '2', materials: true, hint: 'Use 2 functions', explain: '',
+  };
+
+  // Through JSON, because that is what a file is.
+  const doc  = JSON.parse(JSON.stringify(levelToFile(board)));
+  const back = fileToLevel(doc);
+
+  eq(doc.format, w.FP_LEVEL_FILE.LEVEL_FILE, 'the file says what it is');
+  eq(doc.equations.length, 3, 'a blank row is not part of the level');
+  eq(back.name, 'The fold', 'the name comes back trimmed');
+  eq(back.ball.x, -8); eq(back.ball.y, 6);
+  eq(back.stars.length, 2);
+  eq(back.stars[0].x, -5.5);
+  eq(back.objects.length, 1);
+  eq(back.objects[0].kind, 'hazard');
+  eq(back.objects[0].w, 4, 'an object keeps the fields its kind defines');
+  eq(back.equations.length, 3);
+  eq(back.equations[0].expr, 'y=-1.15x-4.75');
+  eq(back.equations[0].domain[0].xMax, -4, 'a cut survives the trip');
+  eq(back.equations[1].material, 'rubber', 'so does a material');
+  eq(back.equations[2].visible, false, 'so does a hidden row');
+  ok(typeof back.equations[0].fn === 'function', 'an imported row is parsed, not just text');
+  // The sandbox shows none of these, and still has to hand them back.
+  eq(back.scoreGoal, '50'); eq(back.eqGoal, '2');
+  eq(back.materials, true); eq(back.hint, 'Use 2 functions');
+
+  // A second lap must change nothing.
+  eq(JSON.stringify(levelToFile(back)), JSON.stringify(doc), 'the format is stable under a second export');
+});
+
+it('refuses a file that is not a level, and drops what it cannot use', () => {
+  const { levelToFile, fileToLevel, LEVEL_FILE } = global.window.FP_LEVEL_FILE;
+  let threw = false;
+  try { fileToLevel({ hello: 'world' }); } catch { threw = true; }
+  ok(threw, 'a JSON file with no format is not a level');
+  threw = false;
+  try { fileToLevel({ format: LEVEL_FILE, stars: [] }); } catch { threw = true; }
+  ok(threw, 'a level with no stars is not playable');
+
+  const back = fileToLevel({
+    format: LEVEL_FILE, stars: [{ x: 0, y: 0 }],
+    objects: [{ kind: 'fan', x: 0, y: 0, angle: 90, len: 4, w: 2, strength: 20 },
+              { kind: 'antigrav', x: 0, y: 0 }],
+    equations: [{ expr: 'y=x', domain: [] }, { expr: 'y=2x', material: 'lead' }],
+  });
+  eq(back.objects.length, 1, 'an unknown kind is dropped, as getLevelData drops it');
+  eq(back.equations[0].domain, null, 'an empty segment list is no domain, not a curve with nowhere to draw');
+  eq(back.equations[1].material, null, 'an unknown material is no material');
+  eq(back.ball.x, 0, 'a missing spawn lands at the origin rather than at NaN');
+  eq(levelToFile({ ...back, name: '' }).name, null, 'an unnamed level exports a null name');
+});
+
 it('ships a parseable override snapshot', () => {
   ok(snapshot && snapshot.data, 'snapshot missing');
   ok(Array.isArray(snapshot.data.levels), 'snapshot.data.levels must be an array');
