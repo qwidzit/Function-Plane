@@ -1,0 +1,687 @@
+{
+  "packId": "s-lin",
+  "name": "Linear",
+  "notes": "Themed pack I. Boards authored in the studio and exported with the Level tab; the answers here were found by sweeping straight lines through the real run loop, and every one of them classifies as linear or const so the pack’s own restriction lets it through. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "levels": [
+    {
+      "index": 0,
+      "name": "Not a slope",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -2.5,
+          "y": 1.5
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 2.5,
+          "y": 1.5
+        }
+      ],
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "A bowl of three stars, symmetric about the axis — the shape of a parabola, which no straight line has. The ramp is one side of it and the elastic floor throws the ball up the other.",
+      "solutions": [
+        {
+          "name": "steep ramp, high floor",
+          "eqs": [
+            {
+              "expr": "y=-1.1x-2.75",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=0.25",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower",
+          "eqs": [
+            {
+              "expr": "y=-0.9x-2.25",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=0.25",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "floor dropped",
+          "eqs": [
+            {
+              "expr": "y=-1x-2.5",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=-0.5",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "name": "Asymptote",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Linear",
+      "objects": [],
+      "ball": {
+        "x": -3,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -1.5,
+          "y": 2.5
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Two stars on a fall and one out flat to the right, the way a hyperbola leaves its asymptote. One plain line is enough — the ball does the bending.",
+      "solutions": [
+        {
+          "name": "the steep read",
+          "eqs": [
+            "y=-0.54x+0.5"
+          ]
+        },
+        {
+          "name": "shallower",
+          "eqs": [
+            "y=-0.4x+0.5"
+          ]
+        },
+        {
+          "name": "shallower still",
+          "eqs": [
+            "y=-0.22x+0.25"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Damping",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use rubber material",
+      "objects": [],
+      "ball": {
+        "x": -7,
+        "y": 7
+      },
+      "stars": [
+        {
+          "x": -3.5,
+          "y": 3
+        },
+        {
+          "x": 2.5,
+          "y": 3
+        },
+        {
+          "x": 7.5,
+          "y": -1
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Two stars at the same height and one far below and right: a wave with the energy going out of it. A perfectly elastic ramp gives back the whole drop, and the arcs shorten as the ball runs out of hill.",
+      "solutions": [
+        {
+          "name": "steep elastic ramp",
+          "eqs": [
+            {
+              "expr": "y=-0.5x-3.25",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower",
+          "eqs": [
+            {
+              "expr": "y=-0.4x-2.5",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower still",
+          "eqs": [
+            {
+              "expr": "y=-0.3x-2.5",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "Only up",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use rubber material",
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": 1,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 3
+        },
+        {
+          "x": -2,
+          "y": 1
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Every star is above the one before it and the ball starts above all of them, so the answer is not a track but a rebound: only a perfectly elastic line returns enough of the fall to keep climbing.",
+      "solutions": [
+        {
+          "name": "the steep rebound",
+          "eqs": [
+            {
+              "expr": "y=-0.34x-2.75",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower, lower",
+          "eqs": [
+            {
+              "expr": "y=-0.3x-3.5",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower again",
+          "eqs": [
+            {
+              "expr": "y=-0.22x-5",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "name": "Uphill",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use rubber material",
+      "objects": [],
+      "ball": {
+        "x": 6,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": 3,
+          "y": -1
+        },
+        {
+          "x": 5,
+          "y": 0
+        },
+        {
+          "x": -3,
+          "y": 1
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "The ball starts on the right and the last star is up and to the left, so it has to climb the whole way. A line that rises by a hundredth per unit is all the hill an elastic bounce needs; the flatter you leave it the longer the run takes.",
+      "solutions": [
+        {
+          "name": "the quick climb",
+          "eqs": [
+            {
+              "expr": "y=0.09x-2",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "flatter",
+          "eqs": [
+            {
+              "expr": "y=0.02x-2",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "flatter still",
+          "eqs": [
+            {
+              "expr": "y=0.01x-1.25",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "The arch",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 7.25
+      },
+      "stars": [
+        {
+          "x": -1,
+          "y": -3
+        },
+        {
+          "x": 0.75,
+          "y": -6
+        },
+        {
+          "x": 1.75,
+          "y": -2
+        },
+        {
+          "x": -6.75,
+          "y": -8
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Four stars with the lowest of them far out to the left, behind where the ball starts. Author-solved with two lines; the answer is deliberately not recorded here, so verify:levels leaves this one alone. A machine sweep of one-, two- and three-line families got three of the four stars and never the fourth, which is the level working as intended.",
+      "solutions": []
+    },
+    {
+      "index": 6,
+      "name": "Back and forth",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 3 functions",
+      "objects": [],
+      "ball": {
+        "x": -8,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 2
+        },
+        {
+          "x": -4,
+          "y": 0
+        },
+        {
+          "x": -4,
+          "y": 4
+        },
+        {
+          "x": 8,
+          "y": 2
+        },
+        {
+          "x": 8,
+          "y": 0
+        },
+        {
+          "x": 8,
+          "y": 4
+        }
+      ],
+      "scoreGoal": 70,
+      "eqGoal": 3,
+      "intent": "Two columns of three stars, twelve units apart. One pass takes one star out of each column, so the ball has to cross both three times — an elastic floor to keep the arcs alive, a wall to turn it round, and a ramp to set it going.",
+      "solutions": [
+        {
+          "name": "steep ramp, near wall",
+          "eqs": [
+            {
+              "expr": "y=-0.55x-2",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=0.2",
+              "material": "rubber"
+            },
+            "x=9"
+          ]
+        },
+        {
+          "name": "shallower, wall out",
+          "eqs": [
+            {
+              "expr": "y=-0.45x-2.5",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=0.2",
+              "material": "rubber"
+            },
+            "x=10"
+          ]
+        },
+        {
+          "name": "the slow sweep",
+          "eqs": [
+            {
+              "expr": "y=-0.4x-2",
+              "material": "rubber"
+            },
+            {
+              "expr": "y=0",
+              "material": "rubber"
+            },
+            "x=9"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "name": "Frame perfect",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use rubber material",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 2.75,
+          "y": 5.5,
+          "w": 0.5,
+          "h": 3
+        },
+        {
+          "kind": "hazard",
+          "x": 2.75,
+          "y": -1.5,
+          "w": 0.5,
+          "h": 10
+        }
+      ],
+      "ball": {
+        "x": -4,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": 2.75,
+          "y": 3.75
+        },
+        {
+          "x": -4,
+          "y": -0.75
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "A slot half a unit tall with a star sitting in it. The ball has to be bouncing at exactly that height when it arrives, which is one line and a lot of nerve.",
+      "solutions": [
+        {
+          "name": "steep and early",
+          "eqs": [
+            {
+              "expr": "y=-0.4x-1.9",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "the middle",
+          "eqs": [
+            {
+              "expr": "y=-0.28x-3.3",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallow and late",
+          "eqs": [
+            {
+              "expr": "y=-0.15x-3.1",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "name": "Escalator",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -2,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": -4
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": -2,
+          "y": -2
+        },
+        {
+          "x": 2,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Four stars on y = x. A ball dropped on that rail rolls down it and takes the two below the spawn; the two above need throwing up there first, off an elastic ramp cut short so it does not catch the ball on the way back.",
+      "solutions": [
+        {
+          "name": "dead rail, steep kicker",
+          "eqs": [
+            {
+              "expr": "y=1x-0.5",
+              "material": "dead"
+            },
+            {
+              "expr": "y=-0.8x+2.25",
+              "material": "rubber",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "kicker laid back",
+          "eqs": [
+            {
+              "expr": "y=1x-0.25",
+              "material": "dead"
+            },
+            {
+              "expr": "y=-0.6x+3.25",
+              "material": "rubber",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "a live rail",
+          "eqs": [
+            "y=1x+0.5",
+            {
+              "expr": "y=-0.7x+2",
+              "material": "rubber",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "name": "The peak",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -6,
+        "y": 3
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": -2
+        },
+        {
+          "x": -2,
+          "y": -2
+        },
+        {
+          "x": 0,
+          "y": 1.25
+        },
+        {
+          "x": 2,
+          "y": -2
+        },
+        {
+          "x": 4,
+          "y": -2
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Four stars flat on the ground with a fifth over the middle of them. The ramp takes the high one on the way past and drops the ball on the right; the shelf tilts up just enough that the ball runs out of speed and comes back over the other four.",
+      "solutions": [
+        {
+          "name": "steep ramp, steep shelf",
+          "eqs": [
+            {
+              "expr": "y=-0.26x+0.8",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.5
+                }
+              ]
+            },
+            {
+              "expr": "y=0.18x-2.2",
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "the middle",
+          "eqs": [
+            {
+              "expr": "y=-0.24x+1.2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.5
+                }
+              ]
+            },
+            {
+              "expr": "y=0.12x-2.3",
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "the long way back",
+          "eqs": [
+            {
+              "expr": "y=-0.26x+1.2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": 0.5
+                }
+              ]
+            },
+            "y=0.1x-2.1"
+          ]
+        }
+      ]
+    }
+  ]
+}

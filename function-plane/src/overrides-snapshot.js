@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-17T10:25:21.818Z
+// Generated: 2026-09-18T14:11:51.273Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -10,121 +10,121 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "pack_id": "r-I",
     "name": "Foundations",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T10:25:00.505477+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "r-II",
     "name": "Crosswinds",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T10:25:00.505477+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "r-III",
     "name": "Weightless",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T10:25:00.505477+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "r-IV",
     "name": "Attraction",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T10:25:10.50308+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "r-IX",
     "name": "Transforms",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-05-05T04:04:13.324+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "r-V",
     "name": "Mastery",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T10:25:00.505477+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "r-VI",
     "name": "Asymptotes",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-05-05T04:04:27.357+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "r-VII",
     "name": "Compositions",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-05-05T04:04:22.394+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "r-VIII",
     "name": "Discontinuities",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-05-05T04:04:17.685+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "r-X",
     "name": "Mastery",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-05-05T04:04:06.242+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "s-exp",
     "name": "Exponential",
     "allowed_class": "exp",
-    "modifier": null,
     "updated_at": "2026-05-08T16:29:59.47+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    },
    {
     "pack_id": "s-flip",
     "name": "Inversion",
     "allowed_class": null,
-    "modifier": "gravityFlip",
     "updated_at": "2026-09-17T10:20:41.782498+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": "gravityFlip"
    },
    {
     "pack_id": "s-lin",
     "name": "Linear",
     "allowed_class": "linear",
-    "modifier": null,
     "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "s-qua",
     "name": "Geometry",
     "allowed_class": null,
-    "modifier": null,
     "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": false
+    "is_hidden": false,
+    "modifier": null
    },
    {
     "pack_id": "s-trig",
     "name": "Trigonometry",
     "allowed_class": "trig",
-    "modifier": null,
     "updated_at": "2026-09-17T09:50:53.553429+00:00",
-    "is_hidden": true
+    "is_hidden": true,
+    "modifier": null
    }
   ],
   "levels": [
@@ -1448,6 +1448,795 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "materials": true,
     "explain": null,
     "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 0,
+    "name": "Capture",
+    "ball_x": -6,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -3.5,
+      "y": 1.75
+     },
+     {
+      "x": -0.5,
+      "y": 0.5
+     },
+     {
+      "x": 3.5,
+      "y": 0.75
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T17:57:57.469+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.8,
+      "x": 3.5,
+      "y": 0.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 1,
+    "name": "Inside",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2,
+      "y": 2
+     },
+     {
+      "x": 0.5,
+      "y": -0.5
+     },
+     {
+      "x": 0.5,
+      "y": 2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.5,
+      "x": 0.5,
+      "y": 2,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 2,
+    "name": "Low road",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2,
+      "y": 2
+     },
+     {
+      "x": 2,
+      "y": 1
+     },
+     {
+      "x": 6,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.5,
+      "x": 2,
+      "y": 3,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 3,
+    "name": "The rim",
+    "ball_x": -5,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -4.5,
+      "y": 3
+     },
+     {
+      "x": 2.25,
+      "y": -1
+     },
+     {
+      "x": 4.75,
+      "y": 4
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 3,
+      "x": 5.5,
+      "y": 4,
+      "damp": 1.2,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Quadratic",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 4,
+    "name": "Mild Sympathy",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2.5,
+      "y": 2
+     },
+     {
+      "x": 0,
+      "y": -1
+     },
+     {
+      "x": 2,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.5,
+      "x": 0,
+      "y": 1.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 20
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 5,
+    "name": "Hook",
+    "ball_x": -3,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": 0,
+      "y": 4
+     },
+     {
+      "x": 3.5,
+      "y": 2
+     },
+     {
+      "x": 0,
+      "y": -4
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 4,
+      "x": 0,
+      "y": 0,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 1
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 6,
+    "name": "Pull and push",
+    "ball_x": 4,
+    "ball_y": 8,
+    "stars": [
+     {
+      "x": 0,
+      "y": 2
+     },
+     {
+      "x": -1.25,
+      "y": -2
+     },
+     {
+      "x": 1.25,
+      "y": -2
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 4,
+      "x": 0,
+      "y": -0.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 20
+     },
+     {
+      "w": 2,
+      "x": 0,
+      "y": 0,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 35
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 7,
+    "name": "Handover",
+    "ball_x": -9,
+    "ball_y": 8,
+    "stars": [
+     {
+      "x": -4.5,
+      "y": 0.75
+     },
+     {
+      "x": -1.5,
+      "y": -0.75
+     },
+     {
+      "x": 3.5,
+      "y": -2.5
+     },
+     {
+      "x": 8.75,
+      "y": 0.25
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.5,
+      "x": -1,
+      "y": 2.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     },
+     {
+      "h": 1.5,
+      "w": 7,
+      "x": 4,
+      "y": -4.5,
+      "kind": "hazard"
+     },
+     {
+      "r": 3,
+      "x": 9,
+      "y": 1,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 8,
+    "name": "Event horizon",
+    "ball_x": -7,
+    "ball_y": 8,
+    "stars": [
+     {
+      "x": -5,
+      "y": 0
+     },
+     {
+      "x": 0,
+      "y": -2.5
+     },
+     {
+      "x": 5,
+      "y": 0
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 2.5,
+      "x": 2.5,
+      "y": 0.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 15
+     },
+     {
+      "r": 2.5,
+      "x": -2.5,
+      "y": 0.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Circle",
+    "outline": null
+   },
+   {
+    "pack_id": "r-IV",
+    "level_index": 9,
+    "name": "ORBIT",
+    "ball_x": -5,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": 2,
+      "y": 4
+     },
+     {
+      "x": 0,
+      "y": -6
+     },
+     {
+      "x": -3.5,
+      "y": -3
+     }
+    ],
+    "score_goal": 50,
+    "eq_goal": 2,
+    "updated_at": "2026-09-17T15:36:56.189667+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "r": 8,
+      "x": 0,
+      "y": -0.25,
+      "damp": 0,
+      "kind": "well",
+      "strength": 10
+     },
+     {
+      "r": 4,
+      "x": -7.5,
+      "y": -3,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 10
+     },
+     {
+      "r": 2.5,
+      "x": -5,
+      "y": 0.25,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 20
+     },
+     {
+      "r": 5,
+      "x": 5,
+      "y": 6,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 10
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 0,
+    "name": "Not a slope",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -2.5,
+      "y": 1.5
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 2.5,
+      "y": 1.5
+     }
+    ],
+    "score_goal": 50,
+    "eq_goal": 2,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 1,
+    "name": "Asymptote",
+    "ball_x": -3,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -1.5,
+      "y": 2.5
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 3,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 2,
+    "name": "Damping",
+    "ball_x": -7,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": -3.5,
+      "y": 3
+     },
+     {
+      "x": 2.5,
+      "y": 3
+     },
+     {
+      "x": 7.5,
+      "y": -1
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use rubber material",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 3,
+    "name": "Only up",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": 1,
+      "y": 2
+     },
+     {
+      "x": 4,
+      "y": 3
+     },
+     {
+      "x": -2,
+      "y": 1
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use rubber material",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 4,
+    "name": "Uphill",
+    "ball_x": 6,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 3,
+      "y": -1
+     },
+     {
+      "x": 5,
+      "y": 0
+     },
+     {
+      "x": -3,
+      "y": 1
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use rubber material",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 5,
+    "name": "The arch",
+    "ball_x": -4,
+    "ball_y": 7.25,
+    "stars": [
+     {
+      "x": -1,
+      "y": -3
+     },
+     {
+      "x": 0.75,
+      "y": -6
+     },
+     {
+      "x": 1.75,
+      "y": -2
+     },
+     {
+      "x": -6.75,
+      "y": -8
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 6,
+    "name": "Back and forth",
+    "ball_x": -8,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -4,
+      "y": 2
+     },
+     {
+      "x": -4,
+      "y": 0
+     },
+     {
+      "x": -4,
+      "y": 4
+     },
+     {
+      "x": 8,
+      "y": 2
+     },
+     {
+      "x": 8,
+      "y": 0
+     },
+     {
+      "x": 8,
+      "y": 4
+     }
+    ],
+    "score_goal": 70,
+    "eq_goal": 3,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 3 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 7,
+    "name": "Frame perfect",
+    "ball_x": -4,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": 2.75,
+      "y": 3.75
+     },
+     {
+      "x": -4,
+      "y": -0.75
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 0.5,
+      "x": 2.75,
+      "y": 5.5,
+      "kind": "hazard"
+     },
+     {
+      "h": 10,
+      "w": 0.5,
+      "x": 2.75,
+      "y": -1.5,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use rubber material",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 8,
+    "name": "Escalator",
+    "ball_x": -2,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -4,
+      "y": -4
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": -2,
+      "y": -2
+     },
+     {
+      "x": 2,
+      "y": 2
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "s-lin",
+    "level_index": 9,
+    "name": "The peak",
+    "ball_x": -6,
+    "ball_y": 3,
+    "stars": [
+     {
+      "x": -4,
+      "y": -2
+     },
+     {
+      "x": -2,
+      "y": -2
+     },
+     {
+      "x": 0,
+      "y": 1.25
+     },
+     {
+      "x": 2,
+      "y": -2
+     },
+     {
+      "x": 4,
+      "y": -2
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-18T14:09:55.388957+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
     "outline": null
    },
    {
