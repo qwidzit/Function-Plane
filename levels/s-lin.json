@@ -1,0 +1,1067 @@
+{
+  "packId": "s-lin",
+  "name": "Linear",
+  "notes": "Themed pack I. Every level is laid out like a different family of function and answered with straight lines only (a constant counts as a line). Objects are hazards and fans; materials where the level says so. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "levels": [
+    {
+      "index": 0,
+      "name": "Ballistics",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use rubber material",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 1.5,
+          "y": 1,
+          "w": 6,
+          "h": 5
+        }
+      ],
+      "ball": {
+        "x": -6,
+        "y": 8
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": 2.5
+        },
+        {
+          "x": 2.5,
+          "y": 5
+        },
+        {
+          "x": 7,
+          "y": 2.5
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Three stars on a downward arc — the shape of a quadratic, with a slab under it so no track can be drawn through them. The arc is the ball’s own flight: only a perfectly elastic ramp returns the whole drop, and how steep you tilt it is how fast you get round.",
+      "solutions": [
+        {
+          "name": "steep rubber ramp",
+          "eqs": [
+            {
+              "expr": "y=-0.4x-2",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower, lower",
+          "eqs": [
+            {
+              "expr": "y=-0.35x-1.5",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower still",
+          "eqs": [
+            {
+              "expr": "y=-0.275x-3",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "name": "The fold",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -7,
+          "y": -2,
+          "w": 4,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 3.75,
+          "y": -0.5,
+          "w": 1.5,
+          "h": 5
+        }
+      ],
+      "ball": {
+        "x": -8,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -5.5,
+          "y": 1.5
+        },
+        {
+          "x": -2.25,
+          "y": -2.25
+        },
+        {
+          "x": 2.25,
+          "y": 2
+        }
+      ],
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "A V of stars — the corner of an absolute value, which no single line has. The ramp is one arm; the elastic floor turns the fall into the other, and the block on the right only clears if the rebound is high enough.",
+      "solutions": [
+        {
+          "name": "steep ramp, cut short",
+          "eqs": [
+            {
+              "expr": "y=-1.25x-5.5",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": -4
+                }
+              ]
+            },
+            {
+              "expr": "y=-3",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "the middle of the band",
+          "eqs": [
+            {
+              "expr": "y=-1.15x-4.75",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": -4
+                }
+              ]
+            },
+            {
+              "expr": "y=-3",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallow and late",
+          "eqs": [
+            {
+              "expr": "y=-0.7x-3.5",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": -4
+                }
+              ]
+            },
+            {
+              "expr": "y=-3",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Standing wave",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -8.5,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": -2,
+          "y": 0.5
+        },
+        {
+          "x": 1.75,
+          "y": -3.75
+        },
+        {
+          "x": 5.5,
+          "y": 0.5
+        },
+        {
+          "x": 9.25,
+          "y": -3.75
+        },
+        {
+          "x": 13,
+          "y": 0.5
+        }
+      ],
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "Five stars on a sine. A perfectly elastic floor gives back every bounce unchanged, so the ball draws a periodic wave over it — but the wavelength is set by how fast the ramp delivers it, and there is only one speed that lands three crests on three stars.",
+      "solutions": [
+        {
+          "name": "the drop chute",
+          "eqs": [
+            {
+              "expr": "y=-2x-16",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6.3
+                }
+              ]
+            },
+            {
+              "expr": "y=-4",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "steeper, shifted",
+          "eqs": [
+            {
+              "expr": "y=-2.3x-22",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6.6
+                }
+              ]
+            },
+            {
+              "expr": "y=-4",
+              "material": "rubber"
+            }
+          ]
+        },
+        {
+          "name": "shallower, shifted",
+          "eqs": [
+            {
+              "expr": "y=-1.7x-15",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6.6
+                }
+              ]
+            },
+            {
+              "expr": "y=-4",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "Asymptote",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -0.65,
+          "y": 3.5,
+          "w": 1.7,
+          "h": 11
+        },
+        {
+          "kind": "hazard",
+          "x": 6.1,
+          "y": -1.1,
+          "w": 11.8,
+          "h": 1.8
+        }
+      ],
+      "ball": {
+        "x": 0.5,
+        "y": 9
+      },
+      "stars": [
+        {
+          "x": 1.5,
+          "y": 6
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 7,
+          "y": 1.25
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Stars on xy = 9, boxed in by its own asymptotes. A hyperbola falls fast and then refuses to stop falling slowly; one line can do either, so the answer is two — a steep one handed over to a shallow one.",
+      "solutions": [
+        {
+          "name": "steep then shallow",
+          "eqs": [
+            {
+              "expr": "y=-2x+9",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": 3
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.44x+4.32",
+              "domain": [
+                {
+                  "xMin": 3,
+                  "xMax": 16
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "steeper, later kink",
+          "eqs": [
+            {
+              "expr": "y=-2.4x+10",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": 3.2
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.4x+4.1",
+              "domain": [
+                {
+                  "xMin": 3.2,
+                  "xMax": 16
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "gentler pair",
+          "eqs": [
+            {
+              "expr": "y=-1.8x+8.5",
+              "domain": [
+                {
+                  "xMin": -16,
+                  "xMax": 2.9
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.45x+4.4",
+              "domain": [
+                {
+                  "xMin": 2.9,
+                  "xMax": 16
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "name": "Runaway",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Linear",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 2.5,
+          "y": -4,
+          "angle": 90,
+          "len": 9,
+          "w": 3,
+          "strength": 25
+        }
+      ],
+      "ball": {
+        "x": -8,
+        "y": 2
+      },
+      "stars": [
+        {
+          "x": -4,
+          "y": -0.25
+        },
+        {
+          "x": 1,
+          "y": -1
+        },
+        {
+          "x": 3.5,
+          "y": 1.25
+        },
+        {
+          "x": 4.75,
+          "y": 4.5
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Flat, flat, and then straight up: the stars sit on an exponential. One line does the flat part; the fan does the rest, and the only thing you control is how fast the ball is travelling when it reaches the column.",
+      "solutions": [
+        {
+          "name": "the intended glide",
+          "eqs": [
+            {
+              "expr": "y=-0.22x-1"
+            }
+          ]
+        },
+        {
+          "name": "steeper, sooner",
+          "eqs": [
+            {
+              "expr": "y=-0.24x-0.7"
+            }
+          ]
+        },
+        {
+          "name": "shallower, later",
+          "eqs": [
+            {
+              "expr": "y=-0.16x-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "Damping",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [],
+      "ball": {
+        "x": -9,
+        "y": 10.5
+      },
+      "stars": [
+        {
+          "x": 0,
+          "y": -2.75
+        },
+        {
+          "x": 3.25,
+          "y": -5.75
+        },
+        {
+          "x": 6.5,
+          "y": -5
+        },
+        {
+          "x": 9,
+          "y": -5.5
+        }
+      ],
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "The same wave as Standing wave with the elastic taken out. An ordinary bounce returns a quarter of its height, so the crests fall away geometrically — the stars sit under that envelope, and the chute has to deliver exactly the drop it was drawn for.",
+      "solutions": [
+        {
+          "name": "the chute",
+          "eqs": [
+            {
+              "expr": "y=-2.4x-16",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6
+                }
+              ]
+            },
+            {
+              "expr": "y=-6"
+            }
+          ]
+        },
+        {
+          "name": "steeper",
+          "eqs": [
+            {
+              "expr": "y=-2.7x-16",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6
+                }
+              ]
+            },
+            {
+              "expr": "y=-6"
+            }
+          ]
+        },
+        {
+          "name": "shallower",
+          "eqs": [
+            {
+              "expr": "y=-2.2x-13.5",
+              "domain": [
+                {
+                  "xMin": -18,
+                  "xMax": -6
+                }
+              ]
+            },
+            {
+              "expr": "y=-6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "name": "Staircase",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 3 functions",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -6,
+          "y": -2,
+          "w": 6,
+          "h": 8
+        },
+        {
+          "kind": "hazard",
+          "x": -0.5,
+          "y": -3.5,
+          "w": 5,
+          "h": 5
+        },
+        {
+          "kind": "hazard",
+          "x": 5,
+          "y": -5,
+          "w": 6,
+          "h": 2
+        }
+      ],
+      "ball": {
+        "x": -7.5,
+        "y": 4.5
+      },
+      "stars": [
+        {
+          "x": -7,
+          "y": 3.25
+        },
+        {
+          "x": -4.25,
+          "y": 2.5
+        },
+        {
+          "x": -0.25,
+          "y": 0.25
+        },
+        {
+          "x": 1.75,
+          "y": 0.25
+        },
+        {
+          "x": 3.5,
+          "y": -2.75
+        },
+        {
+          "x": 5.5,
+          "y": -2.75
+        }
+      ],
+      "scoreGoal": 70,
+      "eqGoal": 3,
+      "intent": "Three treads and two risers — a floor function, drawn in blocks that kill on contact. A flat line is free, but a flat line cannot start a ball moving, so the first tread is tilted and the other two are constants; set all three to no bounce or the drop between them throws you into a wall. The tilt is the clock: 4s steep, 14s crawling.",
+      "solutions": [
+        {
+          "name": "steep first tread",
+          "eqs": [
+            {
+              "expr": "y=-0.35x+1.3",
+              "domain": [
+                {
+                  "xMin": -10,
+                  "xMax": -2.6
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=0",
+              "domain": [
+                {
+                  "xMin": -2.6,
+                  "xMax": 2.1
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 2.1,
+                  "xMax": 9
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "the middle tilt",
+          "eqs": [
+            {
+              "expr": "y=-0.275x+1.4",
+              "domain": [
+                {
+                  "xMin": -10,
+                  "xMax": -2.9
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=0",
+              "domain": [
+                {
+                  "xMin": -2.9,
+                  "xMax": 2.4
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 2.4,
+                  "xMax": 9
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "barely downhill",
+          "eqs": [
+            {
+              "expr": "y=-0.175x+1.8",
+              "domain": [
+                {
+                  "xMin": -10,
+                  "xMax": -2.6
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=0",
+              "domain": [
+                {
+                  "xMin": -2.6,
+                  "xMax": 2.4
+                }
+              ],
+              "material": "dead"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 2.4,
+                  "xMax": 9
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "name": "The needle",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Linear",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -2.2,
+          "y": -1,
+          "w": 11.6,
+          "h": 1
+        },
+        {
+          "kind": "hazard",
+          "x": 7.5,
+          "y": -1,
+          "w": 5,
+          "h": 1
+        }
+      ],
+      "ball": {
+        "x": 0,
+        "y": 8
+      },
+      "stars": [
+        {
+          "x": 4.25,
+          "y": -1
+        },
+        {
+          "x": 4.75,
+          "y": -4
+        },
+        {
+          "x": 5.25,
+          "y": -7
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "Three stars stacked almost vertically under a slot a unit and a half wide — the branch of a tangent, and the only way through is to bank the fall off one line. A hundredth on the slope moves the landing by a third of a unit.",
+      "solutions": [
+        {
+          "name": "the bank shot",
+          "eqs": [
+            {
+              "expr": "y=-0.22x+3.5",
+              "domain": [
+                {
+                  "xMin": -4,
+                  "xMax": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "lower, flatter",
+          "eqs": [
+            {
+              "expr": "y=-0.2x+2",
+              "domain": [
+                {
+                  "xMin": -4,
+                  "xMax": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "higher, steeper",
+          "eqs": [
+            {
+              "expr": "y=-0.24x+3.5",
+              "domain": [
+                {
+                  "xMin": -4,
+                  "xMax": 1.5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "name": "Sigmoid",
+      "materials": false,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 0,
+          "y": -5,
+          "angle": 90,
+          "len": 8,
+          "w": 2.2,
+          "strength": 38
+        }
+      ],
+      "ball": {
+        "x": -9,
+        "y": -0.5
+      },
+      "stars": [
+        {
+          "x": -7,
+          "y": -0.75
+        },
+        {
+          "x": -3,
+          "y": -2.25
+        },
+        {
+          "x": 1.25,
+          "y": -0.25
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 6.5,
+          "y": 4.1
+        },
+        {
+          "x": 10.5,
+          "y": 3.9
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "Flat, a cliff, flat again — a logistic curve. Two shelves with the fan between them; the upper shelf has to begin past the top of the climb or the ball meets its underside on the way up, and how level you leave it decides whether the run takes five seconds or seventeen.",
+      "solutions": [
+        {
+          "name": "both shelves tilted",
+          "eqs": [
+            {
+              "expr": "y=-0.3x-3.6",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.2
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.1x+4.2",
+              "domain": [
+                {
+                  "xMin": 5.5,
+                  "xMax": 14
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "a level upper shelf",
+          "eqs": [
+            {
+              "expr": "y=-0.28x-3.6",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.2
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.01x+4.2",
+              "domain": [
+                {
+                  "xMin": 6,
+                  "xMax": 14
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "level and lower",
+          "eqs": [
+            {
+              "expr": "y=-0.3x-3.6",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -1.2
+                }
+              ]
+            },
+            {
+              "expr": "y=-0.01x+4",
+              "domain": [
+                {
+                  "xMin": 5.5,
+                  "xMax": 14
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "name": "The summit",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 0,
+          "y": -1,
+          "w": 5,
+          "h": 6
+        },
+        {
+          "kind": "fan",
+          "x": 9.5,
+          "y": -6,
+          "angle": 90,
+          "len": 12,
+          "w": 4,
+          "strength": 45
+        }
+      ],
+      "ball": {
+        "x": -7,
+        "y": 7
+      },
+      "stars": [
+        {
+          "x": -1.25,
+          "y": 3.75
+        },
+        {
+          "x": 4.75,
+          "y": 0.75
+        },
+        {
+          "x": 8.25,
+          "y": -2.75
+        },
+        {
+          "x": 11.5,
+          "y": 0.5
+        },
+        {
+          "x": 14.75,
+          "y": 5.25
+        }
+      ],
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "Everything the pack taught, in one run: an elastic ramp to lob the slab, a dead shelf to land on rather than bounce off, and the fan for the last two stars. The tightest band in the pack — twenty answers out of two hundred tried.",
+      "solutions": [
+        {
+          "name": "steep lob",
+          "eqs": [
+            {
+              "expr": "y=-0.475x-2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -3
+                }
+              ],
+              "material": "rubber"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 3,
+                  "xMax": 13
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "the middle",
+          "eqs": [
+            {
+              "expr": "y=-0.425x-2",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -3
+                }
+              ],
+              "material": "rubber"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 3,
+                  "xMax": 13
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        },
+        {
+          "name": "shallow, late",
+          "eqs": [
+            {
+              "expr": "y=-0.375x-2.25",
+              "domain": [
+                {
+                  "xMin": -12,
+                  "xMax": -3
+                }
+              ],
+              "material": "rubber"
+            },
+            {
+              "expr": "y=-3",
+              "domain": [
+                {
+                  "xMin": 4,
+                  "xMax": 13
+                }
+              ],
+              "material": "dead"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
