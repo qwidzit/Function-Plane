@@ -79,6 +79,11 @@ believing it.
 - A perfectly ordinary expression reads as invalid → check whether the bracket
   is closed. `normExpr` closes what was left open; a surplus `)` is still an
   error.
+- What you type after `/` or `^` lands outside the fraction or the exponent →
+  the key typed a bare operator instead of opening a bracket. `1`, `/`, `x+1`
+  is the text `1/x+1`, which is `1/x + 1`; the renderer is right and the
+  keyboard is wrong. Every key that starts a *field* has to open a bracket and
+  put the cursor in it, the way `sin` and `(` do.
 - Typing after a function puts the text *inside* it → the row's text is
   unbalanced. The parser forgives that and the typeset layer draws the closer
   anyway, so `y=sin(x` looks exactly like `y=sin(x)` and `+1` lands in the

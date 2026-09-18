@@ -76,11 +76,19 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   // A fraction over whatever was just written — or, with nothing to put on
   // top, an empty one with the cursor in the numerator, since that is the
   // half you are about to fill in.
+  //
+  // The denominator is opened as a bracket for the same reason every other
+  // key that opens one closes it. Pressing "/" used to type a bare slash, so
+  // "1", "/", "x+1" left the text 1/x+1 — which is 1/x + 1, and drew as it.
+  // The field looked like it was asking you for brackets because it was: the
+  // only way to get a compound denominator was to type them yourself.
   const frac = () => {
     const inp = inputRef?.current;
     if (!inp) return;
     const before = inp.value.slice(0, inp.selectionStart ?? inp.value.length);
-    ins('/', /[0-9a-zA-Zπ.)]$/.test(before) ? 0 : 1);
+    // With a numerator already there the cursor belongs in the denominator;
+    // with none it belongs in front of the bar, and the denominator waits.
+    ins('/()', /[0-9a-zA-Zπ.)]$/.test(before) ? 1 : 3);
   };
 
   const del = () => {
@@ -132,7 +140,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   // ── Left block: variables, grouping, the shapes with their own notation ──
   const LEFT = [
     [k(it('x'), ()=>ins('x'), 'var', 1, 'x'), k(it('y'), ()=>ins('y'), 'var', 1, 'y'),
-     k(pow('a','2'), ()=>ins('^2'), 'op', 1, 'squared'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
+     k(pow('a','2'), ()=>ins('^2'), 'op', 1, 'squared'), k(pow('a','b'), ()=>ins('^()', 1), 'op', 1, 'power')],
     [k('(', ()=>ins('()', 1), 'op'), k(')', close, 'op'),
      k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn')],
     [k('|a|', ()=>call('abs'), 'fn'), k(',', ()=>ins(','), 'op'),
@@ -154,7 +162,7 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     [k('sin⁻¹', ()=>call('arcsin'), 'fn'), k('cos⁻¹', ()=>call('arccos'), 'fn'), k('tan⁻¹', ()=>call('arctan'), 'fn'),
      k(pow('e','x'), ()=>call('exp'), 'fn', 1, 'e to the x'), k('√', ()=>call('sqrt'), 'fn')],
     [k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn'), k('sgn', ()=>call('sgn'), 'fn'),
-     k('|a|', ()=>call('abs'), 'fn'), k(pow('a','b'), ()=>ins('^'), 'op', 1, 'power')],
+     k('|a|', ()=>call('abs'), 'fn'), k(pow('a','b'), ()=>ins('^()', 1), 'op', 1, 'power')],
     [k('Σ', ()=>ins('sum(1,5,n*x)'), 'adv'), k('d/dx', ()=>call('deriv'), 'adv'), k('∫', ()=>call('integ'), 'adv'),
      k('min', ()=>call('min'), 'fn'), k('max', ()=>call('max'), 'fn')],
   ];

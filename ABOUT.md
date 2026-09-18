@@ -761,11 +761,20 @@ it — and appending `+1` gave `y=sin(x+1)`, the term landing inside the sine.
 The display was telling the truth about the maths and lying about the text.
 Anything that types an opening bracket has to close it, or that gap comes back.
 
-- `a/b` and the keypad's `÷` are the **same action**, `frac()`: it types `/`,
-  and leaves the cursor *before* it when there is no term to put on top, so
-  pressing it on an empty field gives an empty fraction with the cursor in the
-  numerator — the half you are about to fill in — instead of an empty one
-  underneath.
+- `a/b` and the keypad's `÷` are the **same action**, `frac()`: it types
+  `/()`, leaving the cursor inside the brackets — the denominator is a box you
+  type into. With no term to put on top it leaves the cursor *before* the bar
+  instead, so pressing it on an empty field gives an empty fraction with the
+  cursor in the numerator, the half you are about to fill in. The power key is
+  the same, `^()`; only the squared key, which writes a whole exponent, needs
+  no box.
+  This is the same rule as `sin()` and it is there for the same reason. `/`
+  used to type a bare slash, so `1`, `/`, `x+1` left the text `1/x+1` — which
+  *is* `1/x + 1`, and correctly drew as it. The renderer was right and the
+  keyboard was wrong: a compound denominator could only be had by typing the
+  brackets yourself, which is what made the field feel like it was asking for
+  them. Brackets change neither the class nor the price an expression scores,
+  so nothing downstream moves.
 - Domain-restriction inputs use a separate `NumPad` (in `level-screen.jsx`)
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on

@@ -482,6 +482,85 @@ it('gives every digit of a number its own position', () => {
   }
 });
 
+// ── 1b3. The math keyboard ─────────────────────────────────────────────────
+
+describe('Math keyboard');
+
+// The keys are plain functions hanging off the rendered tree, so pressing one
+// is calling it with a fake input under it. What matters is the text it leaves
+// behind and where it leaves the cursor — both have been wrong before.
+const keyboard = (() => {
+  const h = (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) });
+  const React = {
+    createElement: h, Fragment: 'fragment',
+    isValidElement: x => !!x && typeof x === 'object' && 'type' in x,
+    // The page switch is real state here: stubbing it to null hides every key.
+    useState: init => [typeof init === 'function' ? init() : init, () => {}],
+    useRef: init => ({ current: init === undefined ? null : init }),
+    useEffect: () => {}, useMemo: fn => fn(),
+  };
+  const w = { React };
+  global.window = w; global.React = React;
+  global.document = { createElement: () => ({}) };
+  global.Event = class { constructor(t) { this.type = t; } };
+  global.requestAnimationFrame = fn => fn();
+  delete require.cache[require.resolve(path.join(SRC, 'keyboard.js'))];
+  require(path.join(SRC, 'keyboard.js'));
+  Object.assign(global, w);
+  return w;
+})();
+
+// Type a sequence of key names into a fresh field and return what it holds.
+function typeKeys(names) {
+  const inp = { value: '', selectionStart: 0, selectionEnd: 0,
+    focus() {}, setSelectionRange(a) { this.selectionStart = this.selectionEnd = a; },
+    dispatchEvent() {} };
+  const tree = keyboard.MathKeyboard({
+    inputRef: { current: inp },
+    onChange: v => { inp.value = v; },
+    onDone: () => {},
+  });
+  const keys = {};
+  for (const n of flatten(tree)) {
+    if (!n || !n.props || !n.props['aria-label'] || !n.props.onPointerDown) continue;
+    if (!(n.props['aria-label'] in keys)) keys[n.props['aria-label']] = n.props.onPointerDown;
+  }
+  for (const name of names) {
+    ok(keys[name], `no key called ${name}`);
+    keys[name]({ preventDefault() {} });
+  }
+  return inp;
+}
+
+it('opens a box for the half of a fraction you are about to type', () => {
+  // "/" used to type a bare slash, so 1 / x + 1 left the text 1/x+1 — which
+  // is 1/x + 1, and drew as it. The only way to get a compound denominator
+  // was to type the brackets yourself, which is what the field looked like it
+  // was asking for.
+  eq(typeKeys(['1', 'fraction', 'x', '+', '1']).value, '1/(x+1)');
+  eq(typeKeys(['2', 'fraction', '3']).value, '2/(3)');
+  // Nothing to put on top: the cursor waits in the numerator, and the
+  // denominator is open behind it.
+  const empty = typeKeys(['fraction']);
+  eq(empty.value, '/()');
+  eq(empty.selectionStart, 0, 'the cursor sits in the numerator');
+});
+
+it('opens a box for an exponent too', () => {
+  eq(typeKeys(['x', 'power', 'x', '+', '1']).value, 'x^(x+1)');
+  // The squared key writes a whole exponent, so it needs no box.
+  eq(typeKeys(['x', 'squared', '+', '1']).value, 'x^2+1');
+});
+
+it('leaves a bracket the way every other key does', () => {
+  // Every key that opens a bracket closes it and leaves the cursor inside.
+  eq(typeKeys(['\u221a', 'x']).value, 'sqrt(x)');   // sin lives on the other page
+  eq(typeKeys(['(', 'x']).value, '(x)');
+  // ")" over one already there steps past it rather than doubling up, which
+  // is how you get back out of a denominator.
+  eq(typeKeys(['1', 'fraction', 'x', ')', '+', '2']).value, '1/(x)+2');
+});
+
 // ── 1c. Achievements ───────────────────────────────────────────────────────
 
 describe('Achievements');
