@@ -638,56 +638,87 @@ it('unlocks nothing on a fresh save', () => {
   eq(unlocked.length, 0, `unlocked on a brand new profile: ${unlocked.map(a => a.id).join(', ')}`);
 });
 
-it('keeps every built-in working after the move to data rows', () => {
-  // The 17 built-ins used to be hand-written predicates. They are rows now so
-  // the admin can edit them; each must still fire on exactly what it did
-  // before, or players silently lose achievements they had earned.
+it('keeps every built-in firing on its own fixture', () => {
+  // Every shipped achievement is a data row, so a typo in the table is a
+  // player silently never earning one. Each must fire on a save that just
+  // satisfies it, and the thresholds must be boundaries, not approximations.
   const list = ach.getAchievementList();
+  const done  = (n, score = 60) => ({ stars: [...Array(n).fill(1), ...Array(10 - n).fill(-1)],
+                                      best:  [...Array(n).fill(score), ...nulls(10 - n)] });
+  const gold  = () => ({ stars: Array(10).fill(3), best: Array(10).fill(30) });
+  const packs = (ids, mk) => Object.fromEntries(ids.map(id => [id, mk()]));
+  const ROMAN = ['r-I', 'r-II', 'r-III', 'r-IV', 'r-V'];
+  // all_roman is scoped to *released* packs, so the fixture has to carry the
+  // same visibility the game does — VI-X are hidden and hold no levels.
+  ach.FP_PACK_OVERRIDES = Object.fromEntries(
+    ['r-VI', 'r-VII', 'r-VIII', 'r-IX', 'r-X'].map(id => [id, { is_hidden: true }]));
+
   const expectations = [
-    ['first_roll',    packRun()],
-    ['three_stars',   progressWith({ 'r-I': { stars: [3, ...Array(9).fill(-1)], best: [30, ...nulls(9)] } })],
-    ['minimalist',    progressWith({ 'r-I': { stars: [1, ...Array(9).fill(-1)], best: [50, ...nulls(9)] } })],
-    ['ten_levels',    progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
-    ['pack_complete', progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
-    ['pack_gold',     progressWith({ 'r-I': { stars: Array(10).fill(3), best: Array(10).fill(30) } })],
-    ['pack_i_done',   progressWith({ 'r-I': { stars: Array(10).fill(1), best: Array(10).fill(60) } })],
-    ['special_start', progressWith({ 's-lin': { stars: [1, ...Array(9).fill(-1)], best: [60, ...nulls(9)] } })],
-    ['flash',         packRun({ bestTime: [0.55, ...nulls(9)] })],
-    ['sunday_stroll', packRun({ bestTime: [3.5, ...nulls(9)] })],
-    ['big_brain',     packRun({ best: [120, ...nulls(9)], maxScore: [120, ...nulls(9)] })],
+    ['first_roll',     packRun()],
+    ['levels_15',      progressWith({ 'r-I': done(10), 'r-II': done(5) })],
+    ['three_stars',    progressWith({ 'r-I': { stars: [3, ...Array(9).fill(-1)], best: [30, ...nulls(9)] } })],
+    ['minimalist',     progressWith({ 'r-I': done(5, 30) })],
+    ['ultra_minimal',  progressWith({ 'r-I': done(10, 30), 'r-II': done(5, 30) })],
+    ['pack_master',    progressWith(packs(ROMAN, () => done(10)))],
+    ['pack_gold',      progressWith({ 'r-I': gold() })],
+    ['pack_i_done',    progressWith({ 'r-I': done(10) })],
+    ['pack_ii_done',   progressWith({ 'r-II': done(10) })],
+    ['pack_iii_done',  progressWith({ 'r-III': done(10) })],
+    ['pack_iv_done',   progressWith({ 'r-IV': done(10) })],
+    ['all_roman',      progressWith(packs(ROMAN, () => done(10)))],
+    ['themed_10',      progressWith({ 's-lin': { stars: [...Array(5).fill(2), ...Array(5).fill(-1)], best: [...Array(5).fill(60), ...nulls(5)] } })],
+    ['themed_30',      progressWith({ 's-lin': gold(), 's-qua': gold() })],
+    ['themed_packs_2', progressWith({ 's-lin': done(10), 's-qua': done(10) })],
+    ['flash',          packRun({ bestTime: [0.9, ...nulls(9)] })],
+    ['sunday_stroll',  packRun({ bestTime: [25.5, ...nulls(9)] })],
+    ['stars_15',       progressWith({ 'r-I': { stars: [...Array(5).fill(3), ...Array(5).fill(-1)], best: [...Array(5).fill(30), ...nulls(5)] } })],
+    ['stars_30',       progressWith({ 'r-I': gold() })],
+    ['stars_50',       progressWith({ 'r-I': gold(), 'r-II': gold() })],
+    ['stars_100',      progressWith(packs(['r-I', 'r-II', 'r-III', 'r-IV'], gold))],
+    ['stars_150',      progressWith(packs(ROMAN, gold))],
+    ['stars_210',      progressWith(packs([...ROMAN, 's-lin', 's-qua'], gold))],
   ];
+  eq(expectations.length, ach.BUILTIN_ACH_ROWS.length, 'every built-in needs a fixture');
   for (const [id, progress] of expectations) {
     const a = list.find(x => x.id === id);
     ok(a, `built-in ${id} disappeared`);
     ok(a.check(progress), `${id} should unlock on its own fixture`);
   }
-  // Thresholds must be boundaries, not approximations.
-  ok(!list.find(a => a.id === 'flash').check(packRun({ bestTime: [0.7, ...nulls(9)] })),
-    'flash must not fire at 0.7s');
-  ok(!list.find(a => a.id === 'sunday_stroll').check(packRun({ bestTime: [2.0, ...nulls(9)] })),
-    'sunday_stroll must not fire at 2.0s');
+  // Boundaries, in both directions.
+  const at = id => list.find(a => a.id === id);
+  ok(!at('flash').check(packRun({ bestTime: [1.4, ...nulls(9)] })), 'flash must not fire at 1.4s');
+  ok(!at('sunday_stroll').check(packRun({ bestTime: [20, ...nulls(9)] })), 'sunday_stroll must not fire at 20s');
+  ok(!at('minimalist').check(progressWith({ 'r-I': done(5, 40) })), 'minimalist counts score, not levels alone');
+  ok(!at('minimalist').check(progressWith({ 'r-I': done(4, 30) })), 'minimalist needs five of them');
+  ok(!at('pack_master').check(progressWith(packs(['r-I', 'r-II', 'r-III', 'r-IV'], () => done(10)))),
+    'pack_master must not fire on four packs');
+  ok(!at('themed_10').check(progressWith({ 'r-I': gold() })), 'themed stars must come from Themed packs');
+  ok(!at('stars_210').check(progressWith(packs(ROMAN, gold))), 'stars_210 needs the Themed packs too');
+  ok(!at('all_roman').check(progressWith(packs(['r-I', 'r-II', 'r-III', 'r-IV'], () => done(10)))),
+    'all_roman must not fire with a released pack unfinished');
+  ach.FP_PACK_OVERRIDES = {};
 });
 
 it('lets an override edit a built-in and a delete restore it', () => {
-  const before = ach.getAchievementRows().find(r => r.id === 'stars_200');
-  eq(before.threshold, 200, 'shipped threshold');
-  ach.FP_ACH_OVERRIDES = [{ id: 'stars_200', name: 'Star Lord', threshold: 150,
-                            kind: null, description: null, pack_id: null, level_index: null }];
-  const after = ach.getAchievementRows().find(r => r.id === 'stars_200');
+  const before = ach.getAchievementRows().find(r => r.id === 'stars_210');
+  eq(before.threshold, 210, 'shipped threshold');
+  ach.FP_ACH_OVERRIDES = [{ id: 'stars_210', name: 'Star Lord', threshold: 150,
+                            kind: null, description: null, pack_id: null, level_index: null, score: null }];
+  const after = ach.getAchievementRows().find(r => r.id === 'stars_210');
   eq(after.threshold, 150, 'override threshold wins');
   eq(after.name, 'Star Lord', 'override name wins');
   // Null columns are "unset", not "clear it" — the row stores null for every
   // param its kind doesn't use, which must not wipe the built-in's own.
   eq(after.kind, 'total_stars', 'null in an override must not erase the kind');
   ach.FP_ACH_OVERRIDES = [];
-  eq(ach.getAchievementRows().find(r => r.id === 'stars_200').threshold, 200, 'deleting restores the default');
+  eq(ach.getAchievementRows().find(r => r.id === 'stars_210').threshold, 210, 'deleting restores the default');
 });
 
 it('hides an achievement when its override says so', () => {
-  ach.FP_ACH_OVERRIDES = [{ id: 'stars_200', is_hidden: true }];
-  ok(!ach.getAchievementList().some(a => a.id === 'stars_200'), 'hidden built-in must not be listed');
+  ach.FP_ACH_OVERRIDES = [{ id: 'stars_210', is_hidden: true }];
+  ok(!ach.getAchievementList().some(a => a.id === 'stars_210'), 'hidden built-in must not be listed');
   ach.FP_ACH_OVERRIDES = [];
-  ok(ach.getAchievementList().some(a => a.id === 'stars_200'), 'and must come back');
+  ok(ach.getAchievementList().some(a => a.id === 'stars_210'), 'and must come back');
 });
 
 it('exposes every kind the built-ins use', () => {

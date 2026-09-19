@@ -213,6 +213,13 @@ believing it.
   refuses an upsert naming a column the table does not have. Reading an
   override is the opposite — a missing key just reads `undefined` — so the
   feature looks fine until someone tries to save.
+- Every achievement save from the admin panel fails at once → the same trap the
+  level hint column set, one table over. `achievement_overrides` gained `score`
+  (`20260919_achievement_score.sql`) for `levels_min_score`, the one kind
+  needing two numbers, and the editor's patch names every column it writes,
+  `score` included and always. Adding a param to `ACH_KINDS` means applying its
+  migration in the same breath — and updating `ACH_SQL` in `admin-screen.jsx`,
+  which is the bootstrap someone runs on a fresh project.
 - `profiles` is read-only to the client. Anything that needs to write it wants
   a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
   adding a column and PATCHing it from the app will fail with a permission

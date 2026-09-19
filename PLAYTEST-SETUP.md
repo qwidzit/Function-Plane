@@ -701,10 +701,9 @@ search box at the top of the Console finds pages by name.
     the Console. It's a short questionnaire about how the testing went.
 36. Finish everything remaining in `RELEASE-CHECKLIST.md`. Item 1 is done — all
     70 levels of the seven visible packs are authored — so the content work is
-    now items 2 (goals: all set, but 46 of the 70 have no replayed answer
+    now item 2 alone (goals: all set, but 46 of the 70 have no replayed answer
     behind them, and *The finale* has a score goal its own equation goal
-    cannot meet) and 3b (two levels still with no hint), plus 16 (reset test
-    data) and
+    cannot meet) — hints are finished — plus 16 (reset test data) and
     26 (re-capture screenshots, which the real levels now make possible).
 37. Promote the build from closed testing to **production**.
 38. Expect the first production review to take days rather than hours;

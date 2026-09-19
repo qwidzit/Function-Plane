@@ -11,8 +11,8 @@ const {
 // Adding a new mechanic = add a kind here; the editor picks it up from
 // `needs` automatically.
 //
-// Param shape: { threshold?, packId?, levelIndex? }. Each kind documents which
-// params it consumes; the rest are ignored.
+// Param shape: { threshold?, packId?, levelIndex?, score? }. Each kind
+// documents which params it consumes; the rest are ignored.
 const ACH_KINDS = {
   total_stars: {
     label: 'Earn N stars total',
@@ -137,6 +137,51 @@ const ACH_KINDS = {
     build: ({
       threshold
     }) => p => Object.values(p).some(pd => (pd.bestTime ?? []).some((t, i) => t != null && t >= threshold / 1000 && (pd.stars[i] ?? -1) >= 1))
+  },
+  // The only kind taking two numbers: how many levels, and how cheaply. It
+  // counts levels rather than asking whether any one qualifies, which is what
+  // separates it from min_score.
+  levels_min_score: {
+    label: 'Complete N levels with score ≤ S',
+    needs: ['threshold', 'score'],
+    desc: ({
+      threshold,
+      score
+    }) => `Complete ${threshold} levels with a score of ${score} or less`,
+    build: ({
+      threshold,
+      score
+    }) => p => Object.values(p).reduce((n, pd) => n + (pd.best ?? []).filter((b, i) => b != null && b <= score && (pd.stars[i] ?? -1) >= 1).length, 0) >= threshold
+  },
+  packs_complete: {
+    label: 'Complete N packs',
+    needs: ['threshold'],
+    desc: ({
+      threshold
+    }) => `Complete ${threshold} packs`,
+    build: ({
+      threshold
+    }) => p => Object.values(p).filter(pd => (pd.stars ?? []).filter(s => s >= 1).length >= 10).length >= threshold
+  },
+  themed_stars: {
+    label: 'Earn N stars in Themed packs',
+    needs: ['threshold'],
+    desc: ({
+      threshold
+    }) => `Earn ${threshold} stars in Themed packs`,
+    build: ({
+      threshold
+    }) => p => (window.SPECIAL_PACKS ?? []).reduce((a, pk) => a + (p[pk.id]?.stars ?? []).reduce((b, s) => b + (s > 0 ? s : 0), 0), 0) >= threshold
+  },
+  themed_packs_complete: {
+    label: 'Complete N Themed packs',
+    needs: ['threshold'],
+    desc: ({
+      threshold
+    }) => `Complete ${threshold} Themed packs`,
+    build: ({
+      threshold
+    }) => p => (window.SPECIAL_PACKS ?? []).filter(pk => (p[pk.id]?.stars ?? []).filter(s => s >= 1).length >= 10).length >= threshold
   }
 };
 
@@ -152,27 +197,36 @@ const BUILTIN_ACH_ROWS = [{
   name: 'First Roll',
   description: 'Complete your first level'
 }, {
+  id: 'levels_15',
+  kind: 'total_levels',
+  threshold: 15,
+  name: 'On a Roll',
+  description: 'Complete 15 levels across all packs'
+}, {
   id: 'three_stars',
   kind: 'any_3stars',
   name: 'Shooting Star',
   description: 'Earn 3 stars on any level'
 }, {
   id: 'minimalist',
-  kind: 'min_score',
-  threshold: 50,
+  kind: 'levels_min_score',
+  threshold: 5,
+  score: 30,
   name: 'Minimalist',
-  description: 'Complete a level with a score of 50 or less'
+  description: 'Complete 5 levels with a score of 30 or less'
 }, {
-  id: 'ten_levels',
-  kind: 'total_levels',
-  threshold: 10,
-  name: 'On a Roll',
-  description: 'Complete 10 levels across all packs'
+  id: 'ultra_minimal',
+  kind: 'levels_min_score',
+  threshold: 15,
+  score: 30,
+  name: 'Ultra Minimalist',
+  description: 'Complete 15 levels with a score of 30 or less'
 }, {
-  id: 'pack_complete',
-  kind: 'any_pack_complete',
+  id: 'pack_master',
+  kind: 'packs_complete',
+  threshold: 5,
   name: 'Pack Master',
-  description: 'Complete all 10 levels in a single pack'
+  description: 'Complete 5 packs'
 }, {
   id: 'pack_gold',
   kind: 'any_pack_gold',
@@ -186,39 +240,61 @@ const BUILTIN_ACH_ROWS = [{
   name: 'Scholar',
   description: 'Complete all Pack I levels'
 }, {
-  id: 'fifty_stars',
-  kind: 'total_stars',
-  threshold: 50,
-  name: 'Star Collector',
-  description: 'Earn 50 stars in total'
+  id: 'pack_ii_done',
+  kind: 'pack_complete',
+  threshold: 10,
+  pack_id: 'r-II',
+  name: 'Windswept',
+  description: 'Complete all Pack II levels'
 }, {
-  id: 'special_start',
-  kind: 'themed_level',
-  name: 'Extra Credit',
-  description: 'Complete any Themed pack level'
+  id: 'pack_iii_done',
+  kind: 'pack_complete',
+  threshold: 10,
+  pack_id: 'r-III',
+  name: 'Astronaut',
+  description: 'Complete all Pack III levels'
+}, {
+  id: 'pack_iv_done',
+  kind: 'pack_complete',
+  threshold: 10,
+  pack_id: 'r-IV',
+  name: 'Magnetic',
+  description: 'Complete all Pack IV levels'
 }, {
   id: 'all_roman',
   kind: 'all_roman_packs',
   name: 'Completionist',
-  description: 'Complete every released Roman numeral pack'
+  description: 'Complete all main packs'
+}, {
+  id: 'themed_10',
+  kind: 'themed_stars',
+  threshold: 10,
+  name: 'Extra Credit',
+  description: 'Earn 10 stars in Themed packs'
+}, {
+  id: 'themed_30',
+  kind: 'themed_stars',
+  threshold: 30,
+  name: 'Honour Roll',
+  description: 'Earn 30 stars in Themed packs'
+}, {
+  id: 'themed_packs_2',
+  kind: 'themed_packs_complete',
+  threshold: 2,
+  name: 'Double Major',
+  description: 'Complete 2 Themed packs'
 }, {
   id: 'flash',
   kind: 'time_under',
-  threshold: 600,
+  threshold: 1000,
   name: 'Flash',
-  description: 'Beat any level in under 0.6 seconds'
+  description: 'Complete any level in under 1 second'
 }, {
   id: 'sunday_stroll',
   kind: 'time_over',
-  threshold: 3000,
+  threshold: 25000,
   name: 'Sunday Stroll',
-  description: 'Beat any level with a time of 3 seconds or more'
-}, {
-  id: 'big_brain',
-  kind: 'score_over',
-  threshold: 100,
-  name: 'Big Brain',
-  description: 'Beat any level with an equation score over 100 points'
+  description: 'Complete any level with a time of over 25 seconds'
 }, {
   id: 'stars_15',
   kind: 'total_stars',
@@ -232,17 +308,29 @@ const BUILTIN_ACH_ROWS = [{
   name: 'Stargazer',
   description: 'Earn 30 stars in total'
 }, {
+  id: 'stars_50',
+  kind: 'total_stars',
+  threshold: 50,
+  name: 'Star Collector',
+  description: 'Earn 50 stars in total'
+}, {
   id: 'stars_100',
   kind: 'total_stars',
   threshold: 100,
   name: 'Supernova',
   description: 'Earn 100 stars in total'
 }, {
-  id: 'stars_200',
+  id: 'stars_150',
   kind: 'total_stars',
-  threshold: 200,
+  threshold: 150,
   name: 'Galaxy Brain',
-  description: 'Earn 200 stars in total'
+  description: 'Earn 150 stars in total'
+}, {
+  id: 'stars_210',
+  kind: 'total_stars',
+  threshold: 210,
+  name: 'Impossible?',
+  description: 'Earn 210 stars in total'
 }];
 
 // Built-in defaults with any override applied. Only fields the override
@@ -281,7 +369,8 @@ function buildAchievement(row) {
   const params = {
     threshold: row.threshold,
     packId: row.pack_id,
-    levelIndex: row.level_index
+    levelIndex: row.level_index,
+    score: row.score
   };
   for (const need of def.needs) {
     if (params[need] == null || params[need] === '') return null;

@@ -450,6 +450,7 @@ create table if not exists achievement_overrides (
   threshold integer,
   pack_id text,
   level_index integer,
+  score integer,
   is_hidden boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -534,6 +535,7 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
   const [threshold,    setThr]   = useAS(existing?.threshold != null ? String(existing.threshold) : '');
   const [packId,       setPackId]= useAS(existing?.pack_id || '');
   const [levelIndex,   setLvl]   = useAS(existing?.level_index != null ? String(existing.level_index) : '');
+  const [score,        setScore] = useAS(existing?.score != null ? String(existing.score) : '');
   const [isHidden,     setHidden]= useAS(!!existing?.is_hidden);
   const [busy, setBusy] = useAS(false);
   const [msg,  setMsg]  = useAS('');
@@ -560,6 +562,7 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
         threshold:   needs.includes('threshold')  ? intOrNull(threshold) : null,
         pack_id:     needs.includes('packId')     ? (packId || null)     : null,
         level_index: needs.includes('levelIndex') ? intOrNull(levelIndex): null,
+        score:       needs.includes('score')      ? intOrNull(score)     : null,
         is_hidden: !!isHidden,
       };
       for (const need of needs) {
@@ -613,6 +616,9 @@ function AchievementEditor({ padX, editId, onBack, onChanged }) {
         )}
         {needs.includes('levelIndex') && (
           <FieldText label="Level index (0–9)" value={levelIndex} onChange={setLvl} placeholder="0"/>
+        )}
+        {needs.includes('score') && (
+          <FieldText label="Score (S)" value={score} onChange={setScore} placeholder="e.g. 30"/>
         )}
 
         <label style={{

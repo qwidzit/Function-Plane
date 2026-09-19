@@ -1,7 +1,7 @@
 {
   "packId": "r-V",
   "name": "Mastery",
-  "notes": "Roman pack V, all ten levels. Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit. Goals and hints are the author's, set in the studio and read back from level_overrides — not derived here. Two things this file is the record of. Throttle and Loneliness carry answers found by sweeping the real run loop, and npm run verify:levels replays them; the other eight have no answer recorded, so their goals have never been shown to be reachable by an actual run. And Bounce back (index 2) still reads 40/1 with no hint, which is the untouched import default rather than a set goal — it is the one level of the ten the studio never saved. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "notes": "Roman pack V, all ten levels. Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit. Goals and hints are the author's, set in the studio and read back from level_overrides — not derived here. Two things this file is the record of. Throttle and Loneliness carry answers found by sweeping the real run loop, and npm run verify:levels replays them; the other eight have no answer recorded, so their goals have never been shown to be reachable by an actual run. Bounce back (index 2) keeps the 40/1 the import left, which the author confirmed, and its hint was set by hand rather than in the studio. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
   "levels": [
     {
       "index": 0,
@@ -137,7 +137,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": null,
+      "hint": "Use a circle",
       "objects": [
         {
           "kind": "hazard",

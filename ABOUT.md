@@ -495,9 +495,8 @@ different stages:
   score star is unreachable for anyone taking the equation goal at its word.
   One level is in that state today — `r-V-9` *The finale*, at `70/4` against a
   floor of 80. Everything else clears it.
-- **Hints.** 59 of the 70 have one. Geometry's ten have none by design and no
-  button either; the two that are simply missing are named under *Hints and
-  tutorials*.
+- **Hints.** Every level outside Geometry has one — 60 of the 70. Geometry's
+  ten have none by design and no button either; see *Hints and tutorials*.
 - **A recorded answer.** 24 levels have one, and `npm run verify:levels`
   replays all of them — the only mechanism that can tell you a goal is
   reachable. The other 46 have never been replayed: packs III, IV and Geometry
@@ -903,9 +902,10 @@ is worse than no button. It is a property of the pack, not of a level, which is
 why it lives beside `allowedClass` and `modifier` rather than in a row. The
 flag survives an override row because `getPack` spreads the built-in.
 
-Two levels are still without one where one is meant to exist: `r-V-2` *Bounce
-back* and `r-III-9` *Space Exploration*. Those show the bulb and it answers
-"No hint".
+Outside Geometry **every shipped level now has a hint**. The last two were
+`r-V-2` *Bounce back* (`Use a circle` — the one hint that names a shape rather
+than a family, because the level is a board and not a class) and `r-III-9`
+*Space Exploration*, which has no one family behind it and says so.
 
 **Reading a hint and saving one are not the same dependency.** `getHint` only
 looks a key up on the override row, so the built-in table works with or
@@ -1251,8 +1251,8 @@ holding different answers to the same level should end up holding both.
 **Every achievement is a data row** — there is no such thing as a hard-coded
 one any more, so the admin panel edits all of them through a single editor.
 
-- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships 17 rows in exactly the shape
-  the `achievement_overrides` table uses.
+- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships **23 rows** in exactly the
+  shape the `achievement_overrides` table uses.
 - `getAchievementRows()` merges a matching override row over each built-in,
   taking **only the fields the override actually sets** — a row stores `null`
   for every param its kind doesn't use, and those nulls must not wipe the
@@ -1271,10 +1271,29 @@ anyone's history.
 
 `ACH_KINDS` is the fixed set of predicate templates (nothing is ever eval'd):
 `total_stars`, `total_levels`, `pack_complete`, `pack_full_gold`,
-`any_pack_complete`, `any_pack_gold`, `all_roman_packs`, `themed_level`,
-`any_3stars`, `min_score`, `score_over`, `time_under`, `time_over`. Time
+`any_pack_complete`, `packs_complete`, `any_pack_gold`, `all_roman_packs`,
+`themed_level`, `themed_stars`, `themed_packs_complete`, `any_3stars`,
+`min_score`, `levels_min_score`, `score_over`, `time_under`, `time_over`. Time
 thresholds are stored in **milliseconds** because the column is an integer; a
 kind can set `thresholdLabel` and the editor labels its input accordingly.
+
+A kind names the params it consumes in `needs`, and the editor renders exactly
+those fields. Three of them are one number, a pack id or a level index;
+`levels_min_score` is the only one taking **two** numbers — how many levels and
+how cheaply — which is what `achievement_overrides.score`
+(`20260919_achievement_score.sql`, applied) exists for. Adding a param means
+applying its migration in the same breath, for the reason the hint column
+learned: the editor's save patch names every column it writes, `score`
+included and always, and PostgREST refuses an upsert naming a column the table
+does not have — so a missing column fails *every* achievement save, not just
+one using the new kind.
+
+The shipped set is the author's list of 23: first level, 15 levels, any 3★,
+two Minimalist tiers (5 and 15 levels at a score of 30 or less), 5 packs, a
+golden pack, one per main pack plus all of them, two Themed-star tiers and two
+Themed packs, a sub-second clear and a 25-second one, and six star totals from
+15 to 210. 210 is every star in the game as it ships — 70 levels times three —
+so it needs raising if a hidden pack is ever released.
 
 Adding a mechanic = add a kind here; the editor picks up its `needs`
 automatically. Unlock toasts are driven by `app.jsx`'s effect on
@@ -1414,8 +1433,8 @@ checkout.
 materials (player-set, per level, off by default), the Inversion pack
 (gravity flips on every real bounce), the studio that places all of it, the
 admin editor built on the studio, per-kind tutorial decks that fire the first
-time a player meets an object, and per-level hints (59 of the 70 have one, and
-Geometry has none by design). See
+time a player meets an object, and per-level hints (60 of the 70, with
+Geometry opted out by design). See
 *Level objects* above. The rules
 below were considered and declined for now — the design wants no locks on
 the player. What follows is the original analysis, kept for the reasoning.
