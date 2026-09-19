@@ -1,0 +1,524 @@
+{
+  "packId": "r-V",
+  "name": "Mastery",
+  "notes": "Roman pack V, levels VI-X (level_index 5-9). Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit; levels I-V are still placeholders. Throttle and Loneliness carry answers found by sweeping the real run loop, and their goals are exactly what the cheapest answer of that family scores. The grid 2, Runway and The finale carry goals but no answer: a search over lines, parabolas, cosines and domain cuts, in every material and up to three curves at once, got 3/4, 4/5 and 4/5 stars and never cleared them, so nothing here is claimed to solve them and verify:levels reports them as not replayed. Their goals are the bookkeeping the hint rule implies (score_goal - 20 x eq_goal) and are provisional — retune in the studio. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "levels": [
+    {
+      "index": 5,
+      "name": "Throttle",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Quadratic",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 3,
+          "y": -4,
+          "angle": 90,
+          "len": 4,
+          "w": 2,
+          "strength": 30
+        }
+      ],
+      "ball": {
+        "x": -3,
+        "y": 6
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": 3
+        },
+        {
+          "x": 0.25,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": -3
+        },
+        {
+          "x": -3,
+          "y": 0
+        },
+        {
+          "x": 6,
+          "y": 5
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "The drop down the x=-3 column takes two stars for nothing; one curve has to turn the rest of the fall into a run to the right, across the low star and into the fan, which throws the ball up to the one at (6,5). No straight line does it — the sweep found none over 20,000 of them.",
+      "solutions": [
+        {
+          "name": "the dome",
+          "eqs": [
+            "y=-0.25(x+3.5)^2+0.25"
+          ]
+        },
+        {
+          "name": "steeper dome",
+          "eqs": [
+            "y=-0.3(x+3.4)^2-0.5"
+          ]
+        },
+        {
+          "name": "a rubber bowl",
+          "eqs": [
+            {
+              "expr": "y=0.1(x-4)^2-5.9",
+              "material": "rubber"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "name": "The grid 2",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 2 functions",
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": -5,
+          "y": -3,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 5,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 3,
+          "y": -3,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": -1,
+          "y": -3,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": -3,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 3,
+          "y": 5,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": -1,
+          "y": 5,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 7,
+          "y": -3,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 7,
+          "y": 5,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": -5,
+          "y": 5,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": -3,
+          "y": -7,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": -7,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 5,
+          "y": -7,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 9,
+          "y": 1,
+          "w": 2,
+          "h": 2
+        }
+      ],
+      "ball": {
+        "x": -3,
+        "y": 7
+      },
+      "stars": [
+        {
+          "x": -1,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": -3
+        },
+        {
+          "x": 5,
+          "y": -3
+        },
+        {
+          "x": 3,
+          "y": 1
+        }
+      ],
+      "scoreGoal": 60,
+      "eqGoal": 2,
+      "intent": "A staggered lattice of hazards with one free diagonal per gap. The four stars sit on two parallel lines of slope -2 — y=-2x-1 carries (-1,1) and (1,-3), y=-2x+7 carries (3,1) and (5,-3) — and a dead curve rides either one cleanly. Getting from the first to the second is the level; goals assume two curves and are NOT verified."
+    },
+    {
+      "index": 7,
+      "name": "Runway",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 3 functions",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 2,
+          "y": 0,
+          "angle": -90,
+          "len": 3,
+          "w": 4,
+          "strength": 20
+        },
+        {
+          "kind": "hazard",
+          "x": 8,
+          "y": 1.5,
+          "w": 1,
+          "h": 2
+        },
+        {
+          "kind": "well",
+          "x": -6.5,
+          "y": 1,
+          "r": 2.5,
+          "strength": 30,
+          "damp": 1.5
+        }
+      ],
+      "ball": {
+        "x": -2,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": 4,
+          "y": 5
+        },
+        {
+          "x": 8,
+          "y": 0
+        },
+        {
+          "x": -6.5,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": -1
+        }
+      ],
+      "scoreGoal": 90,
+      "eqGoal": 3,
+      "intent": "The two stars at x=1 straddle the mouth of a downward fan, so one vertical pass takes both. The star under the hazard at (8,0) has 0.28 of clearance, and the well at (-6.5,1) holds whatever reaches it — so its star is the one the run ends on. Goals assume three curves and are NOT verified."
+    },
+    {
+      "index": 8,
+      "name": "Loneliness",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Linear",
+      "objects": [],
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": 4,
+          "y": 0
+        }
+      ],
+      "scoreGoal": 30,
+      "eqGoal": 1,
+      "intent": "One star, one line, nothing else on the plane — the quiet before the last two. A flat line cannot do it (the ball only bounces where it lands), so the cheapest answer is a slope, not a constant.",
+      "solutions": [
+        {
+          "name": "through both points",
+          "eqs": [
+            "y=-0.625x+2.5"
+          ]
+        },
+        {
+          "name": "shallower",
+          "eqs": [
+            "y=-0.5x+1.5"
+          ]
+        },
+        {
+          "name": "steeper",
+          "eqs": [
+            "y=-0.75x+2"
+          ]
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "name": "The finale",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": "Use 4 functions",
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 3,
+          "y": -4,
+          "angle": 90,
+          "len": 4,
+          "w": 2,
+          "strength": 20
+        },
+        {
+          "kind": "zerog",
+          "x": 8,
+          "y": 4,
+          "w": 3,
+          "h": 3
+        },
+        {
+          "kind": "well",
+          "x": -1.5,
+          "y": 4,
+          "r": 2.5,
+          "strength": 25,
+          "damp": 1.5
+        },
+        {
+          "kind": "hazard",
+          "x": -1,
+          "y": -1.5,
+          "w": 2,
+          "h": 1
+        },
+        {
+          "kind": "fan",
+          "x": -6,
+          "y": 1.5,
+          "angle": -180,
+          "len": 3,
+          "w": 3,
+          "strength": 30
+        },
+        {
+          "kind": "well",
+          "x": 15,
+          "y": -1.5,
+          "r": 2.5,
+          "strength": 30,
+          "damp": 1.5
+        },
+        {
+          "kind": "hazard",
+          "x": 3.5,
+          "y": 7.5,
+          "w": 2,
+          "h": 2
+        },
+        {
+          "kind": "zerog",
+          "x": -7,
+          "y": 8,
+          "w": 3,
+          "h": 3
+        },
+        {
+          "kind": "zerog",
+          "x": 2,
+          "y": -7.5,
+          "w": 3,
+          "h": 3
+        },
+        {
+          "kind": "well",
+          "x": -11,
+          "y": -4,
+          "r": 2.5,
+          "strength": 30,
+          "damp": 1.5
+        },
+        {
+          "kind": "fan",
+          "x": -4,
+          "y": -8.5,
+          "angle": 90,
+          "len": 4,
+          "w": 3,
+          "strength": 20
+        },
+        {
+          "kind": "hazard",
+          "x": 9,
+          "y": -4,
+          "w": 1,
+          "h": 2
+        },
+        {
+          "kind": "hazard",
+          "x": 6.5,
+          "y": -6,
+          "w": 2,
+          "h": 1
+        },
+        {
+          "kind": "well",
+          "x": 12,
+          "y": 11,
+          "r": 2.5,
+          "strength": 30,
+          "damp": 1.5
+        },
+        {
+          "kind": "zerog",
+          "x": -9,
+          "y": -10.5,
+          "w": 3,
+          "h": 3
+        },
+        {
+          "kind": "well",
+          "x": 7,
+          "y": -12,
+          "r": 2.5,
+          "strength": 30,
+          "damp": 1.5
+        },
+        {
+          "kind": "fan",
+          "x": 9,
+          "y": -7.5,
+          "angle": -45,
+          "len": 4,
+          "w": 2,
+          "strength": 20
+        },
+        {
+          "kind": "fan",
+          "x": 13.5,
+          "y": 2.5,
+          "angle": 90,
+          "len": 4,
+          "w": 2,
+          "strength": 20
+        },
+        {
+          "kind": "fan",
+          "x": 1.5,
+          "y": 12,
+          "angle": 0,
+          "len": 5,
+          "w": 3,
+          "strength": 20
+        },
+        {
+          "kind": "hazard",
+          "x": 12,
+          "y": -5.5,
+          "w": 1,
+          "h": 1
+        }
+      ],
+      "ball": {
+        "x": 8,
+        "y": 9
+      },
+      "stars": [
+        {
+          "x": -5,
+          "y": 0
+        },
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": -5,
+          "y": -2
+        },
+        {
+          "x": 7,
+          "y": -3.5
+        },
+        {
+          "x": -11,
+          "y": -4
+        }
+      ],
+      "scoreGoal": 120,
+      "eqGoal": 4,
+      "intent": "Every object the game has, on one board: four wells, five fans, four zero-g boxes and six hazards. The star at (-11,-4) sits in a well, so it ends the run. Goals assume four curves and are NOT verified."
+    }
+  ]
+}

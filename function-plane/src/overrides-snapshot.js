@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-18T14:11:51.273Z
+// Generated: 2026-09-19T09:05:56.563Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -1898,6 +1898,475 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "materials": true,
     "explain": null,
     "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 5,
+    "name": "Throttle",
+    "ball_x": -3,
+    "ball_y": 6,
+    "stars": [
+     {
+      "x": -3,
+      "y": 3
+     },
+     {
+      "x": 0.25,
+      "y": 0
+     },
+     {
+      "x": 3,
+      "y": -3
+     },
+     {
+      "x": -3,
+      "y": 0
+     },
+     {
+      "x": 6,
+      "y": 5
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "w": 2,
+      "x": 3,
+      "y": -4,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Quadratic",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 6,
+    "name": "The grid 2",
+    "ball_x": -3,
+    "ball_y": 7,
+    "stars": [
+     {
+      "x": -1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": -3
+     },
+     {
+      "x": 5,
+      "y": -3
+     },
+     {
+      "x": 3,
+      "y": 1
+     }
+    ],
+    "score_goal": 60,
+    "eq_goal": 2,
+    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 2,
+      "w": 2,
+      "x": -5,
+      "y": -3,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 5,
+      "y": 1,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 3,
+      "y": -3,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": -1,
+      "y": -3,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": -3,
+      "y": 1,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 3,
+      "y": 5,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": -1,
+      "y": 5,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 1,
+      "y": 1,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 7,
+      "y": -3,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 7,
+      "y": 5,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": -5,
+      "y": 5,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": -3,
+      "y": -7,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 1,
+      "y": -7,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 5,
+      "y": -7,
+      "kind": "hazard"
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 9,
+      "y": 1,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 7,
+    "name": "Runway",
+    "ball_x": -2,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": 4,
+      "y": 5
+     },
+     {
+      "x": 8,
+      "y": 0
+     },
+     {
+      "x": -6.5,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": 1
+     },
+     {
+      "x": 1,
+      "y": -1
+     }
+    ],
+    "score_goal": 90,
+    "eq_goal": 3,
+    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "w": 4,
+      "x": 2,
+      "y": 0,
+      "len": 3,
+      "kind": "fan",
+      "angle": -90,
+      "strength": 20
+     },
+     {
+      "h": 2,
+      "w": 1,
+      "x": 8,
+      "y": 1.5,
+      "kind": "hazard"
+     },
+     {
+      "r": 2.5,
+      "x": -6.5,
+      "y": 1,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 3 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 8,
+    "name": "Loneliness",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": 4,
+      "y": 0
+     }
+    ],
+    "score_goal": 30,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": "Linear",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 9,
+    "name": "The finale",
+    "ball_x": 8,
+    "ball_y": 9,
+    "stars": [
+     {
+      "x": -5,
+      "y": 0
+     },
+     {
+      "x": 4,
+      "y": 4
+     },
+     {
+      "x": -5,
+      "y": -2
+     },
+     {
+      "x": 7,
+      "y": -3.5
+     },
+     {
+      "x": -11,
+      "y": -4
+     }
+    ],
+    "score_goal": 120,
+    "eq_goal": 4,
+    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "w": 2,
+      "x": 3,
+      "y": -4,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 20
+     },
+     {
+      "h": 3,
+      "w": 3,
+      "x": 8,
+      "y": 4,
+      "kind": "zerog"
+     },
+     {
+      "r": 2.5,
+      "x": -1.5,
+      "y": 4,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 25
+     },
+     {
+      "h": 1,
+      "w": 2,
+      "x": -1,
+      "y": -1.5,
+      "kind": "hazard"
+     },
+     {
+      "w": 3,
+      "x": -6,
+      "y": 1.5,
+      "len": 3,
+      "kind": "fan",
+      "angle": -180,
+      "strength": 30
+     },
+     {
+      "r": 2.5,
+      "x": 15,
+      "y": -1.5,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     },
+     {
+      "h": 2,
+      "w": 2,
+      "x": 3.5,
+      "y": 7.5,
+      "kind": "hazard"
+     },
+     {
+      "h": 3,
+      "w": 3,
+      "x": -7,
+      "y": 8,
+      "kind": "zerog"
+     },
+     {
+      "h": 3,
+      "w": 3,
+      "x": 2,
+      "y": -7.5,
+      "kind": "zerog"
+     },
+     {
+      "r": 2.5,
+      "x": -11,
+      "y": -4,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     },
+     {
+      "w": 3,
+      "x": -4,
+      "y": -8.5,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 20
+     },
+     {
+      "h": 2,
+      "w": 1,
+      "x": 9,
+      "y": -4,
+      "kind": "hazard"
+     },
+     {
+      "h": 1,
+      "w": 2,
+      "x": 6.5,
+      "y": -6,
+      "kind": "hazard"
+     },
+     {
+      "r": 2.5,
+      "x": 12,
+      "y": 11,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     },
+     {
+      "h": 3,
+      "w": 3,
+      "x": -9,
+      "y": -10.5,
+      "kind": "zerog"
+     },
+     {
+      "r": 2.5,
+      "x": 7,
+      "y": -12,
+      "damp": 1.5,
+      "kind": "well",
+      "strength": 30
+     },
+     {
+      "w": 2,
+      "x": 9,
+      "y": -7.5,
+      "len": 4,
+      "kind": "fan",
+      "angle": -45,
+      "strength": 20
+     },
+     {
+      "w": 2,
+      "x": 13.5,
+      "y": 2.5,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 20
+     },
+     {
+      "w": 3,
+      "x": 1.5,
+      "y": 12,
+      "len": 5,
+      "kind": "fan",
+      "angle": 0,
+      "strength": 20
+     },
+     {
+      "h": 1,
+      "w": 1,
+      "x": 12,
+      "y": -5.5,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": "Use 4 functions",
     "outline": null
    },
    {
