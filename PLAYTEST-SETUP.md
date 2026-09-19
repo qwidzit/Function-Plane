@@ -699,9 +699,11 @@ search box at the top of the Console finds pages by name.
 
 35. After 14 continuous days at 12+ testers, apply for **production access** in
     the Console. It's a short questionnaire about how the testing went.
-36. Finish everything remaining in `RELEASE-CHECKLIST.md`, especially items 1–4
-    (content), 16 (reset test data) and 26 (re-capture screenshots once the
-    real levels exist).
+36. Finish everything remaining in `RELEASE-CHECKLIST.md`. Item 1 is done — all
+    70 levels of the seven visible packs are authored — so the content work is
+    now items 2 (goal tuning: 46 of the 70 have no replayed answer behind their
+    goals) and 3b (the 16 levels with no hint), plus 16 (reset test data) and
+    26 (re-capture screenshots, which the real levels now make possible).
 37. Promote the build from closed testing to **production**.
 38. Expect the first production review to take days rather than hours;
     subsequent updates are much faster.

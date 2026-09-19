@@ -473,6 +473,32 @@ the app does **not** trust the network for them:
   `level_overrides.hint` column wherever one exists — see *Hints and tutorials*
   below.
 
+### What is authored today
+
+**Every level of every visible pack has a board: 70 of 70.** `npm test` prints
+the coverage and names any pack still on placeholders. Roman I–V, Linear and
+Geometry are visible; VI–X, Trigonometry, Exponential and Inversion are hidden
+and have no boards.
+
+A board is not a tuned level, and the three things a level carries are at
+different stages:
+
+- **Goals.** Every row has them — `npm test` requires `eq_goal >= 1` and
+  `score_goal > 0`, so there is no such thing as a shipped level without a
+  number. Mastery I–V read `40/1`, which is what `_default` already gives an
+  unauthored level: a placeholder standing in for a goal nobody has set yet,
+  not a judgement. Mastery VI, VIII and X (*The grid 2*, *Runway*, *The
+  finale*) carry goals derived from the hint rule rather than from a solved
+  run, and say so in `levels/r-V.json`.
+- **Hints.** 54 of 70 have one; the 16 without are listed under *Hints and
+  tutorials*.
+- **A recorded answer.** 24 levels have one, and `npm run verify:levels`
+  replays all of them — the only mechanism that can tell you a goal is
+  reachable. The other 46 have never been replayed: packs III, IV and Geometry
+  have no `levels/*.json` draft at all, seven of pack II have a draft entry
+  without answers, and so do eight of Mastery and *The arch* in Linear.
+  A goal with no answer behind it is a guess until someone plays it.
+
 ## Level studio (level-studio.jsx) — the sandbox and the admin editor
 
 One screen, two modes. `mode="sandbox"` is free play: graph anything, place
@@ -856,10 +882,14 @@ A domain restriction costs nothing, so a level solved by a *cut* line is still
 doubles as a check on the level, because a goal no curve of the implied family
 can reach is a goal that needs re-tuning.
 
-`LEVEL_HINTS` in `data.jsx` carries packs I and II; everywhere else
-`getHint` returns null and the popup says so. `level_overrides.hint`
+`LEVEL_HINTS` in `data.jsx` carries packs I and II. `level_overrides.hint`
 (`20260916_level_hints.sql`, applied) wins over the table wherever it is set,
-and the studio's Level tab edits it — the same shape `explain` has.
+and the studio's Level tab edits it — the same shape `explain` has; that column
+is where packs III, IV and Mastery VI–X get theirs. Where neither has one
+`getHint` returns null and the popup says so, which today is **16 of the 70
+shipped levels**: Geometry's ten, Mastery I–V, and `r-III-9` *Space
+Exploration*. Geometry's are the one deliberate gap — its rule is a shape, not
+a class, so naming a family would describe the wrong thing.
 
 **Reading a hint and saving one are not the same dependency.** `getHint` only
 looks a key up on the override row, so the built-in table works with or
@@ -1368,12 +1398,17 @@ checkout.
 materials (player-set, per level, off by default), the Inversion pack
 (gravity flips on every real bounce), the studio that places all of it, the
 admin editor built on the studio, per-kind tutorial decks that fire the first
-time a player meets an object, and per-level hints (pack I only so far). See *Level objects* above. The rules
+time a player meets an object, and per-level hints (54 of the 70 have one). See
+*Level objects* above. The rules
 below were considered and declined for now — the design wants no locks on
 the player. What follows is the original analysis, kept for the reasoning.
 
-Fifty unauthored levels that differ only in where the stars sit is the real
-content problem. Two separable answers, and the cheap one is not the objects.
+**The content problem this section was written about is solved**: every level
+of every visible pack is authored — 70 of 70, `npm test` prints it — so none of
+what follows is load-bearing any more. It is kept for the reasoning, and
+because the rules below are still the cheap way to widen what a level can ask
+for. What is left on the content side is tuning rather than authoring: goals,
+hints and recorded answers, per *Level & pack data* and the release checklist.
 
 **Rules first — no engine work at all.** These multiply what an authored level
 can ask for without touching physics, and every one of them applies to levels

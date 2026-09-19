@@ -185,6 +185,18 @@ believing it.
   `overrides-snapshot.js`. Run `npm run snapshot:data` and bump `sw.js`, and
   copy the new geometry back into `levels/*.json` so the draft still
   describes the level that exists.
+- `npm run snapshot:data` fails from a Claude session → it always will: the
+  egress proxy refuses the Supabase host (`HTTP 403 Host not in allowlist`),
+  so the REST fetch never connects, while the Supabase MCP tools reach the same
+  database fine. Rebuild the file from the tables read that way, then **check
+  it rather than trust it**: reproduce Postgres's `jsonb` key order (by key
+  length, then bytewise) and confirm it reproduces the rows already in the file
+  before adding yours, and compare an md5 per row over every column against the
+  same digest computed in SQL. Keep the writer's exact shape — the four comment
+  lines, `Generated:` in `toISOString()` form, `JSON.stringify(…, null, 1)`,
+  and the client-side sort (`localeCompare` on `pack_id`, then `level_index`).
+  Say in the commit that the script could not run, so the next person re-runs
+  it from a networked machine.
 - `overrides-snapshot.js` disagrees with the database → someone hand-edited it
   rather than running `npm run snapshot:data`. Two tells: an `updated_at` in
   `Z` form (the file's own format is `+00:00`) and object keys in insertion
