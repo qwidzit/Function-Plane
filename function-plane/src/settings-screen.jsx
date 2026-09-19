@@ -8,7 +8,6 @@ const SETTING_HELP = {
   volume:       'Master volume for sound effects.',
   gridLabels:   'Show numeric labels along the X and Y axes of the level plane.',
   autoZoom:     'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.',
-  notation:     'Display style for equations on the level plane. Standard shows the text you typed; Pretty typesets it — x², √ with an overbar, and a/b as a stacked fraction.',
 };
 
 function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortable', onLegal }) {
@@ -69,10 +68,6 @@ function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortabl
         <SGroup>
           <TogRow label="Show grid labels"  helpKey="gridLabels"   onHelp={setHelpFor} value={settings.gridLabels}    onChange={v => updateSetting('gridLabels', v)} />
           <TogRow label="Auto-zoom on play" helpKey="autoZoom"     onHelp={setHelpFor} value={settings.autoZoom}      onChange={v => updateSetting('autoZoom', v)} />
-          <SegRow label="Notation" helpKey="notation" onHelp={setHelpFor}
-            value={settings.notation}
-            options={[{ value: 'standard', label: 'Standard' }, { value: 'pretty', label: 'Pretty' }]}
-            onChange={v => updateSetting('notation', v)} />
         </SGroup>
 
         <SSection>About</SSection>

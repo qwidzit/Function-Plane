@@ -589,7 +589,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
       <EquationsPanel
         equations={equations} setEquations={setEquations}
         expanded={panelOpen} onToggle={() => setPanelOpen(v => !v)}
-        disabled={running} notation={settings?.notation || 'standard'}
+        disabled={running}
         allowedClass={null} classWarning={null}
         materialsOn={materials}
         objects={objects} setObjects={setObjects}

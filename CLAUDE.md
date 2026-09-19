@@ -79,38 +79,34 @@ believing it.
 - A perfectly ordinary expression reads as invalid → check whether the bracket
   is closed. `normExpr` closes what was left open; a surplus `)` is still an
   error.
-- What you type after `/` or `^` lands outside the fraction or the exponent →
-  the key typed a bare operator instead of opening a bracket. `1`, `/`, `x+1`
-  is the text `1/x+1`, which is `1/x + 1`; the renderer is right and the
-  keyboard is wrong. Every key that starts a *field* has to open a bracket and
-  put the cursor in it, the way `sin` and `(` do.
-- Typing after a function puts the text *inside* it → the row's text is
-  unbalanced. The parser forgives that and the typeset layer draws the closer
-  anyway, so `y=sin(x` looks exactly like `y=sin(x)` and `+1` lands in the
-  sine. Every key that opens a bracket must close it (`sin` types `sin()`,
-  `(` types `()`), or the gap between what the row shows and what it holds
-  comes straight back.
+- Something you type lands in the wrong part of a fraction, an exponent or a
+  bracket → the field is a tree (`math-field.jsx`), and every key is a call on
+  it: `write`, `frac`, `sup`, `sqrt`, `backspace`. Nothing types a bare
+  `/` or `^` or moves a text selection. The rules are MathQuill's — see
+  *Equation field* in `ABOUT.md` — and `npm test` types the cases that have
+  gone wrong before.
+- Typing after a function puts the text *inside* it → that is the ghost
+  bracket, and it is by design: `sin(` opens a bracket whose closer is drawn
+  faint and treated as present, so `+1` typed next lands inside, exactly as
+  it looks. `)` or → steps out. Desmos does the same.
 - The classifier and the runtime parser disagree about an expression → they
   are two tokenizers over the same conventions and drift is a scoring bug, not
   a cosmetic one. `x(x+1)` priced as an unknown function while the game drew a
   quadratic; `2pi` folded to a constant in one and to `p*i` in the other. If
   you change one, put the expression in `npm test` against both.
-- You cannot type after the end of an expression → the typeset layer only
-  hit-tests things that carry a `data-pos`. The row keeps a stretched target
-  after the expression whose `data-pos` is `expr.length`; anything that
-  replaces that layer has to keep it.
-- The cursor disappears somewhere → something consumed a token with `cut()`
-  and threw the returned element away. `cut` marks the caret *placed*, so
-  discarding it loses the cursor entirely. Build every token through `tokEl`,
-  in source order, even where it draws nothing. It has happened twice: the
-  closer of `sin(x)`, and then the brackets of a group's `bare` rendering — the
-  one an exponent and a fraction's half use, which does not typeset them, so
-  the cursor vanished at the end of `a^(x+1)`. *Not drawn* is not *not built*.
-  `npm test` renders `MathExpr` at every offset of a set of expressions and
-  counts the cursors.
-- The caret draws somewhere you cannot tap → `mathHitOffset` skips anything
-  measuring 0×0, so a token drawn as `''` carries a `data-pos` no tap can
-  reach. Give it a zero-width box with a height rather than an empty span.
+- You cannot type after the end of an expression → the root block stretches
+  across the row (`flex: 1`, `alignSelf: 'stretch'`) so a tap past the last
+  glyph resolves to it and seeks to its end. Anything that replaces the row's
+  layout has to keep it.
+- The cursor disappears somewhere → the caret is `field.cur`, a block and an
+  index, and `renderBlock` draws it when its block is the caret's. A node kind
+  that owns a block must list it in `kidsOf`, or the caret can move into a
+  block nothing draws. `npm test` walks the caret across a set of expressions
+  and counts the cursors.
+- The caret draws somewhere you cannot tap → a tap resolves through
+  `data-n` on every node and `data-b` on every block, then `seek` picks a
+  side by x. Give every node its `data-n`, and an empty block a size — the
+  dashed slot — or it is a place on paper and nowhere on screen.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.
@@ -231,8 +227,9 @@ believing it.
 - A new function name doesn't parse, or parses as a product of letters →
   `normExpr` matches the *longest known name that ends the letter run before
   a `(`*, because `\b` can't separate `3sin(` from `asin(`. Add the name to
-  `FN_CALLS` (runtime), `KNOWN_NAMES` (classifier) and `MATH_FNS` (the
-  typeset display) or all three disagree.
+  `FN_CALLS` (runtime), `KNOWN_NAMES` (classifier) and `MF_FNS` (the field's
+  text out, which brackets a fraction half unless it is one known call) or the
+  three disagree.
 - A level's shape outline collides with the ball → it must not. `outline` on a
   level is a list of polylines over *star indices*, drawn faintly by
   `CoordPlane` and nowhere else; it never reaches `makeRunColliders`. If you
@@ -261,16 +258,10 @@ believing it.
   `drainTicks` and counts `ph.bounces` (real bounces only), never the
   per-frame `ph.bounced` flag. And a flipped ball needs the ceiling in
   `outOfWorld` — which it has, because that bound is radial, not a floor.
-- The caret in an equation row lands in the wrong place, or stops moving →
-  the typeset layer draws its own cursor from a character offset, and the
-  math keyboard has to announce selection changes with the `fp-caret` event
-  (`setCaret()` in `keyboard.jsx`) because React's `onSelect` does not see a
-  direct `setSelectionRange`. Taps must hit-test `data-pos` on the typeset
-  layer, never the hidden input.
-- A half-typed expression renders as plain text instead of maths → something
-  made `buildMath` throw again. The display grammar is deliberately forgiving:
-  a missing operand is a slot, not an error, and that is the whole reason the
-  fraction key feels immediate. Only `mathTokens` may reject input.
+- An expression renders oddly instead of as maths → `parseText` never
+  throws: a character it does not know is shown as itself, and a missing
+  operand is an empty slot, not an error. Only the parser (`parseEquation`)
+  may reject input, and only after the row loses focus.
 - A curve material or field seems to have no effect → the studio and the
   level both pass `material` into `makeColliders` and `field` into
   `physicsStep`'s `world`; a run loop that builds its own colliders/cfg

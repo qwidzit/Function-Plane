@@ -1,4 +1,4 @@
-const CACHE = 'fp-v75';
+const CACHE = 'fp-v76';
 const SHELL = [
   './',
   './index.html',
@@ -34,6 +34,7 @@ const SHELL = [
   './src/pack-selector.js',
   './src/level-selector.js',
   './src/settings-screen.js',
+  './src/math-field.js',
   './src/keyboard.js',
   './src/equation-classifier.js',
   './src/level-objects.js',

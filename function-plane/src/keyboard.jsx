@@ -6,13 +6,6 @@ const { useState: useKB, useRef: useRK, useEffect: useEK } = React;
 // fires once; holding starts repeating after HOLD_DELAY and then every
 // HOLD_RATE, the way a hardware key does. Shared with the domain NumPad in
 // level-screen.jsx, which loads after this file.
-// Moving the selection on the DOM node directly is invisible to React's
-// onSelect, and the typeset field draws its own cursor — so say so.
-function setCaret(inp, p) {
-  inp.setSelectionRange?.(p, p);
-  inp.dispatchEvent(new Event('fp-caret'));
-}
-
 const HOLD_DELAY = 420;
 const HOLD_RATE  = 60;
 
@@ -38,81 +31,21 @@ function useKeyRepeat() {
 
 window.useKeyRepeat = useKeyRepeat;
 
-function MathKeyboard({ inputRef, onChange, onDone }) {
+// `field` is a ref to the active MathField. Every key drives it through the
+// same entry points a hardware keyboard does, so there is one set of editing
+// rules and the two can never disagree. Focus stays on the field: a key's
+// pointerdown is prevented, and the field is refocused before each action in
+// case something else took it.
+function MathKeyboard({ field, onDone }) {
   const [page, setPage] = useKB('main');   // 'main' | 'abc' | 'fn'
   const { start: holdStart, stop: holdStop } = useKeyRepeat();
-  // `back` leaves the cursor that many characters short of the end of what
-  // was typed — for keys that build something around it rather than after it.
-  const ins = (text, back = 0) => {
-    const inp = inputRef?.current;
-    if (!inp) return;
-    inp.focus();
-    const s = inp.selectionStart ?? inp.value.length;
-    const e = inp.selectionEnd   ?? inp.value.length;
-    const v = inp.value.slice(0, s) + text + inp.value.slice(e);
-    const p = s + text.length - back;
-    onChange(v);
-    requestAnimationFrame(() => setCaret(inp, p));
-  };
-
-  // Every key that opens a bracket closes it too, leaving the cursor inside.
-  // The parser will forgive an unclosed one, and the typeset layer draws the
-  // closer whether or not it is there — which together made "y=sin(x" *look*
-  // finished while the text was not, so appending "+1" landed inside the sine
-  // and gave y=sin(x+1). The text has to say what the picture says.
-  const call = name => ins(name + '()', 1);
-
-  // A ")" over one that is already there moves past it instead of doubling up.
-  const close = () => {
-    const inp = inputRef?.current;
-    if (!inp) return;
-    inp.focus();
-    const s = inp.selectionStart ?? inp.value.length;
-    if (inp.value[s] !== ')') { ins(')'); return; }
-    const p = s + 1;
-    requestAnimationFrame(() => setCaret(inp, p));
-  };
-
-  // A fraction over whatever was just written — or, with nothing to put on
-  // top, an empty one with the cursor in the numerator, since that is the
-  // half you are about to fill in.
-  //
-  // The denominator is opened as a bracket for the same reason every other
-  // key that opens one closes it. Pressing "/" used to type a bare slash, so
-  // "1", "/", "x+1" left the text 1/x+1 — which is 1/x + 1, and drew as it.
-  // The field looked like it was asking you for brackets because it was: the
-  // only way to get a compound denominator was to type them yourself.
-  const frac = () => {
-    const inp = inputRef?.current;
-    if (!inp) return;
-    const before = inp.value.slice(0, inp.selectionStart ?? inp.value.length);
-    // With a numerator already there the cursor belongs in the denominator;
-    // with none it belongs in front of the bar, and the denominator waits.
-    ins('/()', /[0-9a-zA-Zπ.)]$/.test(before) ? 1 : 3);
-  };
-
-  const del = () => {
-    const inp = inputRef?.current;
-    if (!inp) return;
-    inp.focus();
-    const s = inp.selectionStart, e = inp.selectionEnd;
-    let v, p;
-    if (s !== e)  { v = inp.value.slice(0,s) + inp.value.slice(e); p = s; }
-    // Sitting between a pair this keyboard opened: take both.
-    else if (s>0 && inp.value[s-1] === '(' && inp.value[s] === ')') { v = inp.value.slice(0,s-1) + inp.value.slice(s+1); p = s-1; }
-    else if (s>0) { v = inp.value.slice(0,s-1) + inp.value.slice(s); p = s-1; }
-    else return;
-    onChange(v);
-    requestAnimationFrame(() => setCaret(inp, p));
-  };
-
-  const mov = d => {
-    const inp = inputRef?.current;
-    if (!inp) return;
-    inp.focus();
-    const p = Math.max(0, Math.min(inp.value.length, (inp.selectionStart ?? 0) + d));
-    requestAnimationFrame(() => setCaret(inp, p));
-  };
+  const f = () => field?.current;
+  const ins = text => { const x = f(); if (!x) return; x.focus(); x.write(text); };
+  const cmd = name => { const x = f(); if (!x) return; x.focus(); x[name](); };
+  // A function key types its name and opens its bracket. The closer is a
+  // ghost the field treats as there until it is typed, so "sin(x" reads as
+  // sin(x) and *is* sin(x), and "+1" typed next lands inside — as it looks.
+  const call = name => ins(name + '(');
 
   // Key faces that are typeset rather than typed. Plain builders, not
   // components — a component declared in here is a new type every render, so
@@ -140,17 +73,17 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
   // ── Left block: variables, grouping, the shapes with their own notation ──
   const LEFT = [
     [k(it('x'), ()=>ins('x'), 'var', 1, 'x'), k(it('y'), ()=>ins('y'), 'var', 1, 'y'),
-     k(pow('a','2'), ()=>ins('^2'), 'op', 1, 'squared'), k(pow('a','b'), ()=>ins('^()', 1), 'op', 1, 'power')],
-    [k('(', ()=>ins('()', 1), 'op'), k(')', close, 'op'),
-     k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn')],
-    [k('|a|', ()=>call('abs'), 'fn'), k(',', ()=>ins(','), 'op'),
-     k(FRAC, frac, 'op', 1, 'fraction'), k('sgn', ()=>call('sgn'), 'fn')],
-    [k('ABC', ()=>setPage('abc'), 'ctrl'), k('√', ()=>call('sqrt'), 'fn'),
+     k(pow('a','2'), ()=>cmd('squared'), 'op', 1, 'squared'), k(pow('a','b'), ()=>cmd('sup'), 'op', 1, 'power')],
+    [k('(', ()=>ins('('), 'op'), k(')', ()=>ins(')'), 'op'),
+     k('⌊a⌋', ()=>ins('⌊'), 'fn'), k('⌈a⌉', ()=>ins('⌈'), 'fn')],
+    [k('|a|', ()=>ins('|'), 'fn'), k(',', ()=>ins(','), 'op'),
+     k(FRAC, ()=>cmd('frac'), 'op', 1, 'fraction'), k('sgn', ()=>call('sgn'), 'fn')],
+    [k('ABC', ()=>setPage('abc'), 'ctrl'), k('√', ()=>cmd('sqrt'), 'fn'),
      k(it('e'), ()=>ins('e'), 'const', 1, 'e'), k('π', ()=>ins('π'), 'const')],
   ];
 
   const NUM = [
-    [k('7', ()=>ins('7'), 'num'), k('8', ()=>ins('8'), 'num'), k('9', ()=>ins('9'), 'num'), k('÷', frac, 'num')],
+    [k('7', ()=>ins('7'), 'num'), k('8', ()=>ins('8'), 'num'), k('9', ()=>ins('9'), 'num'), k('÷', ()=>cmd('frac'), 'num')],
     [k('4', ()=>ins('4'), 'num'), k('5', ()=>ins('5'), 'num'), k('6', ()=>ins('6'), 'num'), k('×', ()=>ins('*'), 'num')],
     [k('1', ()=>ins('1'), 'num'), k('2', ()=>ins('2'), 'num'), k('3', ()=>ins('3'), 'num'), k('−', ()=>ins('-'), 'num')],
     [k('0', ()=>ins('0'), 'num'), k('.', ()=>ins('.'), 'num'), k('=', ()=>ins('='), 'num'), k('+', ()=>ins('+'), 'num')],
@@ -160,9 +93,9 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     [k('sin', ()=>call('sin'), 'fn'), k('cos', ()=>call('cos'), 'fn'), k('tan', ()=>call('tan'), 'fn'),
      k('ln', ()=>call('ln'), 'fn'), k('log', ()=>call('log'), 'fn')],
     [k('sin⁻¹', ()=>call('arcsin'), 'fn'), k('cos⁻¹', ()=>call('arccos'), 'fn'), k('tan⁻¹', ()=>call('arctan'), 'fn'),
-     k(pow('e','x'), ()=>call('exp'), 'fn', 1, 'e to the x'), k('√', ()=>call('sqrt'), 'fn')],
-    [k('⌊a⌋', ()=>call('floor'), 'fn'), k('⌈a⌉', ()=>call('ceil'), 'fn'), k('sgn', ()=>call('sgn'), 'fn'),
-     k('|a|', ()=>call('abs'), 'fn'), k(pow('a','b'), ()=>ins('^()', 1), 'op', 1, 'power')],
+     k(pow('e','x'), ()=>call('exp'), 'fn', 1, 'e to the x'), k('√', ()=>cmd('sqrt'), 'fn')],
+    [k('⌊a⌋', ()=>ins('⌊'), 'fn'), k('⌈a⌉', ()=>ins('⌈'), 'fn'), k('sgn', ()=>call('sgn'), 'fn'),
+     k('|a|', ()=>ins('|'), 'fn'), k(pow('a','b'), ()=>cmd('sup'), 'op', 1, 'power')],
     [k('Σ', ()=>ins('sum(1,5,n*x)'), 'adv'), k('d/dx', ()=>call('deriv'), 'adv'), k('∫', ()=>call('integ'), 'adv'),
      k('min', ()=>call('min'), 'fn'), k('max', ()=>call('max'), 'fn')],
   ];
@@ -182,8 +115,8 @@ function MathKeyboard({ inputRef, onChange, onDone }) {
     [page === 'fn'
       ? k('123', ()=>setPage('main'), 'ctrl', 2)
       : k('functions', ()=>setPage('fn'), 'ctrl', 2)],
-    [k('←', ()=>mov(-1), 'ctrl'), k('→', ()=>mov(1), 'ctrl')],
-    [k('⌫', del, 'del', 2)],
+    [k('←', ()=>cmd('left'), 'ctrl'), k('→', ()=>cmd('right'), 'ctrl')],
+    [k('⌫', ()=>cmd('backspace'), 'del', 2)],
     [k('↵', () => onDone?.(), 'enter', 2)],
   ];
 

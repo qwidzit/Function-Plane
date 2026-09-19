@@ -9,8 +9,7 @@ const SETTING_HELP = {
   sound: 'Plays short tones when the ball bounces, you collect a star, and on level success or failure.',
   volume: 'Master volume for sound effects.',
   gridLabels: 'Show numeric labels along the X and Y axes of the level plane.',
-  autoZoom: 'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.',
-  notation: 'Display style for equations on the level plane. Standard shows the text you typed; Pretty typesets it — x², √ with an overbar, and a/b as a stacked fraction.'
+  autoZoom: 'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.'
 };
 function SettingsScreen({
   onBack,
@@ -119,19 +118,6 @@ function SettingsScreen({
     onHelp: setHelpFor,
     value: settings.autoZoom,
     onChange: v => updateSetting('autoZoom', v)
-  }), /*#__PURE__*/React.createElement(SegRow, {
-    label: "Notation",
-    helpKey: "notation",
-    onHelp: setHelpFor,
-    value: settings.notation,
-    options: [{
-      value: 'standard',
-      label: 'Standard'
-    }, {
-      value: 'pretty',
-      label: 'Pretty'
-    }],
-    onChange: v => updateSetting('notation', v)
   })), /*#__PURE__*/React.createElement(SSection, null, "About"), /*#__PURE__*/React.createElement(SGroup, null, /*#__PURE__*/React.createElement(SNavRow, {
     label: "Privacy policy",
     onPress: () => onLegal && onLegal('privacy')

@@ -12,8 +12,7 @@ const SETTINGS_DEFAULTS = {
   sound: true,
   volume: 70,
   gridLabels: true,
-  autoZoom: true,
-  notation: 'pretty'
+  autoZoom: true
 };
 function App() {
   const [settings, setSettings] = useState(() => {
@@ -763,7 +762,7 @@ function PlaceholderScreen({
   }, subtitle)));
 }
 function mount() {
-  if (typeof MainScreen === 'undefined' || typeof PackSelector === 'undefined' || typeof LevelSelector === 'undefined' || typeof SettingsScreen === 'undefined' || typeof LevelScreen === 'undefined' || typeof LevelCompletePopup === 'undefined' || typeof HowToPlayScreen === 'undefined' || typeof AchievementsScreen === 'undefined' || typeof AccountScreen === 'undefined' || typeof AdminScreen === 'undefined' || typeof LevelStudio === 'undefined' || typeof FP_OBJECTS === 'undefined' || typeof LegalScreen === 'undefined' || typeof MathKeyboard === 'undefined' || typeof freshProgress === 'undefined' || typeof Icon === 'undefined' || typeof FP_AUTH === 'undefined') {
+  if (typeof MainScreen === 'undefined' || typeof PackSelector === 'undefined' || typeof LevelSelector === 'undefined' || typeof SettingsScreen === 'undefined' || typeof LevelScreen === 'undefined' || typeof LevelCompletePopup === 'undefined' || typeof HowToPlayScreen === 'undefined' || typeof AchievementsScreen === 'undefined' || typeof AccountScreen === 'undefined' || typeof AdminScreen === 'undefined' || typeof LevelStudio === 'undefined' || typeof FP_OBJECTS === 'undefined' || typeof LegalScreen === 'undefined' || typeof MathKeyboard === 'undefined' || typeof MathField === 'undefined' || typeof freshProgress === 'undefined' || typeof Icon === 'undefined' || typeof FP_AUTH === 'undefined') {
     return setTimeout(mount, 30);
   }
   ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));

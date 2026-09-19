@@ -99,6 +99,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     level-objects.jsx      # FP_OBJECTS — fans, zero-g, wells, hazards: physics + drawing
     level-studio.jsx       # sandbox AND the admin level editor — same plane/panel/physics
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
+    math-field.jsx         # the equation field: tree model, MathQuill editing rules, text in/out
     keyboard.jsx           # custom math keyboard (Desmos layout: main/abc/fn pages)
     app.jsx                # root component, routing, mount() guard
     ...                    # per-screen components
@@ -160,9 +161,12 @@ for not running it before a commit.
   like (`y=sin(x`), a surplus one is still an error, `pi` glued to a digit is
   π, a name before `(` that is not callable is a product (`x(x+1)` is a
   quadratic and priced as one), and a hidden row costs nothing.
-- **The typeset layer** — `MathExpr` rendered at *every* offset of a few
-  expressions, counting the cursors it draws and the brackets. Two caret bugs
-  shipped from that file while it was only ever checked by eye.
+- **The equation field** — typed into the way the keyboard types, and asked
+  what text it hands the parser: the fraction over `x+1`, the exponent an
+  operator steps out of, the ghost bracket, backspace spilling a fraction. Every
+  expression the game ships is read into it and written back out, which has to
+  be a fixed point that means the same thing to the parser. And the caret is
+  walked across each one, counting the cursors drawn.
 - **Level data** — the snapshot parses, every authored level has a ball, stars
   and positive goals, and `_default`'s goal stays on the authored scale.
 - **Build parity** — recompiles every `.jsx` and compares to the committed
@@ -317,9 +321,9 @@ Two rules keep that rewrite honest, and both exist because they were broken:
   safety net, not the normal path. **The keyboard's job is to never need it**:
   see *Balanced as you type* below.
 
-The display grammar has always been deliberately lenient (see *Equation field*
-below); the parser is now lenient in the same places, which is the only way the
-two can agree about whether a half-typed expression is wrong.
+The field never needs this: a bracket it holds always has two halves, even
+while one is a ghost (see *Equation field* below). The leniency is for text
+that arrives from anywhere else.
 
 ## Equation classifier (equation-classifier.js)
 
@@ -705,85 +709,76 @@ to the ball, which resets to its start on failure and would collapse the
 gradient to zero length — so the end of the run is the most visible part.
 Cleared when the next run starts.
 
-## Equation field — typeset while you type
+## Equation field — a tree, not a string
 
-The row is laid out as maths *while it is being edited*, not only at rest.
-There is still exactly one `<input>` underneath holding the text and the
-selection — it keeps desktop typing, selection and undo working — but its
-glyphs and its caret are transparent, and a typeset layer sits on top drawing
-the expression and its own cursor. The text string stays the single source of
-truth; `MathExpr` is a renderer with a caret drawn into it, not a document
-model, so the parser, the classifier, run history and every save are
-unchanged.
+The row is a **structural editor** (`math-field.jsx`). What it holds is a
+tree — characters, fractions, exponents, roots and brackets — and the caret is
+a place in that tree: a block and an index into it. The text the parser reads
+(`eq.expr`) is *derived* from the tree by `textOf`, after every edit. So
+the picture and the meaning cannot drift: a fraction is a fraction because it
+is one, not because a slash happened to draw as one, and two `+` in a row are
+two `+` in a row. This replaced a typeset layer painted over a plain
+`<input>`, where `1`, `/`, `x+1` was the text `1/x+1`, drew as a
+fraction over `x+1`, and meant `1/x + 1`.
 
-Three things make that work:
+The editing rules are MathQuill's, which is what Desmos runs:
 
-- **Tokens carry their source offsets.** The caret is a character index, so
-  `buildMath` can emit it at exactly the right place in the layout — including
-  *inside* a token, which is how you put the cursor in the middle of `12.5`.
-- **The grammar is forgiving.** A half-written expression renders as far as it
-  parses and shows a dashed empty slot wherever an operand is missing —
-  `x/`, `x^`, `sin(`, a lone `(`. That is what makes the fraction key feel
-  like Desmos without a document model: typing `/` simply leaves the
-  denominator missing, so the renderer draws the bar and an empty box, and
-  the caret is already inside it. Nothing about the renderer special-cases
-  the fraction key.
-  An **operator is not an atom**: `atom()` returns a slot for one *without
-  consuming it*, so a `/` with nothing in front of it leaves a slot behind for
-  `mul()` to hang a fraction on and renders empty over empty, rather than
-  being eaten as a stray slash.
-- **Taps hit-test the layout, not the text.** Every token and slot carries
-  `data-pos`; `mathHitOffset` finds the nearest one to the tap and picks its
-  near or far edge. Hit-testing the hidden input instead would put the caret
-  where the *raw string* would have been, which stops matching the moment a
-  fraction stacks anything.
-- **The blank to the right of the expression is the end of it.** The row keeps
-  a stretched `data-pos={expr.length}` target after the typeset layer, so a tap
-  past the last glyph lands at the end rather than on whatever token happens to
-  be nearest — the base underneath an exponent, say.
-- **A bracket is a place the cursor can sit.** `args()` builds a call's
-  parentheses through `tokEl` like any other token, so they carry a `data-pos`
-  and emit the caret when it belongs to them. The closer used to be consumed
-  with `cut()` and its caret element *discarded* — `cut` marks the caret
-  placed, so throwing the element away loses the cursor — and it vanished at
-  exactly the offset a player types next, the end of `sin(x)`. The glyphs are
-  an argument (`''` where √ draws an overbar instead) precisely so every shape
-  still goes through the one function that knows about the caret.
-- **`)` and `,` are not atoms.** Like an operator, `atom()` returns a slot for
-  them *without consuming*, so the `args()` that opened the bracket can close
-  it. Swallowing the `)` of an empty `sin()` as a stray token took the call's
-  own closer away and left the fallback to draw a second one — `sin((`.
-- **A bracket that is not typeset is still there.** A group returns two
-  renderings: `el`, with its brackets drawn, and `bare`, without them — what
-  belongs above a fraction bar and up in an exponent, because `(x+1)/2` is a
-  fraction over `x+1`, not over `(x+1)`. `bare` used to be the *inside* of the
-  group and nothing else, which threw both bracket elements away — and with
-  them any caret `cut()` had already placed on one. The cursor vanished at the
-  end of `a^(x+1)` and in the middle of `(x+1)/2`, which is the same bug as
-  `sin(x)` by a different route. A group now builds each bracket once, in
-  source order, and keeps its caret in both renderings; only the glyph differs.
-- **A hit target that draws nothing needs a size.** `mathHitOffset` skips
-  anything measuring 0×0, so an empty glyph is a position on paper and nowhere
-  on screen. Every token drawn as `''` — the brackets of `√(x)` and `|x|`,
-  which their head draws instead, and the undrawn brackets above — gets a
-  zero-width box with a real height, which takes no room in the line and is
-  still something a tap can land on.
-- `npm test` renders `MathExpr` at **every offset** of a set of expressions and
-  counts the cursors, counts the brackets it draws, checks that every bracket
-  carries a position, and checks that a target which draws nothing has a
-  height. Every one of those bugs shipped because this layer was only ever
-  checked by eye.
+- **`/` takes everything back to the previous operator** (`+ − · = < > ,`) as
+  the numerator and leaves the caret in the denominator. With nothing to take,
+  the caret waits in the empty numerator. A leading minus is an operator, so
+  `-x/2` is `−` in front of a fraction.
+- **`^` opens an exponent**; right after one it steps back into it rather than
+  stacking a second. `+ − = < >` typed *at the end* of a non-empty exponent
+  step out of it first, so `x^2+1` is `x²+1` — but `x^-1` still types,
+  because the exponent was empty when the minus arrived. A compound exponent
+  is typed with its brackets, as in Desmos.
+- **A bracket typed alone is one-sided.** Its other half is a *ghost*: drawn
+  faint, treated as present, and sitting at the far end of the line — so `(`
+  in front of `x+1` brackets all of it. Typing the other half closes the
+  pair and steps out. Backspace over a bracket removes that side and leaves
+  the other a ghost; at the start inside a bracket, it unwraps it. `|` is a
+  bracket that is either side.
+- **Backspace at the start of a fraction, exponent or root spills it** into
+  the line, caret where it was; from outside, onto a non-empty one, it steps
+  in rather than deleting.
+- **`sqrt` and `pi` typed as letters** become √ and π.
+- **Left and right walk the tree** in reading order: numerator, denominator,
+  out. Up and down move between a fraction's halves and into an exponent.
 
-The math keyboard moves the selection directly on the DOM node, which React's
-`onSelect` does not reliably see, so `setCaret()` in `keyboard.jsx` dispatches
-an `fp-caret` event the row listens for. An expression only turns red once it
-has lost focus — half-written is not wrong.
+**Text in.** `parseText` reads what the parser reads and builds the tree
+typing it would have built — a level's preplaced equations, a loaded run and
+the manual's examples all come in this way. **Text out.** `textOf` brackets a
+fraction's halves and an exponent unless they are one thing the parser binds
+as one (a number, a letter, a bracket group, a root, a known call), so a
+fraction over `x+1` comes out `1/(x+1)` and `1/x` stays `1/x`. Text →
+tree → text is a fixed point, and `npm test` checks it means the same thing
+to the parser. A ghost bracket is written as closed, since that is how it is
+drawn. One known asymmetry: a numerator bracketed by hand, `(x+1)/2`, reads
+back as a fraction over `x+1` without the brackets, because that is what
+the fraction *is*.
 
-Variables render **upright**, not italic. The maths convention is italic, but
-at 14px on a phone, next to Geist Mono digits, it read as a slant rather than
-as meaning.
+**Taps hit-test the tree.** Every node carries `data-n` and every block
+`data-b`; the row resolves the nearest one under the tap and asks the field
+to `seek` from there by x, MathQuill's algorithm: into the nearer child
+block, or before or after the node. An empty block draws a dashed slot so it
+has a size to land on; the root block stretches across the row, so a tap past
+the last glyph lands at the end.
 
-`notation: 'standard'` still shows the plain text in the input, unstyled.
+**The hidden input** is there for focus and for hardware keyboards: every key
+it sees goes through the same `type` the on-screen keyboard uses, so the two
+cannot disagree. Its native keyboard is suppressed with `inputMode="none"`.
+Pasted text is read the way a save is read.
+
+**The row re-seeds the field only when `eq.expr` changes from outside** —
+the slider rewriting `a=1.0`, a loaded run. While it is being edited, the
+field is the source of truth and `eq.expr` is what it last wrote.
+
+An expression only turns red once it has lost focus — half-written is not
+wrong. Variables render **upright**, not italic: at 14px on a phone, next to
+Geist Mono digits, the italic read as a slant rather than as meaning.
+
+There is no selection: the field has a caret, not a range. That is the one
+thing a Desmos field does that this one does not.
 
 ## Custom math keyboard
 
@@ -811,33 +806,19 @@ as meaning.
 - The **comma is load-bearing**, not decoration: `min(x,2)`, `max(x,1)`,
   `pow(x,7)` and `sum(1,5,n*x)` all need it, and `min`/`max`/`Σ` are all on
   the functions page. It is not a decimal separator — `.` is.
-### Balanced as you type
+### Every key is a keystroke
 
-Every key that opens a bracket closes it and leaves the cursor inside — `sin`
-types `sin()`, `(` types `()`. Backspace between an empty pair takes both, and
-`)` over an existing one steps past it rather than doubling up.
+The keyboard holds no text and no cursor. Each key calls the active field —
+`write('sin(')`, `frac()`, `sup()`, `backspace()` — through the same
+entry points a hardware keyboard reaches, so there is one set of editing rules
+(see *Equation field*). A function key types its name and opens its bracket;
+the closer is a ghost the field treats as present until it is typed, so
+`sin(x` reads as `sin(x)`, *is* `sin(x)`, and `+1` typed next lands
+inside — exactly as it looks. `)` closes it and steps out; so does →.
 
-This is not a convenience. The parser forgives an unclosed bracket and the
-typeset layer draws the closer whether or not it is there, so `y=sin(x`
-*looked* exactly like `y=sin(x)` while the text was six characters short of
-it — and appending `+1` gave `y=sin(x+1)`, the term landing inside the sine.
-The display was telling the truth about the maths and lying about the text.
-Anything that types an opening bracket has to close it, or that gap comes back.
-
-- `a/b` and the keypad's `÷` are the **same action**, `frac()`: it types
-  `/()`, leaving the cursor inside the brackets — the denominator is a box you
-  type into. With no term to put on top it leaves the cursor *before* the bar
-  instead, so pressing it on an empty field gives an empty fraction with the
-  cursor in the numerator, the half you are about to fill in. The power key is
-  the same, `^()`; only the squared key, which writes a whole exponent, needs
-  no box.
-  This is the same rule as `sin()` and it is there for the same reason. `/`
-  used to type a bare slash, so `1`, `/`, `x+1` left the text `1/x+1` — which
-  *is* `1/x + 1`, and correctly drew as it. The renderer was right and the
-  keyboard was wrong: a compound denominator could only be had by typing the
-  brackets yourself, which is what made the field feel like it was asking for
-  them. Brackets change neither the class nor the price an expression scores,
-  so nothing downstream moves.
+- `a/b` and the keypad's `÷` are the same action, `frac()`. The squared
+  key opens an exponent, types `2` and steps out; the power key opens one and
+  stays in it.
 - Domain-restriction inputs use a separate `NumPad` (in `level-screen.jsx`)
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
@@ -983,10 +964,10 @@ Two rules keep the diagrams honest:
 **Maths in the copy is typeset.** `M` in `how-to-play.jsx` renders an
 expression through `MathExpr` rather than printing its source, so the
 explanations show `y=x²−3` and `√x` the way the equation rows do. It resolves
-`MathExpr` at *render* time, because `level-screen.js` loads after
-`how-to-play.js` and a module-scope reference would capture `undefined`. The
-same applies everywhere the game quotes an expression back — the empty-row
-placeholder and the run-history list both go through `MathExpr`.
+`MathExpr` at *render* time so the file has no load-order dependency on
+`math-field.js`. The same applies everywhere the game quotes an expression
+back — the empty-row placeholder and the run-history list both go through
+`MathExpr`.
 
 ## Splash screen (index.html)
 

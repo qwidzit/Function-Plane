@@ -9,7 +9,6 @@ const SETTINGS_DEFAULTS = {
   volume: 70,
   gridLabels: true,
   autoZoom: true,
-  notation: 'pretty',
 };
 
 function App() {
@@ -592,6 +591,7 @@ function mount() {
     typeof FP_OBJECTS === 'undefined' ||
     typeof LegalScreen === 'undefined' ||
     typeof MathKeyboard === 'undefined' ||
+    typeof MathField === 'undefined' ||
     typeof freshProgress === 'undefined' ||
     typeof Icon === 'undefined' ||
     typeof FP_AUTH === 'undefined'

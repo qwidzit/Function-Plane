@@ -324,27 +324,27 @@ it('recomputes a forged submission to a different score', () => {
     'three equations against an eq_goal of 1 must not earn the equation star');
 });
 
-// ── 1b2. The typeset layer ─────────────────────────────────────────────────
+// ── 1b2. The equation field ────────────────────────────────────────────────
 
-describe('Typeset equation layer');
+describe('Equation field');
 
-// MathExpr is a plain function component, so a createElement that builds
-// objects instead of DOM is enough to inspect what it would draw. Two caret
-// bugs have shipped from this file by eye; this looks.
-const typeset = (() => {
+// The field is a plain class over a tree, so it can be driven here exactly
+// as the keyboard drives it, and asked what text it would hand the parser.
+// The row's drawing is a plain function too, so what it would draw — and how
+// many cursors — can be counted without a DOM.
+const mfield = (() => {
   const h = (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) });
   const React = {
-    createElement: h,
-    Fragment: 'fragment',
+    createElement: h, Fragment: 'fragment',
     isValidElement: x => !!x && typeof x === 'object' && 'type' in x,
     useState: () => [null, () => {}], useRef: () => ({ current: null }),
-    useEffect: () => {}, useMemo: fn => fn(),
+    useEffect: () => {}, useLayoutEffect: () => {}, useMemo: fn => fn(),
   };
   const w = { React };
   global.window = w;
   global.React = React;
   global.document = { createElement: () => ({}) };
-  for (const f of ['equation-classifier.js', 'level-screen.js']) {
+  for (const f of ['equation-classifier.js', 'math-field.js', 'level-screen.js']) {
     delete require.cache[require.resolve(path.join(SRC, f))];
     require(path.join(SRC, f));
     Object.assign(global, w);
@@ -363,123 +363,124 @@ function flatten(node, out = []) {
   if (node.props && node.props.children != null) flatten(node.props.children, out);
   return out;
 }
-const draw  = (src, caret) => flatten(typeset.MathExpr({ src, caret }));
-const text  = (src, caret) => draw(src, caret).filter(n => typeof n === 'string').join('');
-const carets = (src, caret) => draw(src, caret).filter(n => n && n.props && n.props.className === 'fp-caret').length;
-const positions = src => draw(src, null)
-  .filter(n => n && n.props && n.props['data-pos'] != null)
-  .map(n => Number(n.props['data-pos']));
-// Every offset a tap can actually land on: mathHitOffset returns data-pos from
-// the left half of an element and data-end from the right, so both count.
-const reachable = src => {
-  const out = new Set();
-  for (const n of draw(src, null)) {
-    if (!n || !n.props || n.props['data-pos'] == null) continue;
-    out.add(Number(n.props['data-pos']));
-    if (n.props['data-end'] != null) out.add(Number(n.props['data-end']));
-  }
-  return out;
+
+// Type a sequence into a fresh field: strings are typed character by
+// character, functions are pressed (f => f.backspace()).
+const typed = steps => {
+  const f = new mfield.MathField('');
+  for (const s of steps) typeof s === 'string' ? f.write(s) : s(f);
+  return f;
 };
+const drawn = (src, f) => flatten(mfield.MathExpr({ src }));
+const glyphs = src => drawn(src).filter(n => typeof n === 'string').join('');
+const carets = f => flatten(f.render()).filter(n => n && n.props && n.props.className === 'fp-caret').length;
 
-it('draws the cursor wherever it is put, including after a call', () => {
-  // The closing bracket of a call used to be consumed with its caret element
-  // discarded, so the cursor simply disappeared at the end of sin(x) — the one
-  // place a player types next.
-  for (let c = 0; c <= 'y=sin(x)'.length; c++) {
-    eq(carets('y=sin(x)', c), 1, `one cursor at offset ${c} of y=sin(x)`);
-  }
-  for (let c = 0; c <= 'y=abs(x)+1'.length; c++) {
-    eq(carets('y=abs(x)+1', c), 1, `one cursor at offset ${c} of y=abs(x)+1`);
-  }
-  for (let c = 0; c <= 'y=sqrt(x)'.length; c++) {
-    eq(carets('y=sqrt(x)', c), 1, `one cursor at offset ${c} of y=sqrt(x)`);
-  }
-  eq(carets('y=x^2', 5), 1, 'and at the end of a power');
-  // Then it came back for powers and fractions, by a different route: the
-  // brackets round an exponent or a fraction's half are not typeset, and the
-  // element that carried them — caret and all — was being thrown away. The
-  // cursor vanished at the end of a^(x+1) and in the middle of (x+1)/2.
-  for (const src of ['a^(x+1)', 'y=2^(x+1)', 'y=(x+1)/2', 'y=1/(x+1)',
-                     'y=(x+1)/(x-1)', 'y=x^(x^(x+1))', 'y=sin(x)/(x+1)',
-                     'y=-(x+1)/2', 'y=a^(x', 'y=1/(x']) {
-    for (let c = 0; c <= src.length; c++) {
-      eq(carets(src, c), 1, `one cursor at offset ${c} of ${src}`);
+it('builds a fraction over everything back to the last operator', () => {
+  // The complaint that started this: 1, /, x, +, 1 has to be 1 over x+1,
+  // because that is what the picture of a fraction says.
+  eq(typed(['1/x+1']).text(), '1/(x+1)');
+  eq(typed(['y=x+1/2']).text(), 'y=x+1/2', 'and only back to the operator');
+  eq(typed(['y=-x/2']).text(), 'y=-x/2', 'a minus stays in front of the bar');
+  eq(typed(['2x/3']).text(), '(2x)/3', 'a product goes on top whole');
+  eq(typed(['sin(x)/2']).text(), 'sin(x)/2', 'so does a call');
+  // Nothing to put on top: the caret waits in the numerator.
+  eq(typed(['/', '1', f => f.right(), 'x']).text(), '1/x');
+});
+
+it('keeps an exponent to the power and steps out of it on an operator', () => {
+  eq(typed(['x^2+1']).text(), 'x^2+1');
+  eq(typed(['x^x+1']).text(), 'x^x+1');
+  eq(typed(['x^-1+1']).text(), 'x^(-1)+1', 'but not out of an empty one, so x^-1 can be typed');
+  eq(typed(['x^(x+1)']).text(), 'x^(x+1)', 'and not out of a bracket');
+  eq(typed(['2^x^2']).text(), '2^(x^2)', 'a power in a power nests');
+  eq(typed(['x', f => f.squared(), '+1']).text(), 'x^2+1', 'the squared key writes a whole exponent');
+  eq(typed(['x^2', f => f.left(), f => f.backspace()]).text(), 'x2', 'backspace at its start spills it');
+});
+
+it('shows what was typed, however odd', () => {
+  // Two "+" used to draw as none and then break whatever was typed next.
+  eq(typed(['++']).text(), '++');
+  eq(glyphs('++'), '++');
+  eq(typed(['x+*2']).text(), 'x+*2');
+});
+
+it('treats a lone bracket as having a ghost other half at the far end', () => {
+  eq(typed(['(x+1']).text(), '(x+1)');
+  eq(typed(['sin(x']).text(), 'sin(x)');
+  eq(typed(['sin(x)+1']).text(), 'sin(x)+1', 'typing ) closes it and steps out');
+  eq(typed(['x+1)']).text(), '(x+1)', 'a ) with nothing open wraps what is before it');
+  eq(typed(['x+1', f => f.home(), '(']).text(), '(x+1)', 'a ( in front wraps what is after it');
+  eq(typed(['|x|+1']).text(), 'abs(x)+1');
+  eq(typed(['⌊x⌋']).text(), 'floor(x)');
+  // Backspace over ) leaves the ( with a ghost, and the caret inside.
+  eq(typed(['(x+1)', f => f.backspace(), '2']).text(), '(x+12)');
+  eq(typed(['(x+1)', f => f.home(), f => f.right(), f => f.backspace()]).text(), 'x+1',
+    'backspace at the start inside unwraps it');
+});
+
+it('turns typed sqrt and pi into the root and the constant', () => {
+  eq(typed(['sqrtx']).text(), 'sqrt(x)');
+  eq(typed(['2pi']).text(), '2π');
+});
+
+it('spills a fraction on backspace at the start of a half', () => {
+  eq(typed(['1/2', f => f.left(), f => f.backspace()]).text(), '12');
+  eq(typed(['/', f => f.backspace()]).text(), '', 'an empty one just goes');
+  eq(typed(['1/2', f => f.right(), f => f.backspace()]).text(), '1/2', 'backspace from outside steps in');
+});
+
+it('reads an expression back into the tree typing it would have made', () => {
+  // A saved equation, a preplaced one, the run history: all come in as text
+  // and must draw — and edit — as if they had been typed. Writing the tree out
+  // again has to be a fixed point, and mean the same to the parser.
+  const { parseText, textOf } = mfield.FP_MATH;
+  const at = (expr, x) => { const r = mfield.parseEquation(expr); return r.fn ? r.fn(x) : null; };
+  for (const src of ['y=sin(x)', 'y=1/(x+1)', 'y=(x+1)/2', 'y=x^2-3', 'x^2+y^2=25',
+                     'y=sum(1,5,n*x^n)', 'y=2^(x+1)', 'y=abs(x)/floor(x)', 'y=1/x^2',
+                     'y=-(x+1)/2', 'y=sqrt(x)', 'y=e^x', 'y=2pi*x', 'y=1/2x', 'y=x^(1/2)',
+                     'y=(x+1)^2/3', 'y=1/(x+1)^2', 'y=a^(x^(x+1))', 'y=min(x,2)', 'y=0.75x',
+                     'y=x(x+1)', 'y=-x^2', 'y=3sin(x)/x', 'y=ceil(x)-floor(x)']) {
+    const once = textOf(parseText(src));
+    eq(textOf(parseText(once)), once, 'a fixed point for ' + src);
+    for (const x of [0.3, 1.7, -2.2]) {
+      const a = at(src, x), b = at(once, x);
+      if (a == null || b == null || !isFinite(a) || !isFinite(b)) { eq(b, a, once + ' at x=' + x); continue; }
+      near(b, a, 1e-9, once + ' means what ' + src + ' means at x=' + x);
     }
   }
 });
 
-it('keeps a bracket tappable even where it is not drawn', () => {
-  // A bracket the typeset layer does not draw is still a place the caret can
-  // sit, so it still has to carry a position. Without one there was nothing
-  // between the exponent's last glyph and the end of the row: you could not
-  // put the cursor after a^(x+1) to type the next thing.
-  for (const [src, offsets] of [
-    ['a^(x+1)',   [2, 6, 7]],
-    ['y=2^(x+1)', [4, 8, 9]],
-    ['y=(x+1)/2', [2, 6, 7]],
-    ['y=1/(x+1)', [4, 8, 9]],
-  ]) {
-    const r = reachable(src);
-    for (const o of offsets) ok(r.has(o), `offset ${o} of ${src} is tappable, got ${[...r].sort((a,b)=>a-b)}`);
-  }
-});
-
-it('gives a hit target that draws nothing a size to be hit on', () => {
-  // mathHitOffset throws away anything measuring 0x0, so a bracket drawn by
-  // something else — the head of sqrt( and abs(, and the brackets an exponent
-  // or a fraction's half does not typeset — needs a box with a height or it is
-  // a position on paper and nowhere on screen.
-  for (const src of ['a^(x+1)', 'y=(x+1)/2', 'y=sqrt(x)', 'y=abs(x)', 'y=1/(x+1)']) {
-    for (const n of draw(src, null)) {
-      if (!n || !n.props || n.props['data-pos'] == null) continue;
-      const kids = [].concat(n.kids || [], n.props.children == null ? [] : n.props.children);
-      if (kids.some(k => k !== '' && k != null)) continue;   // draws a glyph
-      ok(n.props.style && n.props.style.height,
-        `the empty target at offset ${n.props['data-pos']} of ${src} has no height`);
+it('draws one cursor wherever it is, and a target on every node', () => {
+  // Two cursor bugs shipped from the old layer by eye; this walks the caret
+  // right from the start of each expression and counts.
+  for (const src of ['y=sin(x)', 'y=abs(x)+1', 'y=sqrt(x)', 'y=x^2', 'a^(x+1)', 'y=(x+1)/2',
+                     'y=1/(x+1)', 'y=x^(x^(x+1))', 'y=sin(x)/(x+1)', 'y=-(x+1)/2', 'y=min(x,2)']) {
+    const f = new mfield.MathField(src);
+    f.home();
+    for (let guard = 0; guard < 60; guard++) {
+      eq(carets(f), 1, 'one cursor in ' + src + ' after ' + guard + ' steps right');
+      const before = f.cur;
+      f.right();
+      if (f.cur.blk === before.blk && f.cur.i === before.i) break;
     }
+    ok(f.cur.blk === f.root && f.cur.i === f.root.length, 'the caret walks to the end of ' + src);
   }
+  // Every node and every block carries the id a tap is resolved through.
+  const nodes = drawn('y=1/(x+1)+sqrt(x)^2').filter(n => n && n.props);
+  ok(nodes.some(n => n.props['data-n'] != null), 'nodes carry data-n');
+  ok(nodes.some(n => n.props['data-b'] != null), 'blocks carry data-b');
+  eq(nodes.filter(n => n.props['data-n'] != null).length, 12, 'one target per node, digits included');
 });
 
-it('draws a bracket once whether or not it is typeset', () => {
-  // The bare rendering must not leak a second pair of brackets into a
-  // fraction or an exponent.
-  for (const src of ['y=(x+1)/2', 'y=2^(x+1)', 'y=1/(x+1)']) {
-    eq(text(src, null).split('(').length - 1, 0, `no "(" drawn in ${src}`);
-    eq(text(src, null).split(')').length - 1, 0, `no ")" drawn in ${src}`);
-  }
-  eq(text('y=(x+1)*2', null).split('(').length - 1, 1, 'a group that is not bare keeps its brackets');
-});
-
-it('draws one bracket per bracket', () => {
-  // An empty sin() had its ")" swallowed as a stray by the atom rule, so the
-  // call lost its own closer and drew a second one: sin((.
-  eq(text('y=sin()', null).split('(').length - 1, 1, 'one "(" in y=sin()');
-  eq(text('y=sin()', null).split(')').length - 1, 1, 'one ")" in y=sin()');
-  eq(text('y=sin(x)', null).split(')').length - 1, 1, 'one ")" in y=sin(x)');
-  eq(text('y=(x+1)', null).split(')').length - 1, 1, 'one ")" in a bare group');
-  eq(text('y=min(x,2)', null).split(')').length - 1, 1, 'one ")" in a two-argument call');
-});
-
-it('gives every bracket a position to put the cursor at', () => {
-  // A tap has to be able to land on a bracket, not only beside one.
-  const p = positions('y=sin(x)');
-  ok(p.includes(5), `the "(" of sin( is a target, got ${p}`);
-  ok(p.includes(7), `and so is its ")", got ${p}`);
-});
-
-it('gives every digit of a number its own position', () => {
-  // The caret could always be drawn inside 0.75, but mathHitOffset can only
-  // return an offset that some element on screen carries, so as one span the
-  // whole number had two reachable offsets — its two ends — and the middle of
-  // a number was untappable.
-  for (const src of ['y=0.75x', 'y=x+12.5', 'y=1024']) {
-    const p = positions(src);
-    const at = src.search(/[0-9]/);
-    const end = at + src.slice(at).match(/[0-9.]+/)[0].length;
-    for (let c = at; c < end; c++) {
-      ok(p.includes(c), `offset ${c} of ${src} is a tap target, got ${p}`);
-    }
-  }
+it('lands a tap where the layout says', () => {
+  // A row of 10px-wide glyphs: a tap on the left half of one puts the caret
+  // before it, the right half after, and past the end at the end.
+  const f = new mfield.MathField('x+12');
+  const rect = o => { const i = f.root.indexOf(o); return { left: i * 10, right: i * 10 + 10 }; };
+  f.seek(null, 3, rect);   eq(f.cur.i, 0, 'left half of x');
+  f.seek(null, 8, rect);   eq(f.cur.i, 1, 'right half of x');
+  f.seek(null, 27, rect);  eq(f.cur.i, 3, 'inside 12');
+  f.seek(null, 99, rect);  eq(f.cur.i, 4, 'past the end');
 });
 
 // ── 1b3. The math keyboard ─────────────────────────────────────────────────
@@ -487,8 +488,8 @@ it('gives every digit of a number its own position', () => {
 describe('Math keyboard');
 
 // The keys are plain functions hanging off the rendered tree, so pressing one
-// is calling it with a fake input under it. What matters is the text it leaves
-// behind and where it leaves the cursor — both have been wrong before.
+// is calling it against a real field. What matters is the text the field is
+// left holding — which has been wrong before.
 const keyboard = (() => {
   const h = (type, props, ...kids) => ({ type, props: props || {}, kids: kids.flat(Infinity) });
   const React = {
@@ -497,68 +498,58 @@ const keyboard = (() => {
     // The page switch is real state here: stubbing it to null hides every key.
     useState: init => [typeof init === 'function' ? init() : init, () => {}],
     useRef: init => ({ current: init === undefined ? null : init }),
-    useEffect: () => {}, useMemo: fn => fn(),
+    useEffect: () => {}, useLayoutEffect: () => {}, useMemo: fn => fn(),
   };
   const w = { React };
   global.window = w; global.React = React;
   global.document = { createElement: () => ({}) };
-  global.Event = class { constructor(t) { this.type = t; } };
-  global.requestAnimationFrame = fn => fn();
-  delete require.cache[require.resolve(path.join(SRC, 'keyboard.js'))];
-  require(path.join(SRC, 'keyboard.js'));
-  Object.assign(global, w);
+  for (const f of ['math-field.js', 'keyboard.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
   return w;
 })();
 
-// Type a sequence of key names into a fresh field and return what it holds.
+// Press a sequence of keys, by name, into a fresh field and return it.
 function typeKeys(names) {
-  const inp = { value: '', selectionStart: 0, selectionEnd: 0,
-    focus() {}, setSelectionRange(a) { this.selectionStart = this.selectionEnd = a; },
-    dispatchEvent() {} };
-  const tree = keyboard.MathKeyboard({
-    inputRef: { current: inp },
-    onChange: v => { inp.value = v; },
-    onDone: () => {},
-  });
+  const field = new keyboard.MathField('');
+  const tree = keyboard.MathKeyboard({ field: { current: field }, onDone: () => {} });
   const keys = {};
   for (const n of flatten(tree)) {
     if (!n || !n.props || !n.props['aria-label'] || !n.props.onPointerDown) continue;
     if (!(n.props['aria-label'] in keys)) keys[n.props['aria-label']] = n.props.onPointerDown;
   }
   for (const name of names) {
-    ok(keys[name], `no key called ${name}`);
+    ok(keys[name], 'no key called ' + name);
     keys[name]({ preventDefault() {} });
   }
-  return inp;
+  return field;
 }
 
-it('opens a box for the half of a fraction you are about to type', () => {
-  // "/" used to type a bare slash, so 1 / x + 1 left the text 1/x+1 — which
-  // is 1/x + 1, and drew as it. The only way to get a compound denominator
-  // was to type the brackets yourself, which is what the field looked like it
-  // was asking for.
-  eq(typeKeys(['1', 'fraction', 'x', '+', '1']).value, '1/(x+1)');
-  eq(typeKeys(['2', 'fraction', '3']).value, '2/(3)');
-  // Nothing to put on top: the cursor waits in the numerator, and the
-  // denominator is open behind it.
+it('builds a fraction from the keys the way typing does', () => {
+  eq(typeKeys(['1', 'fraction', 'x', '+', '1']).text(), '1/(x+1)');
+  eq(typeKeys(['2', '÷', '3']).text(), '2/3');
+  // Nothing on top: an empty fraction, caret in the numerator. Not an
+  // expression yet, and its text says so.
   const empty = typeKeys(['fraction']);
-  eq(empty.value, '/()');
-  eq(empty.selectionStart, 0, 'the cursor sits in the numerator');
+  eq(empty.text(), '()/()');
+  ok(empty.cur.blk === empty.root.nodes[0].num, 'the caret sits in the numerator');
 });
 
-it('opens a box for an exponent too', () => {
-  eq(typeKeys(['x', 'power', 'x', '+', '1']).value, 'x^(x+1)');
-  // The squared key writes a whole exponent, so it needs no box.
-  eq(typeKeys(['x', 'squared', '+', '1']).value, 'x^2+1');
+it('builds an exponent from the keys', () => {
+  eq(typeKeys(['x', 'power', 'x', '+', '1']).text(), 'x^x+1', 'an operator leaves the exponent');
+  eq(typeKeys(['x', 'power', '(', 'x', '+', '1']).text(), 'x^(x+1)', 'a bracket keeps it in');
+  eq(typeKeys(['x', 'squared', '+', '1']).text(), 'x^2+1');
 });
 
-it('leaves a bracket the way every other key does', () => {
-  // Every key that opens a bracket closes it and leaves the cursor inside.
-  eq(typeKeys(['\u221a', 'x']).value, 'sqrt(x)');   // sin lives on the other page
-  eq(typeKeys(['(', 'x']).value, '(x)');
-  // ")" over one already there steps past it rather than doubling up, which
-  // is how you get back out of a denominator.
-  eq(typeKeys(['1', 'fraction', 'x', ')', '+', '2']).value, '1/(x)+2');
+it('opens a bracket that its own key closes', () => {
+  eq(typeKeys(['√', 'x']).text(), 'sqrt(x)');
+  eq(typeKeys(['(', 'x']).text(), '(x)');
+  eq(typeKeys(['(', 'x', ')', '+', '2']).text(), '(x)+2');
+  eq(typeKeys(['|a|', 'x', '|a|', '+', '2']).text(), 'abs(x)+2');
+  eq(typeKeys(['1', 'fraction', 'x', '→', '+', '2']).text(), '1/x+2', 'the arrow steps out of the denominator');
+  eq(typeKeys(['x', '⌫']).text(), '');
 });
 
 // ── 1b4. The equations panel header ────────────────────────────────────────
@@ -585,14 +576,14 @@ it('keeps the panel controls on screen next to three tabs', () => {
   global.document = { createElement: () => ({}), addEventListener() {}, removeEventListener() {}, body: {} };
   global.navigator = { userAgent: 'node' };
   for (const f of ['physics-config.js', 'physics-engine.js', 'equation-classifier.js',
-                   'keyboard.js', 'level-objects.js', 'data.js', 'level-screen.js']) {
+                   'math-field.js', 'keyboard.js', 'level-objects.js', 'data.js', 'level-screen.js']) {
     delete require.cache[require.resolve(path.join(SRC, f))];
     require(path.join(SRC, f));
     Object.assign(global, w2);
   }
   const nodes = flatten(w2.EquationsPanel({
     equations: [], setEquations() {}, expanded: true, onToggle() {}, disabled: false,
-    notation: 'pretty', allowedClass: null, classWarning: null, materialsOn: true,
+    allowedClass: null, classWarning: null, materialsOn: true,
     objects: [], setObjects() {}, selectedObj: null, onSelectObj() {}, placeAt: () => ({ x: 0, y: 0 }),
     extraTab: { label: 'Level', content: null }, suppressKeyboard: false,
   })).filter(n => n && n.props && n.props.style);

@@ -947,7 +947,6 @@ function LevelStudio({
     expanded: panelOpen,
     onToggle: () => setPanelOpen(v => !v),
     disabled: running,
-    notation: settings?.notation || 'standard',
     allowedClass: null,
     classWarning: null,
     materialsOn: materials,

@@ -2,8 +2,8 @@
 
 // Maths inside the copy is typeset, not written out. The game asks players to
 // read x² and √x; showing them x^2 and sqrt(x) in its own explanations teaches
-// the wrong notation. MathExpr is resolved at render time because it lives in
-// level-screen.js, which loads after this file.
+// the wrong notation. MathExpr is resolved at render time so this file has no
+// load-order dependency on math-field.js.
 function M({
   e
 }) {

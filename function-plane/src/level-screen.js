@@ -1732,639 +1732,6 @@ function NumPad({
   })))));
 }
 
-// ─── Pretty-print expressions ─────────────────────────────────
-// Visually replace x^2 with x², sqrt() with √, *, pi etc.  The transformation
-// is one-way (display-only) — the original raw string stays in eq.expr so
-// the parser keeps working unchanged.
-function prettifyExpr(s) {
-  if (!s) return s;
-  return s.replace(/\bsqrt\(/g, '√(').replace(/\bpi\b/g, 'π').replace(/\*/g, '·').replace(/<=/g, '≤').replace(/>=/g, '≥').replace(/\^(-?\d)/g, (_, d) => {
-    const map = {
-      '-': '⁻',
-      '0': '⁰',
-      '1': '¹',
-      '2': '²',
-      '3': '³',
-      '4': '⁴',
-      '5': '⁵',
-      '6': '⁶',
-      '7': '⁷',
-      '8': '⁸',
-      '9': '⁹'
-    };
-    return [...d].map(c => map[c] || '^' + c).join('');
-  });
-}
-window.prettifyExpr = prettifyExpr;
-
-// ─── Typeset math ────────────────────────────────────────────
-// The expression is laid out the way it is written on paper — stacked
-// fractions, raised powers, a radical with its overbar — *while it is being
-// edited*, not only when it is at rest. The text string stays the one source
-// of truth (the parser, the classifier, history and every save read it), so
-// this is a renderer with a caret drawn into it, not a document model.
-//
-// Two things make that work. Tokens carry their source offsets, so the caret
-// — a character index — can be emitted at exactly the right place in the
-// layout. And the grammar is *forgiving*: a half-typed expression renders as
-// far as it parses and shows an empty slot wherever an operand is missing.
-// That is what makes the fraction key feel like Desmos: typing "/" leaves the
-// denominator missing, the renderer draws the bar and an empty box, and the
-// caret is already in it.
-const MATH_FNS = ['arcsin', 'arccos', 'arctan', 'asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sqrt', 'abs', 'log', 'ln', 'exp', 'floor', 'ceil', 'round', 'max', 'min', 'pow', 'sgn', 'sum', 'deriv', 'integ'];
-const FN_LABEL = {
-  asin: 'sin⁻¹',
-  acos: 'cos⁻¹',
-  atan: 'tan⁻¹',
-  arcsin: 'sin⁻¹',
-  arccos: 'cos⁻¹',
-  arctan: 'tan⁻¹',
-  ln: 'ln',
-  deriv: 'd/dx'
-};
-const FN_FENCE = {
-  abs: ['|', '|'],
-  floor: ['⌊', '⌋'],
-  ceil: ['⌈', '⌉']
-};
-
-// Every token records [i, j) in the source so the caret can be placed inside
-// one (mid-number) as well as between two.
-function mathTokens(src) {
-  const out = [];
-  let i = 0;
-  while (i < src.length) {
-    const c = src[i];
-    if (/\s/.test(c)) {
-      i++;
-      continue;
-    }
-    if (/[0-9.]/.test(c)) {
-      let j = i;
-      while (j < src.length && /[0-9.]/.test(src[j])) j++;
-      out.push({
-        t: 'num',
-        v: src.slice(i, j),
-        i,
-        j
-      });
-      i = j;
-      continue;
-    }
-    if (/[a-zA-Z]/.test(c)) {
-      let j = i;
-      while (j < src.length && /[a-zA-Z]/.test(src[j])) j++;
-      const run = src.slice(i, j);
-      // A function name is the tail of a run that a "(" follows; whatever
-      // precedes it is a product of single letters, as the parser reads it.
-      const fn = src[j] === '(' ? MATH_FNS.find(f => run.endsWith(f)) : null;
-      const head = fn ? run.slice(0, run.length - fn.length) : run;
-      if (head === 'pi') out.push({
-        t: 'name',
-        v: 'π',
-        i,
-        j: i + 2
-      });else for (let k = 0; k < head.length; k++) out.push({
-        t: 'name',
-        v: head[k],
-        i: i + k,
-        j: i + k + 1
-      });
-      if (fn) out.push({
-        t: 'fn',
-        v: fn,
-        i: i + head.length,
-        j
-      });
-      i = j;
-      continue;
-    }
-    if ((c === '<' || c === '>') && src[i + 1] === '=') {
-      out.push({
-        t: 'op',
-        v: c === '<' ? '≤' : '≥',
-        i,
-        j: i + 2
-      });
-      i += 2;
-      continue;
-    }
-    if (c === 'π') {
-      out.push({
-        t: 'name',
-        v: 'π',
-        i,
-        j: i + 1
-      });
-      i++;
-      continue;
-    }
-    if (c === '(' || c === ')' || c === ',') {
-      out.push({
-        t: c,
-        v: c,
-        i,
-        j: i + 1
-      });
-      i++;
-      continue;
-    }
-    if ('+-*/^='.indexOf(c) >= 0) {
-      out.push({
-        t: 'op',
-        v: c,
-        i,
-        j: i + 1
-      });
-      i++;
-      continue;
-    }
-    throw new Error('bad char');
-  }
-  return out;
-}
-const mathFrac = (num, den) => /*#__PURE__*/React.createElement("span", {
-  style: {
-    display: 'inline-flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 2px',
-    fontSize: '0.85em',
-    lineHeight: 1.12
-  }
-}, /*#__PURE__*/React.createElement("span", {
-  style: {
-    padding: '0 3px 1px'
-  }
-}, num), /*#__PURE__*/React.createElement("span", {
-  style: {
-    padding: '1px 3px 0',
-    borderTop: '1px solid currentColor',
-    width: '100%',
-    textAlign: 'center'
-  }
-}, den));
-
-// caret = character offset to draw the cursor at, or null for a static render.
-function buildMath(toks, src, caret) {
-  let i = 0,
-    done = caret == null;
-  const peek = () => toks[i];
-  const opIs = v => peek() && peek().t === 'op' && peek().v === v;
-  const atomNext = () => {
-    const t = peek();
-    return !!t && (t.t === 'num' || t.t === 'name' || t.t === 'fn' || t.t === '(');
-  };
-  const here = () => peek() ? peek().i : src.length;
-  const caretEl = () => /*#__PURE__*/React.createElement("span", {
-    className: "fp-caret",
-    style: {
-      display: 'inline-block',
-      width: 1.5,
-      height: '1.05em',
-      verticalAlign: 'middle',
-      background: 'currentColor',
-      margin: '0 -0.7px'
-    }
-  });
-  // Emitted before whatever comes next once the cursor is at or behind `pos`.
-  const cut = pos => {
-    if (done || caret > pos) return null;
-    done = true;
-    return caretEl();
-  };
-  // A token that draws no glyph still has to be tappable, and mathHitOffset
-  // keeps only what has an area on screen — an empty span measures 0x0 and is
-  // skipped. So an empty glyph becomes a zero-width box with a real height: it
-  // takes no room in the line and is still something a tap can land on. The
-  // brackets of √(x) and |x| are drawn by the head rather than by themselves,
-  // and the brackets an exponent or a fraction's half does not typeset are the
-  // same case.
-  const MARK = {
-    display: 'inline-block',
-    width: 0,
-    height: '1.05em',
-    verticalAlign: 'middle'
-  };
-
-  // One token's glyphs, with the cursor slipped in if it sits inside it.
-  //
-  // A number is drawn one digit to a span, each carrying its own position.
-  // The caret could always be *rendered* inside 0.75, but mathHitOffset can
-  // only return an offset some element on screen owns, so as one span the
-  // whole number had exactly two reachable offsets — its two ends. Only
-  // numbers are split: every other multi-character token either draws a glyph
-  // that is not its own source text (π for "pi", ≤ for "<=") or is a function
-  // name, where the middle of `sin` is not somewhere anyone means to tap.
-  const tokEl = (tk, text) => {
-    const before = cut(tk.i);
-    const perChar = tk.t === 'num' && text.length > 1 && text.length === tk.j - tk.i;
-    let glyphs;
-    if (perChar) {
-      glyphs = [];
-      for (let k = 0; k < text.length; k++) {
-        const at = tk.i + k;
-        const inside = !done && caret === at && k > 0 ? (done = true, caretEl()) : null;
-        glyphs.push(/*#__PURE__*/React.createElement(React.Fragment, {
-          key: k
-        }, inside, /*#__PURE__*/React.createElement("span", {
-          "data-pos": at,
-          "data-end": at + 1
-        }, text[k])));
-      }
-    } else {
-      let body = text;
-      if (!done && caret > tk.i && caret < tk.j) {
-        done = true;
-        const k = caret - tk.i;
-        body = /*#__PURE__*/React.createElement(React.Fragment, null, text.slice(0, k), caretEl(), text.slice(k));
-      }
-      glyphs = /*#__PURE__*/React.createElement("span", {
-        "data-pos": tk.i,
-        "data-end": tk.j,
-        style: text === '' ? MARK : undefined
-      }, body);
-    }
-    const after = !done && caret === tk.j ? (done = true, caretEl()) : null;
-    return /*#__PURE__*/React.createElement(React.Fragment, null, before, glyphs, after);
-  };
-  // A bracket, built once and drawn two ways: with its glyph inside an
-  // ordinary group, and as a bare marker above a fraction bar or up in an
-  // exponent, where the brackets are not typeset at all. Both renderings have
-  // to keep the caret that may sit on either side of it and the position a tap
-  // lands on, so the pieces are kept apart here and composed by the caller —
-  // tokEl cannot do it, because it builds one element and marks the caret
-  // placed as a side effect, so it cannot be called twice for one token.
-  const bracket = (tk, text) => {
-    const lead = cut(tk.i);
-    const hit = /*#__PURE__*/React.createElement("span", {
-      "data-pos": tk.i,
-      "data-end": tk.j
-    }, text);
-    // Drawn nowhere and still tappable — see MARK.
-    const mark = /*#__PURE__*/React.createElement("span", {
-      "data-pos": tk.i,
-      "data-end": tk.j,
-      style: MARK
-    });
-    const trail = !done && caret === tk.j ? (done = true, caretEl()) : null;
-    return {
-      lead,
-      hit,
-      mark,
-      trail
-    };
-  };
-  const shown = b => /*#__PURE__*/React.createElement(React.Fragment, null, b.lead, b.hit, b.trail);
-  const bared = b => /*#__PURE__*/React.createElement(React.Fragment, null, b.lead, b.mark, b.trail);
-
-  // Where an operand should have been. The cursor lands inside it, which is
-  // what makes a fresh fraction or power feel like a box you type into.
-  const slot = () => {
-    const inside = cut(here());
-    return /*#__PURE__*/React.createElement("span", {
-      "data-pos": here(),
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: '0.66em',
-        height: '1.05em',
-        margin: '0 1px',
-        borderRadius: 2,
-        border: '1px dashed currentColor',
-        opacity: 0.5
-      }
-    }, inside);
-  };
-  const seq = parts => parts.length === 1 && React.isValidElement(parts[0]) ? parts[0] : /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center'
-    }
-  }, parts.map((p, k) => /*#__PURE__*/React.createElement("span", {
-    key: k,
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center'
-    }
-  }, p)));
-  function rel() {
-    const parts = [add()];
-    while (peek() && peek().t === 'op' && '=<>≤≥'.indexOf(peek().v) >= 0) {
-      const tk = peek();
-      i++;
-      parts.push(/*#__PURE__*/React.createElement("span", {
-        style: {
-          padding: '0 4px'
-        }
-      }, tokEl(tk, tk.v)));
-      parts.push(add());
-    }
-    return seq(parts);
-  }
-  function add() {
-    const parts = [mul().el];
-    while (opIs('+') || opIs('-')) {
-      const tk = peek();
-      i++;
-      parts.push(/*#__PURE__*/React.createElement("span", {
-        style: {
-          padding: '0 3px'
-        }
-      }, tokEl(tk, tk.v === '-' ? '−' : '+')));
-      parts.push(mul().el);
-    }
-    return seq(parts);
-  }
-
-  // { el, bare } — bare is the element with one layer of parentheses peeled
-  // off, which is what belongs above and below a fraction bar.
-  function mul() {
-    let cur = unary();
-    for (;;) {
-      if (opIs('*')) {
-        const tk = peek();
-        i++;
-        cur = {
-          el: seq([cur.el, /*#__PURE__*/React.createElement("span", {
-            style: {
-              padding: '0 1px'
-            }
-          }, tokEl(tk, '·')), unary().el]),
-          bare: null
-        };
-      } else if (opIs('/')) {
-        // The bar itself draws nothing, so the cursor after "/" falls through
-        // to the denominator — empty or not.
-        i++;
-        const r = unary();
-        cur = {
-          el: mathFrac(cur.bare || cur.el, r.bare || r.el),
-          bare: null
-        };
-      } else if (atomNext()) {
-        cur = {
-          el: seq([cur.el, unary().el]),
-          bare: null
-        };
-      } else return cur;
-    }
-  }
-  function unary() {
-    if (opIs('-')) {
-      const tk = peek();
-      i++;
-      return {
-        el: seq([/*#__PURE__*/React.createElement("span", null, tokEl(tk, '−')), unary().el]),
-        bare: null
-      };
-    }
-    if (opIs('+')) {
-      i++;
-      return unary();
-    }
-    return power();
-  }
-  function power() {
-    const base = atom();
-    if (opIs('^')) {
-      i++;
-      const ex = unary();
-      // Its own flex-start row: an alignSelf on a seq() child would only
-      // align against that child's own wrapper, which hugs it, and the
-      // exponent would sit on the baseline.
-      return {
-        el: /*#__PURE__*/React.createElement("span", {
-          style: {
-            display: 'inline-flex',
-            alignItems: 'flex-start'
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            display: 'inline-flex',
-            alignItems: 'center'
-          }
-        }, base.el), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: '0.66em',
-            lineHeight: 1.15
-          }
-        }, ex.bare || ex.el)),
-        bare: null
-      };
-    }
-    return base;
-  }
-
-  // A call's parentheses. The glyphs say how to draw them — an ordinary call
-  // shows them, a fence draws its own bars, √ draws an overbar and shows
-  // neither — but they are always *built*, here, in source order, because a
-  // bracket is a place the caret can sit. The closer used to be consumed with
-  // its caret element thrown away, so the cursor vanished at the end of
-  // sin(x) and there was nowhere to put it back.
-  function args(openGlyph, closeGlyph) {
-    if (!peek() || peek().t !== '(') return {
-      list: [slot()],
-      open: null,
-      close: null
-    };
-    const ot = peek();
-    i++;
-    const open = tokEl(ot, openGlyph);
-    const list = [rel()];
-    while (peek() && peek().t === ',') {
-      const tk = peek();
-      i++;
-      list.push(/*#__PURE__*/React.createElement(React.Fragment, null, cut(tk.j), rel()));
-    }
-    let close = null;
-    if (peek() && peek().t === ')') {
-      const ct = peek();
-      i++;
-      close = tokEl(ct, closeGlyph);
-    }
-    return {
-      list,
-      open,
-      close
-    };
-  }
-  function atom() {
-    const tk = peek();
-    if (!tk) return {
-      el: slot(),
-      bare: null
-    };
-    if (tk.t === 'num') {
-      i++;
-      return {
-        el: /*#__PURE__*/React.createElement("span", null, tokEl(tk, tk.v)),
-        bare: null
-      };
-    }
-    if (tk.t === 'name') {
-      i++;
-      return {
-        el: /*#__PURE__*/React.createElement("span", null, tokEl(tk, tk.v)),
-        bare: null
-      };
-    }
-    if (tk.t === '(') {
-      i++;
-      // In source order: `cut` places the caret the first time it is reached,
-      // so the opening bracket has to be built before what it holds or a caret
-      // at the bracket is drawn one character late, inside the group.
-      const open = bracket(tk, '(');
-      const inner = rel();
-      let close = null;
-      if (peek() && peek().t === ')') {
-        const ct = peek();
-        i++;
-        close = bracket(ct, ')');
-      }
-      return {
-        el: seq([/*#__PURE__*/React.createElement("span", null, shown(open)), inner, close ? /*#__PURE__*/React.createElement("span", null, shown(close)) : /*#__PURE__*/React.createElement("span", {
-          style: {
-            opacity: 0.4
-          }
-        }, ")")]),
-        // `bare` is this group with the brackets not drawn — what belongs above
-        // a fraction bar and in an exponent. It used to be `inner` alone, which
-        // threw both brackets away: the caret that `cut` had already placed on
-        // one of them went with them, so the cursor vanished at the end of
-        // a^(x+1) and in the middle of (x+1)/2, and neither bracket could be
-        // tapped. The markers cost nothing and keep both.
-        bare: seq([/*#__PURE__*/React.createElement("span", null, bared(open)), inner, close ? /*#__PURE__*/React.createElement("span", null, bared(close)) : null])
-      };
-    }
-    if (tk.t === 'fn') {
-      i++;
-      const fence = FN_FENCE[tk.v];
-      const isSqrt = tk.v === 'sqrt';
-      // Built before its arguments: the name comes first in the source, and
-      // `cut` places the caret in build order, not in layout order.
-      const head = tokEl(tk, isSqrt ? '√' : fence ? fence[0] : FN_LABEL[tk.v] || tk.v);
-      const a = args(isSqrt || fence ? '' : '(', isSqrt ? '' : fence ? fence[1] : ')');
-      if (isSqrt) {
-        return {
-          el: seq([/*#__PURE__*/React.createElement("span", {
-            style: {
-              fontSize: '1.1em'
-            }
-          }, head), a.open, /*#__PURE__*/React.createElement("span", {
-            style: {
-              borderTop: '1px solid currentColor',
-              padding: '1px 2px 0',
-              marginTop: 1
-            }
-          }, seq(a.list)), a.close]),
-          bare: null
-        };
-      }
-      const parts = [/*#__PURE__*/React.createElement("span", null, head), a.open];
-      a.list.forEach((x, k) => {
-        if (k) parts.push(/*#__PURE__*/React.createElement("span", {
-          style: {
-            padding: '0 2px 0 0'
-          }
-        }, ","));
-        parts.push(x);
-      });
-      // Nothing closed it: draw the closer faded, the way a bare group does.
-      parts.push(a.close || /*#__PURE__*/React.createElement("span", {
-        style: {
-          opacity: 0.4
-        }
-      }, fence ? fence[1] : ')'));
-      return {
-        el: seq(parts),
-        bare: null
-      };
-    }
-    // An operator is not an atom: leave it for whoever called us, so "/" with
-    // nothing in front of it still builds a fraction — empty on both halves —
-    // rather than being shown as a stray slash. A ")" or a "," is left for the
-    // same reason: swallowing the ")" of an empty sin() took the call's own
-    // closer away, and the branch below then drew a second one — sin(().
-    if (tk.t === 'op' || tk.t === ')' || tk.t === ',') return {
-      el: slot(),
-      bare: null
-    };
-    // Anything else with nothing to attach to — show it, don't stall.
-    i++;
-    return {
-      el: /*#__PURE__*/React.createElement("span", {
-        style: {
-          opacity: 0.55
-        }
-      }, tokEl(tk, tk.v)),
-      bare: null
-    };
-  }
-  const parts = [rel()];
-  // Anything the grammar could not place still has to be visible and still
-  // has to be able to hold the cursor.
-  while (peek()) {
-    const tk = peek();
-    i++;
-    parts.push(/*#__PURE__*/React.createElement("span", {
-      style: {
-        opacity: 0.55
-      }
-    }, tokEl(tk, tk.v)));
-  }
-  if (!done) {
-    done = true;
-    parts.push(/*#__PURE__*/React.createElement("span", {
-      "data-pos": src.length
-    }, caretEl()));
-  }
-  return seq(parts);
-}
-
-// Falls back to the one-line prettify only if the expression has a character
-// the tokenizer refuses; every *incomplete* expression renders as itself.
-function MathExpr({
-  src,
-  caret = null
-}) {
-  if (!src) return caret == null ? null : buildMath([], '', caret);
-  try {
-    return buildMath(mathTokens(src), src, caret);
-  } catch {
-    return /*#__PURE__*/React.createElement("span", null, prettifyExpr(src));
-  }
-}
-window.MathExpr = MathExpr;
-
-// Nearest caret offset to a tap. Every token and every empty slot carries its
-// source position, so this is a search over what is actually on screen —
-// which is the only thing that lines up once fractions stack things.
-function mathHitOffset(root, cx, cy) {
-  let best = null,
-    bestD = Infinity;
-  for (const el of root.querySelectorAll('[data-pos]')) {
-    const r = el.getBoundingClientRect();
-    if (!r.width && !r.height) continue;
-    const dx = cx < r.left ? r.left - cx : cx > r.right ? cx - r.right : 0;
-    const dy = cy < r.top ? r.top - cy : cy > r.bottom ? cy - r.bottom : 0;
-    const d = dx * dx + dy * dy;
-    if (d < bestD) {
-      bestD = d;
-      best = {
-        el,
-        r
-      };
-    }
-  }
-  if (!best) return null;
-  const p = Number(best.el.dataset.pos);
-  const e = best.el.dataset.end != null ? Number(best.el.dataset.end) : p;
-  return cx > (best.r.left + best.r.right) / 2 ? e : p;
-}
-
 // ─── Equation row ─────────────────────────────────────────────
 // Three states, one button: how the curve returns the ball. Drawn as the ball
 // over a floor with the arc it would take, so the state reads without words.
@@ -2415,46 +1782,42 @@ function EqRow({
   onRemove,
   disabled,
   onActivate,
-  notation,
   domKb,
   onDomInput,
   missing,
   onAddSliders,
   materialsOn
 }) {
-  const inputRef = useRL(null);
-  const fieldRef = useRL(null);
   const [domOpen, setDomOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
-  const [caret, setCaret] = useSL(0);
+  const [, bump] = useSL(0);
   const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
   const locked = !!eq.preplaced;
-  // Typeset while editing too, not only at rest — so a fraction is a fraction
-  // from the keystroke that makes it. The input underneath is still the thing
-  // that holds the text and the selection; only its glyphs are hidden.
-  const pretty = notation === 'pretty';
   const slots = missing || [];
 
-  // The math keyboard moves the selection straight on the DOM node, which
-  // React's onSelect does not reliably see; it says so with this event.
-  useEL(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    const sync = () => setCaret(el.selectionStart ?? 0);
-    el.addEventListener('fp-caret', sync);
-    return () => el.removeEventListener('fp-caret', sync);
-  }, []);
-  const placeCaret = e => {
-    if (disabled || locked) return;
-    const off = mathHitOffset(fieldRef.current, e.clientX, e.clientY);
-    const el = inputRef.current;
-    if (!el) return;
-    e.preventDefault();
-    el.focus();
-    const p = off == null ? el.value.length : off;
-    el.setSelectionRange(p, p);
-    setCaret(p);
-  };
+  // The field is the source of truth while it is being edited; eq.expr is
+  // what it last wrote. A change that arrives from anywhere else — the
+  // slider rewriting a=1.0, a loaded run — is re-read into it.
+  const onChangeRef = useRL(onChange);
+  onChangeRef.current = onChange;
+  const emitted = useRL(eq.expr);
+  const fieldRef = useRL(null);
+  if (!fieldRef.current) {
+    fieldRef.current = new MathField(eq.expr, () => {
+      bump(t => t + 1);
+      const text = fieldRef.current.text();
+      if (text === emitted.current) return;
+      emitted.current = text;
+      onChangeRef.current({
+        expr: text
+      });
+    });
+  }
+  const field = fieldRef.current;
+  if (eq.expr !== emitted.current) {
+    emitted.current = eq.expr;
+    field.setText(eq.expr);
+  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: '1px solid var(--lv-line)',
@@ -2494,103 +1857,44 @@ function EqRow({
       fontFamily: 'ui-monospace,monospace',
       color: eq.param ? 'var(--fp-ink-3)' : eq.visible ? '#fff' : eq.color
     }
-  }, eq.param ? eq.param.name : idx + 1)), /*#__PURE__*/React.createElement("div", {
+  }, eq.param ? eq.param.name : idx + 1)), locked ? /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0,
-      position: 'relative',
       display: 'flex',
       alignItems: 'center',
-      minHeight: 38
-    }
-  }, pretty &&
-  /*#__PURE__*/
-  // On top and taking the taps, because only this layer knows where
-  // a character actually sits once fractions have stacked things.
-  React.createElement("div", {
-    ref: fieldRef,
-    onPointerDown: placeCaret,
-    style: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 2,
-      display: 'flex',
-      alignItems: 'center',
+      minHeight: 38,
+      padding: '8px 0',
       fontFamily: "'Geist Mono','ui-monospace',monospace",
       fontSize: 14,
-      // Half-written is not wrong: an expression only reads as an
-      // error once you have stopped typing it.
-      color: valid || focused ? 'var(--fp-ink)' : '#c74440',
+      color: 'var(--fp-ink-2)',
       overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      cursor: 'text'
-    }
-  }, eq.expr ? /*#__PURE__*/React.createElement(MathExpr, {
-    src: eq.expr,
-    caret: focused ? caret : null
-  }) : focused ? /*#__PURE__*/React.createElement(MathExpr, {
-    src: "",
-    caret: 0
-  }) : /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: 'var(--fp-ink-4)'
-    }
-  }, "e.g.  ", /*#__PURE__*/React.createElement(MathExpr, {
-    src: "y=sin(x)"
-  })), /*#__PURE__*/React.createElement("span", {
-    "data-pos": eq.expr.length,
-    style: {
-      flex: '1 0 10px',
-      alignSelf: 'stretch'
-    }
-  })), pretty && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '8px 0',
-      fontSize: 14,
-      visibility: 'hidden'
+      whiteSpace: 'nowrap'
     }
   }, /*#__PURE__*/React.createElement(MathExpr, {
-    src: eq.expr || 'x'
-  })), /*#__PURE__*/React.createElement("input", {
-    ref: inputRef,
-    value: eq.expr,
-    onChange: e => {
-      if (!locked) {
-        onChange({
-          expr: e.target.value
-        });
-        setCaret(e.target.selectionStart ?? 0);
+    src: eq.expr
+  })) : /*#__PURE__*/React.createElement(MathFieldView, {
+    field: field,
+    focused: focused,
+    disabled: disabled
+    // Half-written is not wrong: an expression only reads as an
+    // error once you have stopped typing it.
+    ,
+    color: valid || focused ? 'var(--fp-ink)' : '#c74440',
+    placeholder: /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--fp-ink-4)'
       }
-    },
-    onSelect: e => setCaret(e.target.selectionStart ?? 0),
-    onFocus: e => {
+    }, "e.g.  ", /*#__PURE__*/React.createElement(MathExpr, {
+      src: "y=sin(x)"
+    })),
+    onFocus: () => {
       setFocused(true);
-      setCaret(e.target.selectionStart ?? 0);
-      !disabled && !locked && onActivate(inputRef);
+      if (!disabled) onActivate(field);
     },
     onBlur: () => setFocused(false),
-    disabled: disabled || locked,
-    readOnly: locked,
-    inputMode: "none",
-    spellCheck: false,
-    placeholder: pretty ? '' : 'e.g.  y = sin(x)',
-    style: {
-      width: '100%',
-      background: 'transparent',
-      border: 0,
-      outline: 0,
-      fontFamily: "'Geist Mono','ui-monospace',monospace",
-      fontSize: 14,
-      color: pretty ? 'transparent' : locked ? 'var(--fp-ink-2)' : valid ? 'var(--fp-ink)' : '#c74440',
-      caretColor: pretty ? 'transparent' : 'var(--fp-ink)',
-      position: pretty ? 'absolute' : 'static',
-      left: 0,
-      top: 0,
-      height: pretty ? '100%' : 'auto',
-      padding: pretty ? 0 : '10px 0',
-      zIndex: 1
-    }
-  })), materialsOn && !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
+    onDone: () => field.blur()
+  }), materialsOn && !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
       if (!disabled) onChange({
@@ -2871,7 +2175,6 @@ function EquationsPanel({
   expanded,
   onToggle,
   disabled,
-  notation,
   allowedClass,
   classWarning,
   materialsOn,
@@ -2883,7 +2186,7 @@ function EquationsPanel({
   extraTab,
   suppressKeyboard
 }) {
-  const activeInputRef = useRL(null);
+  const activeFieldRef = useRL(null);
   const [activeId, setActiveId] = useSL(null);
   const [kbVisible, setKbVisible] = useSL(true);
   const [tab, setTab] = useSL('eq'); // 'eq' | 'obj' | 'extra'
@@ -2924,14 +2227,14 @@ function EquationsPanel({
     domKbCommitRef.current = null;
   };
   const anyKbOpen = (kbOpen && !domKb || domKb !== null) && !suppressKeyboard;
-  const activate = (id, ref) => {
-    activeInputRef.current = ref.current;
+  const activate = (id, field) => {
+    activeFieldRef.current = field;
     setActiveId(id);
     setKbVisible(true);
   };
   const dismiss = () => {
     setActiveId(null);
-    activeInputRef.current?.blur();
+    activeFieldRef.current?.blur();
   };
   const switchTab = id => {
     if (id !== 'eq') dismiss();
@@ -2953,13 +2256,6 @@ function EquationsPanel({
   const removeObject = i => {
     setObjects(objs => objs.filter((_, j) => j !== i));
     onSelectObj?.(null);
-  };
-  const handleKbChange = newVal => {
-    setEquations(eqs => eqs.map(e => e.id === activeId ? {
-      ...e,
-      expr: newVal,
-      ...parseEquation(newVal)
-    } : e));
   };
   const addRow = () => setEquations(eqs => {
     const id = Math.max(0, ...eqs.map(e => e.id)) + 1;
@@ -3396,10 +2692,9 @@ function EquationsPanel({
     idx: i,
     eq: e,
     disabled: disabled,
-    notation: notation,
     onChange: p => update(e.id, p),
     onRemove: () => remove(e.id),
-    onActivate: ref => activate(e.id, ref),
+    onActivate: field => activate(e.id, field),
     missing: undeclaredParams(e.expr),
     onAddSliders: nms => addSliders(e.id, nms),
     materialsOn: materialsOn,
@@ -3414,8 +2709,7 @@ function EquationsPanel({
   }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " to enter an equation, e.g. ", /*#__PURE__*/React.createElement(MathExpr, {
     src: "y=sin(x)"
   }))), kbOpen && !domKb && /*#__PURE__*/React.createElement(MathKeyboard, {
-    inputRef: activeInputRef,
-    onChange: handleKbChange,
+    field: activeFieldRef,
     onDone: dismiss
   }), domKb && /*#__PURE__*/React.createElement(NumPad, {
     val: domKb.val,
@@ -3953,7 +3247,6 @@ function LevelScreen({
     expanded: panelOpen,
     onToggle: () => setPanelOpen(o => !o),
     disabled: running,
-    notation: settings?.notation || 'standard',
     materialsOn: levelData.materials,
     allowedClass: packAllowedClass,
     classWarning: classWarning
