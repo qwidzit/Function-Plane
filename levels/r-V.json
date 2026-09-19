@@ -1,8 +1,270 @@
 {
   "packId": "r-V",
   "name": "Mastery",
-  "notes": "Roman pack V, levels VI-X (level_index 5-9). Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit; levels I-V are still placeholders. Throttle and Loneliness carry answers found by sweeping the real run loop, and their goals are exactly what the cheapest answer of that family scores. The grid 2, Runway and The finale carry goals but no answer: a search over lines, parabolas, cosines and domain cuts, in every material and up to three curves at once, got 3/4, 4/5 and 4/5 stars and never cleared them, so nothing here is claimed to solve them and verify:levels reports them as not replayed. Their goals are the bookkeeping the hint rule implies (score_goal - 20 x eq_goal) and are provisional — retune in the studio. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "notes": "Roman pack V, all ten levels. Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit. Levels I-V (index 0-4) are boards only: their goals read 40/1, which is what data.jsx's _default already gives an unauthored level, and they carry no hint and no answer because you are setting goals, hints and equations for them yourself — the row exists so the board ships, not because the goal is tuned. Of VI-X, Throttle and Loneliness carry answers found by sweeping the real run loop and their goals are exactly what the cheapest answer of that family scores; The grid 2, Runway and The finale carry provisional goals and no answer, and verify:levels reports them as not replayed. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
   "levels": [
+    {
+      "index": 0,
+      "name": "First steps",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 0,
+          "y": -1.5,
+          "angle": 90,
+          "len": 3,
+          "w": 3,
+          "strength": 30
+        },
+        {
+          "kind": "fan",
+          "x": 3,
+          "y": 1.5,
+          "angle": 90,
+          "len": 3,
+          "w": 3,
+          "strength": 30
+        },
+        {
+          "kind": "fan",
+          "x": -3,
+          "y": -4.5,
+          "angle": 90,
+          "len": 3,
+          "w": 3,
+          "strength": 30
+        }
+      ],
+      "ball": {
+        "x": -4.25,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": -3,
+          "y": -3
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 3
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Three stars on the rising diagonal, each with a fan under it blowing up at 30. Goals, hint and answer are yours to set — imported as a board only."
+    },
+    {
+      "index": 1,
+      "name": "The grid",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [
+        {
+          "kind": "zerog",
+          "x": 1.5,
+          "y": 1.5,
+          "w": 3,
+          "h": 3
+        },
+        {
+          "kind": "fan",
+          "x": 1.5,
+          "y": -3,
+          "angle": 90,
+          "len": 3,
+          "w": 3,
+          "strength": 20
+        },
+        {
+          "kind": "fan",
+          "x": -3,
+          "y": -1.5,
+          "angle": 0,
+          "len": 3,
+          "w": 3,
+          "strength": 20
+        },
+        {
+          "kind": "zerog",
+          "x": -1.5,
+          "y": 1.5,
+          "w": 3,
+          "h": 3
+        }
+      ],
+      "ball": {
+        "x": -4,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -1.5,
+          "y": -1.5
+        },
+        {
+          "x": -1.5,
+          "y": 1.5
+        },
+        {
+          "x": 1.5,
+          "y": -1.5
+        },
+        {
+          "x": 1.5,
+          "y": 1.5
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Four stars on the corners of a 3x3 block; the top two sit inside zero-g boxes, and a fan blows up from below the right pair while another blows right from the left. Goals, hint and answer are yours to set — imported as a board only."
+    },
+    {
+      "index": 2,
+      "name": "Bounce back",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [
+        {
+          "kind": "hazard",
+          "x": 1,
+          "y": 2,
+          "w": 2,
+          "h": 2
+        }
+      ],
+      "ball": {
+        "x": -3,
+        "y": 4
+      },
+      "stars": [
+        {
+          "x": 1,
+          "y": 4
+        },
+        {
+          "x": -1,
+          "y": -1
+        },
+        {
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Three stars around a single hazard at (1,2), with the first star directly behind it at the spawn height. Goals, hint and answer are yours to set — imported as a board only."
+    },
+    {
+      "index": 3,
+      "name": "Constellation",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [
+        {
+          "kind": "fan",
+          "x": 1,
+          "y": -4,
+          "angle": 90,
+          "len": 4,
+          "w": 2,
+          "strength": 25
+        }
+      ],
+      "ball": {
+        "x": -2,
+        "y": 1
+      },
+      "stars": [
+        {
+          "x": 6,
+          "y": -1
+        },
+        {
+          "x": 0,
+          "y": -1
+        },
+        {
+          "x": 3,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": -1
+        },
+        {
+          "x": 12,
+          "y": -5
+        },
+        {
+          "x": 6,
+          "y": -5
+        },
+        {
+          "x": 3,
+          "y": -3
+        },
+        {
+          "x": 3,
+          "y": -7
+        },
+        {
+          "x": 0,
+          "y": -5
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Nine stars on a lattice four columns wide, with one fan blowing up through the middle of it. Goals, hint and answer are yours to set — imported as a board only."
+    },
+    {
+      "index": 4,
+      "name": "Tunnel vision",
+      "materials": true,
+      "explain": null,
+      "preplaced": [],
+      "outline": [],
+      "hint": null,
+      "objects": [],
+      "ball": {
+        "x": -8,
+        "y": 5
+      },
+      "stars": [
+        {
+          "x": -4.5,
+          "y": -2
+        },
+        {
+          "x": -6.5,
+          "y": 1
+        },
+        {
+          "x": 18,
+          "y": 4
+        }
+      ],
+      "scoreGoal": 40,
+      "eqGoal": 1,
+      "intent": "Two stars close to the spawn and one 26 units away at (18,4), on an empty plane. Goals, hint and answer are yours to set — imported as a board only."
+    },
     {
       "index": 5,
       "name": "Throttle",

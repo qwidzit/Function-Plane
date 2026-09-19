@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-19T09:05:56.563Z
+// Generated: 2026-09-19T11:26:32.681Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -1898,6 +1898,263 @@ window.FP_OVERRIDES_SNAPSHOT = {
     "materials": true,
     "explain": null,
     "hint": "Use 2 functions",
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 0,
+    "name": "First steps",
+    "ball_x": -4.25,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": -3,
+      "y": -3
+     },
+     {
+      "x": 0,
+      "y": 0
+     },
+     {
+      "x": 3,
+      "y": 3
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "w": 3,
+      "x": 0,
+      "y": -1.5,
+      "len": 3,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 30
+     },
+     {
+      "w": 3,
+      "x": 3,
+      "y": 1.5,
+      "len": 3,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 30
+     },
+     {
+      "w": 3,
+      "x": -3,
+      "y": -4.5,
+      "len": 3,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 30
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 1,
+    "name": "The grid",
+    "ball_x": -4,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -1.5,
+      "y": -1.5
+     },
+     {
+      "x": -1.5,
+      "y": 1.5
+     },
+     {
+      "x": 1.5,
+      "y": -1.5
+     },
+     {
+      "x": 1.5,
+      "y": 1.5
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 3,
+      "w": 3,
+      "x": 1.5,
+      "y": 1.5,
+      "kind": "zerog"
+     },
+     {
+      "w": 3,
+      "x": 1.5,
+      "y": -3,
+      "len": 3,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 20
+     },
+     {
+      "w": 3,
+      "x": -3,
+      "y": -1.5,
+      "len": 3,
+      "kind": "fan",
+      "angle": 0,
+      "strength": 20
+     },
+     {
+      "h": 3,
+      "w": 3,
+      "x": -1.5,
+      "y": 1.5,
+      "kind": "zerog"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 2,
+    "name": "Bounce back",
+    "ball_x": -3,
+    "ball_y": 4,
+    "stars": [
+     {
+      "x": 1,
+      "y": 4
+     },
+     {
+      "x": -1,
+      "y": -1
+     },
+     {
+      "x": 3,
+      "y": 0
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "h": 2,
+      "w": 2,
+      "x": 1,
+      "y": 2,
+      "kind": "hazard"
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 3,
+    "name": "Constellation",
+    "ball_x": -2,
+    "ball_y": 1,
+    "stars": [
+     {
+      "x": 6,
+      "y": -1
+     },
+     {
+      "x": 0,
+      "y": -1
+     },
+     {
+      "x": 3,
+      "y": 1
+     },
+     {
+      "x": 12,
+      "y": -1
+     },
+     {
+      "x": 12,
+      "y": -5
+     },
+     {
+      "x": 6,
+      "y": -5
+     },
+     {
+      "x": 3,
+      "y": -3
+     },
+     {
+      "x": 3,
+      "y": -7
+     },
+     {
+      "x": 0,
+      "y": -5
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "preplaced": [],
+    "objects": [
+     {
+      "w": 2,
+      "x": 1,
+      "y": -4,
+      "len": 4,
+      "kind": "fan",
+      "angle": 90,
+      "strength": 25
+     }
+    ],
+    "materials": true,
+    "explain": null,
+    "hint": null,
+    "outline": null
+   },
+   {
+    "pack_id": "r-V",
+    "level_index": 4,
+    "name": "Tunnel vision",
+    "ball_x": -8,
+    "ball_y": 5,
+    "stars": [
+     {
+      "x": -4.5,
+      "y": -2
+     },
+     {
+      "x": -6.5,
+      "y": 1
+     },
+     {
+      "x": 18,
+      "y": 4
+     }
+    ],
+    "score_goal": 40,
+    "eq_goal": 1,
+    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "preplaced": [],
+    "objects": [],
+    "materials": true,
+    "explain": null,
+    "hint": null,
     "outline": null
    },
    {
