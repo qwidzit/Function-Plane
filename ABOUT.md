@@ -502,7 +502,25 @@ different stages:
   reachable. The other 46 have never been replayed: packs III, IV and Geometry
   have no `levels/*.json` draft at all, seven of pack II have a draft entry
   without answers, and so do eight of Mastery and *The arch* in Linear.
-  A goal with no answer behind it is a guess until someone plays it.
+  A goal with no answer behind it is a guess until someone plays it. **This is
+  the only content gap left in the shipping game**, and it is the one that hides
+  real breakage: Tunnel vision was unclearable for two commits because nothing
+  replayed it.
+
+The rest of a level's fields are complete or deliberately empty:
+
+| field | state |
+|---|---|
+| `explain` | 4 levels, one per explainer deck (`how-to-play`, `domain`, `rubber`, `steel`). Every deck that exists is introduced by a level, and objects teach themselves through `FP_OBJECT_TUTORIALS` by kind, so nothing here is waiting to be filled. |
+| `outline` | 9 of Geometry's 10 — level 1 is a single star and has no shape to draw. Nowhere else wants one. |
+| `preplaced` | Unused by every shipped level. The feature works and the studio can set it; no level has needed a locked starting curve. |
+| `materials` | On for 37 levels (pack III from *Elastic* onward, all of IV, V and Linear), off where bounce is not part of the puzzle. |
+
+Beyond the 70 there are **eight hidden packs holding no levels at all** —
+Roman VI–X, Trigonometry, Exponential and Inversion. They are `is_hidden`, so
+they count for nothing a player can see, and authoring them is a v2 decision
+rather than a gap in this release. The one thing tied to them: `stars_210`
+means *every star in the game* only while the game has 70 levels.
 
 ## Level studio (level-studio.jsx) — the sandbox and the admin editor
 
@@ -887,10 +905,12 @@ A domain restriction costs nothing, so a level solved by a *cut* line is still
 doubles as a check on the level, because a goal no curve of the implied family
 can reach is a goal that needs re-tuning.
 
-`LEVEL_HINTS` in `data.jsx` carries packs I and II. `level_overrides.hint`
-(`20260916_level_hints.sql`, applied) wins over the table wherever it is set,
-and the studio's Level tab edits it — the same shape `explain` has; that column
-is where packs III, IV and V get theirs. Where neither has one `getHint`
+`LEVEL_HINTS` in `data.jsx` carries **29 hints — packs I and II in full and
+nine of pack III**. `level_overrides.hint` (`20260916_level_hints.sql`,
+applied) wins over the table wherever it is set, and the studio's Level tab
+edits it — the same shape `explain` has; that column is where packs IV and V,
+Linear, and three of pack III get theirs. So a pack III hint may live in
+either place, and the row wins: check the row before editing the table. Where neither has one `getHint`
 returns null and the popup says so.
 
 **Geometry has no hints and no bulb.** `s-qua` carries `noHints: true` in
