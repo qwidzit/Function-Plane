@@ -1609,6 +1609,36 @@ it('authors every level it ships with sane goals', () => {
   }
 });
 
+it('sizes every level it ships around its stars, not just its objects', () => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w; global.self = w; global.React = w.React;
+  global.document = { createElement: () => ({ style: {} }), addEventListener() {}, body: {} };
+  global.navigator = { userAgent: 'node' };
+  for (const f of ['physics-config.js', 'physics-engine.js', 'equation-classifier.js',
+                   'level-objects.js', 'level-screen.js']) {
+    delete require.cache[require.resolve(path.join(SRC, f))];
+    require(path.join(SRC, f));
+    Object.assign(global, w);
+  }
+  // A star outside the world is a star no run can collect, so the level cannot
+  // be cleared at all — Constellation's far column sat 0.05 outside the edge it
+  // had to be taken through, because only objects sized the world. Touching the
+  // edge is not enough either: the ball arcs past a star to reach it.
+  const room = w.SIM.WORLD_MARGIN * 0.9;
+  for (const l of snapshot.data.levels) {
+    const ball = { x: l.ball_x, y: l.ball_y };
+    const world = w.makeWorld(l.objects || [], false, l.stars, ball);
+    for (const p of [...l.stars, ball]) {
+      const at = `${l.pack_id}-${l.level_index} (${p.x},${p.y})`;
+      ok(!w.outOfWorld(p, world), `${at} is outside its own world`);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        ok(!w.outOfWorld({ x: p.x + dx * room, y: p.y + dy * room }, world),
+          `${at} has no room to arc past`);
+      }
+    }
+  }
+});
+
 it('keeps the fallback level goal on the authored scale', () => {
   // A _default far above the authored range makes any unauthored level
   // trivially 2-startable, which is how the 320 vs 30-90 gap went unnoticed.

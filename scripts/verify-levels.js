@@ -80,7 +80,7 @@ function runLevel(level, modifier, which = 0) {
     return { ok: false, why: 'solution sets a material on a level without materials enabled' };
   }
 
-  const world     = G.makeWorld(level.objects || [], modifier === 'gravityFlip');
+  const world     = G.makeWorld(level.objects || [], modifier === 'gravityFlip', level.stars, level.ball);
   const colliders = G.makeRunColliders(equations, world);
   const ph        = G.freshPh(level.ball, level.stars);
 

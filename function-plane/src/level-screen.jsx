@@ -33,7 +33,8 @@ const BALL_R     = 0.22;
 const EQ_STROKE    = 2.2;
 const BALL_OUTLINE = 1.5;
 // Where the world ends. It reaches WORLD_MARGIN past whatever the level
-// actually holds, and never further than WORLD_RADIUS from the origin — see
+// actually holds — objects, stars and the spawn alike — and WORLD_RADIUS is
+// the smallest the surrounding circle may be, not a cap; see makeWorld and
 // outOfWorld. A fixed floor was wrong in both directions at once: it let a ball
 // sail sideways for as long as the clock allowed, and a pack that turns gravity
 // over needed a mirror-image ceiling bolted on to stop the same thing upward.
@@ -446,12 +447,13 @@ function physicsStep(ph, colliders, dt, world) {
 }
 
 // Left the world. The bound is the level's own contents grown by
-// WORLD_MARGIN, inside a hard circle of WORLD_RADIUS about the origin: a run
-// ends once the ball is further than the margin from every object on the
-// plane, or simply too far out for the level to be about anything any more.
-// Being radial, it handles a flipped pack without a special case.
+// WORLD_MARGIN, inside a circle that clears those contents by the same margin:
+// a run ends once the ball is further than the margin from everything the
+// level holds, or simply too far out for the level to be about anything any
+// more. Being radial, it handles a flipped pack without a special case.
 function outOfWorld(ph, world) {
-  if (ph.x * ph.x + ph.y * ph.y > WORLD_RADIUS * WORLD_RADIUS) return true;
+  const radius = world?.radius || WORLD_RADIUS;
+  if (ph.x * ph.x + ph.y * ph.y > radius * radius) return true;
   const boxes = world?.bounds;
   if (!boxes || !boxes.length) return false;   // nothing placed: the circle is the whole rule
   for (const b of boxes) {
@@ -492,13 +494,29 @@ function drainTicks(ph, colliders, world, ts) {
 // What the level's objects mean to a run: forces, the solid parts curves
 // collide against, what kills the ball, and the pack's rule. Built once per
 // run, like the colliders.
-function makeWorld(objects, gravityFlip) {
+//
+// The stars and the spawn size the world alongside the objects. They used not
+// to, which cost a run the level it was on twice over: a star reaching past
+// every object sat outside the edge it had to be collected through
+// (Constellation's far column missed by 0.05), and a level with no objects had
+// no bound but the circle. A star is a point, so its box is one.
+function makeWorld(objects, gravityFlip, stars, ball) {
+  const bounds = [
+    ...objects.map(o => FP_OBJECTS.bounds(o)),
+    ...[...stars, ball].map(p => ({ minX: p.x, maxX: p.x, minY: p.y, maxY: p.y })),
+  ];
+  // How far the level itself reaches from the origin — the circle has to clear
+  // that by the margin too, or it cuts inside the boxes on a wide level.
+  const reach = bounds.reduce((m, b) => Math.max(m,
+    Math.hypot(Math.max(Math.abs(b.minX), Math.abs(b.maxX)),
+               Math.max(Math.abs(b.minY), Math.abs(b.maxY)))), 0);
   return {
     field:   FP_OBJECTS.makeField(objects, BALL_R),
     solids:  FP_OBJECTS.solidSegs(objects),
     hazards: objects.filter(o => o.kind === 'hazard'),
     // What the world is built around — outOfWorld measures against these.
-    bounds:  objects.map(o => FP_OBJECTS.bounds(o)),
+    bounds,
+    radius:  Math.max(WORLD_RADIUS, reach + WORLD_MARGIN),
     gravityFlip: !!gravityFlip,
   };
 }
@@ -2218,7 +2236,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     // Equations are locked while the sim runs, so colliders are built once
     // per run. Each curve collider lazily samples + caches geometry around
     // the ball and re-samples as it travels.
-    const world = makeWorld(levelData.objects, gravityFlip);
+    const world = makeWorld(levelData.objects, gravityFlip, levelData.stars, levelData.ball);
     const colliders = makeRunColliders(equationsRef.current, world);
 
     const frame = ts => {

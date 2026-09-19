@@ -271,7 +271,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
   useLSE(() => {
     if (!running) return;
     const ph = physRef.current;
-    const world = makeWorld(objRef.current, gravityFlip);
+    const world = makeWorld(objRef.current, gravityFlip, stars, ball);
     const colliders = makeRunColliders(eqRef.current, world);
 
     const frame = ts => {
