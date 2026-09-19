@@ -485,12 +485,18 @@ different stages:
 
 - **Goals.** Every row has them — `npm test` requires `eq_goal >= 1` and
   `score_goal > 0`, so there is no such thing as a shipped level without a
-  number. Mastery I–V read `40/1`, which is what `_default` already gives an
-  unauthored level: a placeholder standing in for a goal nobody has set yet,
-  not a judgement. Mastery VI, VIII and X (*The grid 2*, *Runway*, *The
-  finale*) carry goals derived from the hint rule rather than from a solved
-  run, and say so in `levels/r-V.json`.
-- **Hints.** 54 of 70 have one; the 16 without are listed under *Hints and
+  number. All ten of Mastery are the author's own, set in the studio, except
+  `r-V-2` *Bounce back*, which still reads the `40/1` the import left and is
+  the one level of the ten the studio never saved.
+  **A goal pair can still contradict itself.** A run scores complexity plus 20
+  per equation and the cheapest equation is a constant at 0, so `20 × eq_goal`
+  is the floor for a run that actually uses that many equations: where the
+  score goal is below that floor, the two goals cannot both be met and the
+  score star is unreachable for anyone taking the equation goal at its word.
+  One level is in that state today — `r-V-9` *The finale*, at `70/4` against a
+  floor of 80. Everything else clears it.
+- **Hints.** 59 of the 70 have one. Geometry's ten have none by design and no
+  button either; the two that are simply missing are named under *Hints and
   tutorials*.
 - **A recorded answer.** 24 levels have one, and `npm run verify:levels`
   replays all of them — the only mechanism that can tell you a goal is
@@ -885,11 +891,21 @@ can reach is a goal that needs re-tuning.
 `LEVEL_HINTS` in `data.jsx` carries packs I and II. `level_overrides.hint`
 (`20260916_level_hints.sql`, applied) wins over the table wherever it is set,
 and the studio's Level tab edits it — the same shape `explain` has; that column
-is where packs III, IV and Mastery VI–X get theirs. Where neither has one
-`getHint` returns null and the popup says so, which today is **16 of the 70
-shipped levels**: Geometry's ten, Mastery I–V, and `r-III-9` *Space
-Exploration*. Geometry's are the one deliberate gap — its rule is a shape, not
-a class, so naming a family would describe the wrong thing.
+is where packs III, IV and V get theirs. Where neither has one `getHint`
+returns null and the popup says so.
+
+**Geometry has no hints and no bulb.** `s-qua` carries `noHints: true` in
+`SPECIAL_PACKS` and `LevelScreen` does not render the button for a pack that
+has it. The pack's rule is a shape rather than a class, so the one thing a hint
+is allowed to say — the family the level was built around — would describe the
+wrong thing on every level of it; a button that can only ever answer "No hint"
+is worse than no button. It is a property of the pack, not of a level, which is
+why it lives beside `allowedClass` and `modifier` rather than in a row. The
+flag survives an override row because `getPack` spreads the built-in.
+
+Two levels are still without one where one is meant to exist: `r-V-2` *Bounce
+back* and `r-III-9` *Space Exploration*. Those show the bulb and it answers
+"No hint".
 
 **Reading a hint and saving one are not the same dependency.** `getHint` only
 looks a key up on the override row, so the built-in table works with or
@@ -1398,7 +1414,8 @@ checkout.
 materials (player-set, per level, off by default), the Inversion pack
 (gravity flips on every real bounce), the studio that places all of it, the
 admin editor built on the studio, per-kind tutorial decks that fire the first
-time a player meets an object, and per-level hints (54 of the 70 have one). See
+time a player meets an object, and per-level hints (59 of the 70 have one, and
+Geometry has none by design). See
 *Level objects* above. The rules
 below were considered and declined for now — the design wants no locks on
 the player. What follows is the original analysis, kept for the reasoning.

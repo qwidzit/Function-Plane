@@ -2,7 +2,7 @@
 // Baked-in state of the Supabase override tables at build time, so the
 // app boots with correct level data even with no network. Regenerate
 // before every release: npm run snapshot:data
-// Generated: 2026-09-19T11:26:32.681Z
+// Generated: 2026-09-19T16:35:57.553Z
 window.FP_OVERRIDES_SNAPSHOT = {
  "data": {
   "packs": [
@@ -1920,9 +1920,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 3
      }
     ],
-    "score_goal": 40,
+    "score_goal": 30,
     "eq_goal": 1,
-    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "updated_at": "2026-09-19T11:56:02.485+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -1955,7 +1955,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null,
+    "hint": "Linear",
     "outline": null
    },
    {
@@ -1982,9 +1982,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 1.5
      }
     ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "score_goal": 50,
+    "eq_goal": 2,
+    "updated_at": "2026-09-19T12:00:39.856+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2022,7 +2022,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null,
+    "hint": "Use 2 equations",
     "outline": null
    },
    {
@@ -2107,9 +2107,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": -5
      }
     ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "score_goal": 90,
+    "eq_goal": 3,
+    "updated_at": "2026-09-19T12:16:46.247+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2124,7 +2124,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": null,
+    "hint": "Trigonometry",
     "outline": null
    },
    {
@@ -2147,14 +2147,14 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 4
      }
     ],
-    "score_goal": 40,
-    "eq_goal": 1,
-    "updated_at": "2026-09-19T11:25:59.358677+00:00",
+    "score_goal": 80,
+    "eq_goal": 3,
+    "updated_at": "2026-09-19T12:17:33.807+00:00",
     "preplaced": [],
     "objects": [],
     "materials": true,
     "explain": null,
-    "hint": null,
+    "hint": "Use multiple equations",
     "outline": null
    },
    {
@@ -2185,9 +2185,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 5
      }
     ],
-    "score_goal": 40,
+    "score_goal": 65,
     "eq_goal": 1,
-    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "updated_at": "2026-09-19T12:18:16.232+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2229,9 +2229,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": 1
      }
     ],
-    "score_goal": 60,
-    "eq_goal": 2,
-    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "score_goal": 70,
+    "eq_goal": 3,
+    "updated_at": "2026-09-19T12:18:56.109+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2342,7 +2342,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": "Use 2 functions",
+    "hint": "Use multiple functions",
     "outline": null
    },
    {
@@ -2373,9 +2373,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": -1
      }
     ],
-    "score_goal": 90,
+    "score_goal": 80,
     "eq_goal": 3,
-    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "updated_at": "2026-09-19T12:19:32.655+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2458,9 +2458,9 @@ window.FP_OVERRIDES_SNAPSHOT = {
       "y": -4
      }
     ],
-    "score_goal": 120,
+    "score_goal": 70,
     "eq_goal": 4,
-    "updated_at": "2026-09-19T08:59:54.290488+00:00",
+    "updated_at": "2026-09-19T12:20:53.156+00:00",
     "preplaced": [],
     "objects": [
      {
@@ -2623,7 +2623,7 @@ window.FP_OVERRIDES_SNAPSHOT = {
     ],
     "materials": true,
     "explain": null,
-    "hint": "Use 4 functions",
+    "hint": "Use multiple functions",
     "outline": null
    },
    {

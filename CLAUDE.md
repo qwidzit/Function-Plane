@@ -238,6 +238,11 @@ believing it.
   hole between any two more than two margins apart, which is exactly the flight
   path between two distant stars, and it made Tunnel vision unclearable.
   `npm run verify:levels` is the check.
+- A pack should not offer hints at all → that is `noHints: true` on the pack in
+  `data.jsx`, which hides the bulb; Geometry has it, because its rule is a
+  shape and naming a function family would describe the wrong thing. Leaving
+  the button up to answer "No hint" on every level of a pack is the thing it
+  replaced. A level that is merely *missing* its hint keeps the button.
 - Adding a kind of level object → it is one entry in `KINDS` (and `FORCE` /
   `INSIDE` if it acts) in `level-objects.jsx`. The engine, the plane, the
   studio's Objects tab and `getLevelData` are generic; if you find yourself

@@ -3903,7 +3903,7 @@ function LevelScreen({
     objects: levelData.objects,
     outline: levelData.outline,
     gravityDir: gravityFlip && running ? gravityDir : null
-  }), /*#__PURE__*/React.createElement("button", {
+  }), !pack.noHints && /*#__PURE__*/React.createElement("button", {
     onClick: () => setHintOpen(true),
     disabled: running,
     "aria-label": "Hint",

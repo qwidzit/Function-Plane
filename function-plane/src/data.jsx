@@ -20,7 +20,11 @@ const SPECIAL_PACKS = [
   // n stars in a recognisable figure, so the shape is the clue rather than a
   // rule about what you may write. It keeps the s-qua id because the SQL
   // guard hard-codes the five themed ids.
-  { id: 's-qua',  numeral: '△', name: 'Geometry',     kind: 'qua',  type: 'special', tag: 'just shapes' },
+  // noHints: the bulb is hidden for the whole pack. Geometry's rule is a shape,
+  // not a class, so the one thing a hint is allowed to say — the family the
+  // level was built around — would describe the wrong thing, and a button that
+  // only ever answers "No hint" is worse than no button.
+  { id: 's-qua',  numeral: '△', name: 'Geometry',     kind: 'qua',  type: 'special', tag: 'just shapes', noHints: true },
   { id: 's-trig', numeral: 'ƒ', name: 'Trigonometry', kind: 'trig', type: 'special', tag: 'sin · cos · tan', allowedClass: 'trig' },
   { id: 's-exp',  numeral: 'ƒ', name: 'Exponential',  kind: 'exp',  type: 'special', tag: 'aᵇˣ · log',      allowedClass: 'exp' },
   // modifier: a rule the whole pack plays under. 'gravityFlip' turns gravity

@@ -2416,7 +2416,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         {/* Floating on the plane, opposite the zoom stack: the two goal chips
             plus History already fill their row, and a fourth chip wrapped it
             onto a second line. */}
-        <button onClick={() => setHintOpen(true)} disabled={running} aria-label="Hint" style={{
+        {!pack.noHints && <button onClick={() => setHintOpen(true)} disabled={running} aria-label="Hint" style={{
           position:'absolute', left:10, bottom:10,
           width:34, height:34, borderRadius:10,
           display:'flex', alignItems:'center', justifyContent:'center',
@@ -2427,7 +2427,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
             <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6h5.4c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"
               stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </button>
+        </button>}
         {missMsg && (
           <div style={{
             position:'absolute', top:8, left:0, right:0,

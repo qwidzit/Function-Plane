@@ -1,7 +1,7 @@
 {
   "packId": "r-V",
   "name": "Mastery",
-  "notes": "Roman pack V, all ten levels. Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit. Levels I-V (index 0-4) are boards only: their goals read 40/1, which is what data.jsx's _default already gives an unauthored level, and they carry no hint and no answer because you are setting goals, hints and equations for them yourself — the row exists so the board ships, not because the goal is tuned. Of VI-X, Throttle and Loneliness carry answers found by sweeping the real run loop and their goals are exactly what the cheapest answer of that family scores; The grid 2, Runway and The finale carry provisional goals and no answer, and verify:levels reports them as not replayed. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
+  "notes": "Roman pack V, all ten levels. Boards authored in the studio and exported with the Level tab, in untouched to the quarter unit. Goals and hints are the author's, set in the studio and read back from level_overrides — not derived here. Two things this file is the record of. Throttle and Loneliness carry answers found by sweeping the real run loop, and npm run verify:levels replays them; the other eight have no answer recorded, so their goals have never been shown to be reachable by an actual run. And Bounce back (index 2) still reads 40/1 with no hint, which is the untouched import default rather than a set goal — it is the one level of the ten the studio never saved. Hazards are (x, y, w, h) with x,y the centre, matching level-objects.jsx.",
   "levels": [
     {
       "index": 0,
@@ -10,7 +10,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": null,
+      "hint": "Linear",
       "objects": [
         {
           "kind": "fan",
@@ -58,9 +58,9 @@
           "y": 3
         }
       ],
-      "scoreGoal": 40,
+      "scoreGoal": 30,
       "eqGoal": 1,
-      "intent": "Three stars on the rising diagonal, each with a fan under it blowing up at 30. Goals, hint and answer are yours to set — imported as a board only."
+      "intent": "Three stars on the rising diagonal, each with a fan under it blowing up at 30."
     },
     {
       "index": 1,
@@ -69,7 +69,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": null,
+      "hint": "Use 2 equations",
       "objects": [
         {
           "kind": "zerog",
@@ -126,9 +126,9 @@
           "y": 1.5
         }
       ],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "intent": "Four stars on the corners of a 3x3 block; the top two sit inside zero-g boxes, and a fan blows up from below the right pair while another blows right from the left. Goals, hint and answer are yours to set — imported as a board only."
+      "scoreGoal": 50,
+      "eqGoal": 2,
+      "intent": "Four stars on the corners of a 3x3 block; the top two sit inside zero-g boxes, and a fan blows up from below the right pair while another blows right from the left."
     },
     {
       "index": 2,
@@ -167,7 +167,7 @@
       ],
       "scoreGoal": 40,
       "eqGoal": 1,
-      "intent": "Three stars around a single hazard at (1,2), with the first star directly behind it at the spawn height. Goals, hint and answer are yours to set — imported as a board only."
+      "intent": "Three stars around a single hazard at (1,2), with the first star directly behind it at the spawn height."
     },
     {
       "index": 3,
@@ -176,7 +176,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": null,
+      "hint": "Trigonometry",
       "objects": [
         {
           "kind": "fan",
@@ -230,9 +230,9 @@
           "y": -5
         }
       ],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "intent": "Nine stars on a lattice four columns wide, with one fan blowing up through the middle of it. Goals, hint and answer are yours to set — imported as a board only."
+      "scoreGoal": 90,
+      "eqGoal": 3,
+      "intent": "Nine stars on a lattice four columns wide, with one fan blowing up through the middle of it."
     },
     {
       "index": 4,
@@ -241,7 +241,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": null,
+      "hint": "Use multiple equations",
       "objects": [],
       "ball": {
         "x": -8,
@@ -261,9 +261,9 @@
           "y": 4
         }
       ],
-      "scoreGoal": 40,
-      "eqGoal": 1,
-      "intent": "Two stars close to the spawn and one 26 units away at (18,4), on an empty plane. Goals, hint and answer are yours to set — imported as a board only."
+      "scoreGoal": 80,
+      "eqGoal": 3,
+      "intent": "Two stars close to the spawn and one 26 units away at (18,4), on an empty plane — the level the one-box world bound was found on."
     },
     {
       "index": 5,
@@ -310,7 +310,7 @@
           "y": 5
         }
       ],
-      "scoreGoal": 40,
+      "scoreGoal": 65,
       "eqGoal": 1,
       "intent": "The drop down the x=-3 column takes two stars for nothing; one curve has to turn the rest of the fall into a run to the right, across the low star and into the fan, which throws the ball up to the one at (6,5). No straight line does it — the sweep found none over 20,000 of them.",
       "solutions": [
@@ -344,7 +344,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": "Use 2 functions",
+      "hint": "Use multiple functions",
       "objects": [
         {
           "kind": "hazard",
@@ -474,9 +474,9 @@
           "y": 1
         }
       ],
-      "scoreGoal": 60,
-      "eqGoal": 2,
-      "intent": "A staggered lattice of hazards with one free diagonal per gap. The four stars sit on two parallel lines of slope -2 — y=-2x-1 carries (-1,1) and (1,-3), y=-2x+7 carries (3,1) and (5,-3) — and a dead curve rides either one cleanly. Getting from the first to the second is the level; goals assume two curves and are NOT verified."
+      "scoreGoal": 70,
+      "eqGoal": 3,
+      "intent": "A staggered lattice of hazards with one free diagonal per gap. The four stars sit on two parallel lines of slope -2 — y=-2x-1 carries (-1,1) and (1,-3), y=-2x+7 carries (3,1) and (5,-3) — and a dead curve rides either one cleanly. Getting from the first to the second is the level."
     },
     {
       "index": 7,
@@ -538,9 +538,9 @@
           "y": -1
         }
       ],
-      "scoreGoal": 90,
+      "scoreGoal": 80,
       "eqGoal": 3,
-      "intent": "The two stars at x=1 straddle the mouth of a downward fan, so one vertical pass takes both. The star under the hazard at (8,0) has 0.28 of clearance, and the well at (-6.5,1) holds whatever reaches it — so its star is the one the run ends on. Goals assume three curves and are NOT verified."
+      "intent": "The two stars at x=1 straddle the mouth of a downward fan, so one vertical pass takes both. The star under the hazard at (8,0) has 0.28 of clearance, and the well at (-6.5,1) holds whatever reaches it — so its star is the one the run ends on."
     },
     {
       "index": 8,
@@ -592,7 +592,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": "Use 4 functions",
+      "hint": "Use multiple functions",
       "objects": [
         {
           "kind": "fan",
@@ -778,9 +778,9 @@
           "y": -4
         }
       ],
-      "scoreGoal": 120,
+      "scoreGoal": 70,
       "eqGoal": 4,
-      "intent": "Every object the game has, on one board: four wells, five fans, four zero-g boxes and six hazards. The star at (-11,-4) sits in a well, so it ends the run. Goals assume four curves and are NOT verified."
+      "intent": "Every object the game has, on one board: four wells, six fans, four zero-g boxes and five hazards. The star at (-11,-4) sits in a well, so it ends the run."
     }
   ]
 }
