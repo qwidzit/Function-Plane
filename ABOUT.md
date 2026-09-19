@@ -727,11 +727,12 @@ The editing rules are MathQuill's, which is what Desmos runs:
   the numerator and leaves the caret in the denominator. With nothing to take,
   the caret waits in the empty numerator. A leading minus is an operator, so
   `-x/2` is `−` in front of a fraction.
-- **`^` opens an exponent**; right after one it steps back into it rather than
-  stacking a second. `+ − = < >` typed *at the end* of a non-empty exponent
-  step out of it first, so `x^2+1` is `x²+1` — but `x^-1` still types,
-  because the exponent was empty when the minus arrived. A compound exponent
-  is typed with its brackets, as in Desmos.
+- **`^` opens an exponent**, and the exponent keeps taking what is typed
+  until → leaves it: `a`, `^`, `1`, `+`, `x` is `a` to the power of
+  `1+x`, the way the picture reads, and comes out as `a^(1+x)`. Right
+  after an exponent, `^` steps back into it rather than stacking a second.
+  (MathQuill has an option that steps out on an operator; Desmos leaves it
+  off, and so does this.)
 - **A bracket typed alone is one-sided.** Its other half is a *ghost*: drawn
   faint, treated as present, and sitting at the far end of the line — so `(`
   in front of `x+1` brackets all of it. Typing the other half closes the

@@ -387,11 +387,11 @@ it('builds a fraction over everything back to the last operator', () => {
   eq(typed(['/', '1', f => f.right(), 'x']).text(), '1/x');
 });
 
-it('keeps an exponent to the power and steps out of it on an operator', () => {
-  eq(typed(['x^2+1']).text(), 'x^2+1');
-  eq(typed(['x^x+1']).text(), 'x^x+1');
-  eq(typed(['x^-1+1']).text(), 'x^(-1)+1', 'but not out of an empty one, so x^-1 can be typed');
-  eq(typed(['x^(x+1)']).text(), 'x^(x+1)', 'and not out of a bracket');
+it('keeps an exponent open until the caret leaves it', () => {
+  // a, ^, 1, +, x reads as a to the power of 1+x, so that is what it is.
+  eq(typed(['a^1+x']).text(), 'a^(1+x)');
+  eq(typed(['x^2', f => f.right(), '+1']).text(), 'x^2+1', 'the arrow steps out');
+  eq(typed(['x^-1']).text(), 'x^(-1)');
   eq(typed(['2^x^2']).text(), '2^(x^2)', 'a power in a power nests');
   eq(typed(['x', f => f.squared(), '+1']).text(), 'x^2+1', 'the squared key writes a whole exponent');
   eq(typed(['x^2', f => f.left(), f => f.backspace()]).text(), 'x2', 'backspace at its start spills it');
@@ -538,8 +538,8 @@ it('builds a fraction from the keys the way typing does', () => {
 });
 
 it('builds an exponent from the keys', () => {
-  eq(typeKeys(['x', 'power', 'x', '+', '1']).text(), 'x^x+1', 'an operator leaves the exponent');
-  eq(typeKeys(['x', 'power', '(', 'x', '+', '1']).text(), 'x^(x+1)', 'a bracket keeps it in');
+  eq(typeKeys(['x', 'power', 'x', '+', '1']).text(), 'x^(x+1)');
+  eq(typeKeys(['x', 'power', 'x', '→', '+', '1']).text(), 'x^x+1', 'the arrow leaves the exponent');
   eq(typeKeys(['x', 'squared', '+', '1']).text(), 'x^2+1');
 });
 

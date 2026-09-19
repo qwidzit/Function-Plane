@@ -88,7 +88,8 @@ believing it.
 - Typing after a function puts the text *inside* it → that is the ghost
   bracket, and it is by design: `sin(` opens a bracket whose closer is drawn
   faint and treated as present, so `+1` typed next lands inside, exactly as
-  it looks. `)` or → steps out. Desmos does the same.
+  it looks. `)` or → steps out. An exponent is the same: `a^1+x` is
+  `a^(1+x)` until → leaves it. Desmos does both.
 - The classifier and the runtime parser disagree about an expression → they
   are two tokenizers over the same conventions and drift is a scoring bug, not
   a cosmetic one. `x(x+1)` priced as an unknown function while the game drew a

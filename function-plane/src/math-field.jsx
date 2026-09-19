@@ -10,7 +10,8 @@
 // The editing rules are MathQuill's, which is what Desmos runs:
 //   - "/" takes everything back to the previous operator as the numerator and
 //     leaves the caret in the denominator (1, /, x, +, 1 is 1 over x+1);
-//   - "^" opens an exponent; + - = < > typed at the end of one step out first;
+//   - "^" opens an exponent, which keeps taking what is typed until → leaves
+//     it, so a, ^, 1, +, x is a to the power of 1+x;
 //   - a bracket typed on its own is one-sided — its other half is a *ghost*
 //     drawn faint and treated as present — and typing the other half closes
 //     it; the ghost moves to the far end, so "(" in front of x+1 brackets all
@@ -235,11 +236,6 @@ class MathField {
     if (ch === '^') return this.sup(true);
     if (ch === '√') return this.sqrt(true);
     if (MF_BR_CH[ch]) return this.bracket(ch);
-    // An operator at the end of an exponent steps out of it first: x^2+1 is
-    // x²+1, not x^(2+1). Only at the end, and only of one with something in
-    // it, so x^-1 can still be typed.
-    const { blk, i } = this.cur;
-    if ('+-=<>'.indexOf(ch) >= 0 && blk.parent?.t === 'sup' && i > 0 && i === blk.length) this.exitSup();
     this.insert(mkCh(ch));
     if (/[a-zA-Z]/.test(ch)) this.autoCmd();
   }
