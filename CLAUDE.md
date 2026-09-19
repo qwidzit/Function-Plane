@@ -104,6 +104,11 @@ believing it.
   that owns a block must list it in `kidsOf`, or the caret can move into a
   block nothing draws. `npm test` walks the caret across a set of expressions
   and counts the cursors.
+- An edit ignores the selection, or leaves a stale highlight → every mutation
+  starts with `cutSel()` (takes the selected nodes out, caret where they were)
+  or `dropSel()`, and the replacing commands — `frac`, `sup`, `sqrt`,
+  `bracket` — build around what `cutSel` returns. A new command has to do the
+  same, or it inserts beside a selection that then stays drawn.
 - The caret draws somewhere you cannot tap → a tap resolves through
   `data-n` on every node and `data-b` on every block, then `seek` picks a
   side by x. Give every node its `data-n`, and an empty block a size — the

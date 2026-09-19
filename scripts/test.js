@@ -483,6 +483,59 @@ it('lands a tap where the layout says', () => {
   f.seek(null, 99, rect);  eq(f.cur.i, 4, 'past the end');
 });
 
+it('selects a run of siblings, and every edit acts on it', () => {
+  // Shift+arrow from the end of x+1 takes "+1"; typing replaces it.
+  const f = typed(['x+1']);
+  f.selectDir('L'); f.selectDir('L');
+  eq(f.selectedText(), '+1');
+  eq(carets(f), 0, 'no caret while something is selected');
+  f.typed('2');
+  eq(f.text(), 'x2');
+  // "/" puts the selection on top, the caret goes to the denominator.
+  const g = typed(['x+1']);
+  g.selectAll(); g.frac();
+  eq(g.text(), '(x+1)/()');
+  ok(g.cur.blk === g.root.nodes[0].den, 'the caret is in the denominator');
+  // A bracket wraps it two-sided, caret at the left inside; ")" leaves the caret after.
+  const h = typed(['x+1']);
+  h.selectAll(); h.typed('(');
+  eq(h.text(), '(x+1)');
+  ok(h.root.nodes[0].ghost === null, 'no ghost half round a selection');
+  ok(h.cur.blk === h.root.nodes[0].body && h.cur.i === 0, 'caret at the left inside');
+  const h2 = typed(['x+1']);
+  h2.selectAll(); h2.typed(')');
+  ok(h2.cur.blk === h2.root && h2.cur.i === 1, 'caret after the bracket');
+  // "^" lifts it, "√" covers it.
+  const k = typed(['x+1']); k.selectDir('L'); k.selectDir('L'); k.sup();
+  eq(k.text(), 'x^(+1)');
+  const q = typed(['x+1']); q.selectAll(); q.sqrt();
+  eq(q.text(), 'sqrt(x+1)');
+  // Selecting out of a denominator selects the whole fraction; backspace takes it.
+  const m = typed(['1/2']);
+  m.selectDir('L'); eq(m.selectedText(), '2');
+  m.selectDir('L'); eq(m.selectedText(), '1/2');
+  m.selectDir('L'); eq(m.selectedText(), '1/2', 'nothing further left to take');
+  m.backspace(); eq(m.text(), '');
+  // An arrow without shift collapses to that end.
+  const n = typed(['xyz']);
+  n.selectDir('L'); n.selectDir('L'); n.left();
+  ok(!n.sel && n.cur.i === 1, 'left lands at the start of the selection');
+  n.selectDir('R'); n.right();
+  ok(!n.sel && n.cur.i === 2, 'right lands at its end');
+  // Paste replaces it; a selection that collapses back is no selection.
+  const r = typed(['x+1']); r.selectDir('L'); r.insertText('2'); eq(r.text(), 'x+2');
+  const c = typed(['x+1']); c.selectDir('L'); c.selectDir('R');
+  ok(!c.sel, 'collapsed');
+  // A drag over the layout: from the "+" to past the "1" selects both.
+  const d = new mfield.MathField('x+1');
+  const rect = o => { const i = d.root.indexOf(o); return { left: i * 10, right: i * 10 + 10 }; };
+  d.seek(null, 12, rect);
+  d.seek(null, 99, rect, true);
+  eq(d.selectedText(), '+1');
+  d.seek(null, 3, rect, true);
+  eq(d.selectedText(), 'x', 'and back past the start flips it');
+});
+
 // ── 1b3. The math keyboard ─────────────────────────────────────────────────
 
 describe('Math keyboard');

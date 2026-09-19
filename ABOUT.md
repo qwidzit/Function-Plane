@@ -778,8 +778,19 @@ An expression only turns red once it has lost focus — half-written is not
 wrong. Variables render **upright**, not italic: at 14px on a phone, next to
 Geist Mono digits, the italic read as a slant rather than as meaning.
 
-There is no selection: the field has a caret, not a range. That is the one
-thing a Desmos field does that this one does not.
+**Selection** is a run of siblings in one block — `sel = { blk, a, b }` —
+between an anchor and the caret, MathQuill's model. Shift+arrows extend it;
+selecting out of a block's edge selects the node that holds it, so shift+left
+at the start of a denominator takes the whole fraction. A drag selects too,
+mouse or touch: the row captures the pointer and seeks with `extend`, and the
+selection is the range in the deepest block holding both ends, each end
+widened to the node it sits inside (`select()`). Every edit acts on it:
+typing and paste replace it, `/` puts it on top of a fraction, `^` up in an
+exponent, `√` under a root, a bracket goes around it two-sided, backspace
+takes it, an arrow collapses to that end, Ctrl/⌘+A selects all, copy and cut
+hand its text to the clipboard. The caret is hidden while something is
+selected. The row is `touch-action: pan-y`, so a sideways drag selects and an
+up-down one still scrolls the list.
 
 ## Custom math keyboard
 

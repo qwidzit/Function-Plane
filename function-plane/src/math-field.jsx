@@ -19,7 +19,11 @@
 //   - backspace at the start of a fraction, exponent or root spills its
 //     contents into the line; on a bracket it takes one side and leaves the
 //     other a ghost;
-//   - "sqrt" and "pi" typed as letters become √ and π.
+//   - "sqrt" and "pi" typed as letters become √ and π;
+//   - a selection is a run of siblings in one block, reached by shift+arrows
+//     or a drag; selecting out of a block selects the node that holds it.
+//     Typing replaces it, "/" puts it on top of a fraction, "^" up in an
+//     exponent, "√" under a root and a bracket around it.
 //
 // Text in: `parseText` reads what the parser reads and builds the same tree
 // typing it would have — a level's preplaced equations, the run history and
@@ -217,9 +221,12 @@ class MathField {
   setText(s) {
     this.root = parseText(s);
     this.cur = { blk: this.root, i: this.root.length };
+    this.anchor = null;   // where a selection started; the caret is its other end
+    this.sel = null;      // { blk, a, b }: nodes [a, b) of one block
   }
   text() { return textOf(this.root); }
-  render(withCaret = true) { return renderBlock(this.root, withCaret ? this.cur : null); }
+  // The caret is hidden while something is selected, as in every editor.
+  render(withCaret = true) { return renderBlock(this.root, withCaret && !this.sel ? this.cur : null, this.sel); }
   changed() { this.onUpdate(); }
   focus() { this.input?.focus(); }
   blur()  { this.input?.blur(); }
@@ -235,9 +242,60 @@ class MathField {
     if (ch === '/' || ch === '÷') return this.frac(true);
     if (ch === '^') return this.sup(true);
     if (ch === '√') return this.sqrt(true);
-    if (MF_BR_CH[ch]) return this.bracket(ch);
+    if (MF_BR_CH[ch]) return this.bracket(ch, true);
+    this.cutSel();
     this.insert(mkCh(ch));
     if (/[a-zA-Z]/.test(ch)) this.autoCmd();
+  }
+
+  // ── Selection ──
+  // Blocks from a position up to the root: the position's own index in its
+  // block, then for each ancestor block the index of the node holding it.
+  chain(pos) {
+    const out = [{ blk: pos.blk, i: pos.i, node: null }];
+    for (let b = pos.blk; b.parent; ) { const n = b.parent; b = n.parent; out.push({ blk: b, i: b.indexOf(n), node: n }); }
+    return out;
+  }
+  // The selection between the anchor and the caret: the run of siblings in the
+  // deepest block holding both, each end widened to the node it sits inside.
+  // The caret then sits at the end of that run on its own side.
+  select() {
+    const A = this.chain(this.anchor), C = this.chain(this.cur);
+    let a = null, c = null;
+    for (const x of C) { const y = A.find(y => y.blk === x.blk); if (y) { c = x; a = y; break; } }
+    const lo = e => e.i, hi = e => e.node ? e.i + 1 : e.i;
+    const from = Math.min(lo(a), lo(c)), to = Math.max(hi(a), hi(c));
+    if (from >= to) { this.sel = null; return; }
+    this.sel = { blk: c.blk, a: from, b: to };
+    this.cur = { blk: c.blk, i: hi(c) <= lo(a) ? from : to };
+  }
+  selectDir(dir) {
+    if (!this.anchor) this.anchor = this.cur;
+    const { blk, i } = this.cur;
+    const n = dir === 'L' ? blk.nodes[i - 1] : blk.nodes[i];
+    if (n) this.cur = { blk, i: dir === 'L' ? i - 1 : i + 1 };
+    else if (blk.parent) { const p = blk.parent, pb = p.parent; this.cur = { blk: pb, i: pb.indexOf(p) + (dir === 'L' ? 0 : 1) }; }
+    this.select();
+    if (!this.sel) this.anchor = null;
+    this.changed();
+  }
+  selectAll() {
+    this.anchor = { blk: this.root, i: 0 };
+    this.cur = { blk: this.root, i: this.root.length };
+    this.select();
+    this.changed();
+  }
+  selectedText() { return this.sel ? textOf({ nodes: this.sel.blk.nodes.slice(this.sel.a, this.sel.b) }) : ''; }
+  dropSel() { this.sel = null; this.anchor = null; }
+  // Takes the selected nodes out of the tree, caret where they were. What an
+  // edit that replaces the selection starts with.
+  cutSel() {
+    const s = this.sel;
+    this.dropSel();
+    if (!s) return null;
+    const nodes = s.blk.remove(s.a, s.b - s.a);
+    this.cur = { blk: s.blk, i: s.a };
+    return nodes;
   }
 
   insert(n) {
@@ -269,10 +327,11 @@ class MathField {
   // Everything back to the previous operator goes on top; the caret lands in
   // the denominator, or in an empty numerator when there was nothing to take.
   frac(quiet) {
+    const held = this.cutSel();
     const { blk, i } = this.cur;
     let j = i;
-    while (j > 0 && !isBinOp(blk.nodes[j - 1])) j--;
-    const num = blk.remove(j, i - j);
+    if (held) blk.insert(i, held); else while (j > 0 && !isBinOp(blk.nodes[j - 1])) j--;
+    const num = blk.remove(j, held ? held.length : i - j);
     const f = mkFrac(num, []);
     blk.insert(j, [f]);
     this.cur = { blk: num.length ? f.den : f.num, i: 0 };
@@ -281,13 +340,14 @@ class MathField {
 
   // Right after an exponent, "^" goes back into it rather than stacking one.
   sup(quiet) {
+    const held = this.cutSel();
     const { blk, i } = this.cur;
     const prev = blk.nodes[i - 1];
-    if (prev && prev.t === 'sup') this.cur = { blk: prev.body, i: prev.body.length };
+    if (!held && prev && prev.t === 'sup') this.cur = { blk: prev.body, i: prev.body.length };
     else {
-      const s = mkSup([]);
+      const s = mkSup(held || []);
       blk.insert(i, [s]);
-      this.cur = { blk: s.body, i: 0 };
+      this.cur = { blk: s.body, i: s.body.length };
     }
     if (!quiet) this.changed();
   }
@@ -298,17 +358,26 @@ class MathField {
     this.changed();
   }
   sqrt(quiet) {
-    const r = mkSqrt([]);
+    const r = mkSqrt(this.cutSel() || []);
     this.insert(r);
-    this.cur = { blk: r.body, i: 0 };
+    this.cur = { blk: r.body, i: r.body.length };
     if (!quiet) this.changed();
   }
 
   // MathQuill's bracket: typed beside or inside a one-sided one of its kind,
   // it closes that; otherwise it opens a new one whose ghost half sits at the
   // far end of the line, with everything between inside it.
-  bracket(ch) {
+  bracket(ch, quiet) {
     const [kind, typedSide] = MF_BR_CH[ch];
+    // Around a selection it is two-sided from the start.
+    const held = this.cutSel();
+    if (held) {
+      const n = mkBr(kind, held, null);
+      this.insert(n);
+      if (typedSide !== 'R') this.cur = { blk: n.body, i: 0 };
+      if (!quiet) this.changed();
+      return;
+    }
     const { blk, i } = this.cur;
     const enclosing = blk.parent?.t === 'br' ? blk.parent : null;
     const oneSided = (n, solid) => !!n && n.t === 'br' && n.kind === kind && !!n.ghost && (!solid || solidOf(n) === solid);
@@ -342,7 +411,7 @@ class MathField {
       blk.insert(0, [n]);
       this.cur = { blk, i: 1 };
     }
-    this.changed();
+    if (!quiet) this.changed();
   }
 
   // The bracket's contents take its place in the line.
@@ -407,6 +476,7 @@ class MathField {
   }
 
   deleteDir(dir) {
+    if (this.sel) { this.cutSel(); this.changed(); return; }
     const { blk, i } = this.cur;
     const n = dir === 'L' ? blk.nodes[i - 1] : blk.nodes[i];
     if (n) {
@@ -429,6 +499,8 @@ class MathField {
   del()       { this.deleteDir('R'); }
 
   moveDir(dir) {
+    // Out of a selection: to its end on that side.
+    if (this.sel) { this.cur = { blk: this.sel.blk, i: dir === 'L' ? this.sel.a : this.sel.b }; this.dropSel(); this.changed(); return; }
     const { blk, i } = this.cur;
     const n = dir === 'L' ? blk.nodes[i - 1] : blk.nodes[i];
     if (n) {
@@ -445,12 +517,13 @@ class MathField {
   }
   left()  { this.moveDir('L'); }
   right() { this.moveDir('R'); }
-  home()  { this.cur = { blk: this.root, i: 0 }; this.changed(); }
-  end()   { this.cur = { blk: this.root, i: this.root.length }; this.changed(); }
+  home()  { this.dropSel(); this.cur = { blk: this.root, i: 0 }; this.changed(); }
+  end()   { this.dropSel(); this.cur = { blk: this.root, i: this.root.length }; this.changed(); }
 
   // Up into a numerator or an exponent, down into a denominator; between the
   // halves of a fraction, landing under the caret's x when the layout is known.
   upDown(dir, x, rectOf) {
+    this.dropSel();
     const { blk, i } = this.cur;
     const into = n => n.t === 'frac' ? (dir === 'up' ? n.num : n.den) : n.t === 'sup' && dir === 'up' ? n.body : null;
     const r = blk.nodes[i], l = blk.nodes[i - 1];
@@ -478,10 +551,14 @@ class MathField {
 
   // A tap. `el` is the tapped node or block (whichever is nearest in the DOM),
   // `x` the tap's client x, `rectOf` measures a node or block on screen.
-  seek(el, x, rectOf) {
+  // A drag seeks with `extend`: the caret moves and the selection runs from
+  // where the drag began.
+  seek(el, x, rectOf, extend) {
+    if (extend) { if (!this.anchor) this.anchor = this.cur; } else this.dropSel();
     if (el && el.nodes) this.seekBlock(el, x, rectOf);
     else if (el) this.seekNode(el, x, rectOf);
     else this.seekBlock(this.root, x, rectOf);
+    if (extend) this.select();
     this.changed();
   }
   seekBlock(b, x, rectOf) {
@@ -531,6 +608,7 @@ class MathField {
   // Pasted or dropped text: read it the way a save is read.
   insertText(s) {
     const nodes = parseText(s).nodes;
+    this.cutSel();
     const { blk, i } = this.cur;
     blk.insert(i, nodes);
     this.cur = { blk, i: i + nodes.length };
@@ -546,9 +624,11 @@ const mfCaret = () => <span key="caret" className="fp-caret" style={{
 }}/>;
 
 const MF_ROW = { display: 'inline-flex', alignItems: 'center' };
+const MF_SEL = { background: 'color-mix(in srgb, var(--fp-accent) 30%, transparent)', borderRadius: 2 };
 
-// cur: the caret to draw, or null for a static render.
-function renderBlock(b, cur) {
+// cur: the caret to draw, or null for a static render. sel: the selection to
+// highlight, or null.
+function renderBlock(b, cur, sel) {
   const here = cur && cur.blk === b;
   if (b.isEmpty()) {
     // The root draws nothing when empty — the row's placeholder does. Any
@@ -564,47 +644,48 @@ function renderBlock(b, cur) {
   const kids = [];
   b.nodes.forEach((n, k) => {
     if (here && cur.i === k) kids.push(mfCaret());
-    kids.push(renderNode(n, cur));
+    kids.push(renderNode(n, cur, sel, !!sel && sel.blk === b && k >= sel.a && k < sel.b));
   });
   if (here && cur.i === b.length) kids.push(mfCaret());
   return <span data-b={b.id} style={b.parent ? MF_ROW : { ...MF_ROW, alignSelf: 'stretch', flex: 1 }}>{kids}</span>;
 }
 
-function renderNode(n, cur) {
+function renderNode(n, cur, sel, selected) {
+  const st = base => selected ? { ...base, ...MF_SEL } : base;
   switch (n.t) {
     case 'ch': {
       const pad = /[+\-=<>]/.test(n.c) ? '0 3px' : n.c === '*' ? '0 1px' : n.c === ',' ? '0 2px 0 0' : undefined;
-      return <span key={n.id} data-n={n.id} style={pad ? { padding: pad } : undefined}>{MF_GLYPH[n.c] || n.c}</span>;
+      return <span key={n.id} data-n={n.id} style={st(pad ? { padding: pad } : {})}>{MF_GLYPH[n.c] || n.c}</span>;
     }
     case 'frac':
       return (
-        <span key={n.id} data-n={n.id} style={{
+        <span key={n.id} data-n={n.id} style={st({
           display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
           margin: '0 2px', fontSize: '0.85em', lineHeight: 1.12,
-        }}>
-          <span style={{ padding: '0 3px 1px', display: 'flex' }}>{renderBlock(n.num, cur)}</span>
+        })}>
+          <span style={{ padding: '0 3px 1px', display: 'flex' }}>{renderBlock(n.num, cur, sel)}</span>
           <span style={{ padding: '1px 3px 0', borderTop: '1px solid currentColor', width: '100%',
-            display: 'flex', justifyContent: 'center' }}>{renderBlock(n.den, cur)}</span>
+            display: 'flex', justifyContent: 'center' }}>{renderBlock(n.den, cur, sel)}</span>
         </span>
       );
     case 'sup':
       // Raised against the line's centre, so it sits the same beside a letter
       // and beside a bracket group.
-      return <span key={n.id} data-n={n.id} style={{ ...MF_ROW, fontSize: '0.66em', lineHeight: 1.15,
-        marginBottom: '1em' }}>{renderBlock(n.body, cur)}</span>;
+      return <span key={n.id} data-n={n.id} style={st({ ...MF_ROW, fontSize: '0.66em', lineHeight: 1.15,
+        marginBottom: '1em' })}>{renderBlock(n.body, cur, sel)}</span>;
     case 'sqrt':
       return (
-        <span key={n.id} data-n={n.id} style={MF_ROW}>
+        <span key={n.id} data-n={n.id} style={st(MF_ROW)}>
           <span style={{ fontSize: '1.1em' }}>√</span>
-          <span style={{ ...MF_ROW, borderTop: '1px solid currentColor', padding: '1px 2px 0', marginTop: 1 }}>{renderBlock(n.body, cur)}</span>
+          <span style={{ ...MF_ROW, borderTop: '1px solid currentColor', padding: '1px 2px 0', marginTop: 1 }}>{renderBlock(n.body, cur, sel)}</span>
         </span>
       );
     case 'br': {
       const g = MF_BR[n.kind];
       return (
-        <span key={n.id} data-n={n.id} style={MF_ROW}>
+        <span key={n.id} data-n={n.id} style={st(MF_ROW)}>
           <span style={n.ghost === 'L' ? { opacity: 0.4 } : undefined}>{g.open}</span>
-          {renderBlock(n.body, cur)}
+          {renderBlock(n.body, cur, sel)}
           <span style={n.ghost === 'R' ? { opacity: 0.4 } : undefined}>{g.close}</span>
         </span>
       );
@@ -615,7 +696,7 @@ function renderNode(n, cur) {
 // An expression at rest — the manual, the run history, a locked row.
 function MathExpr({ src }) {
   if (!src) return null;
-  return renderBlock(parseText(src), null);
+  return renderBlock(parseText(src), null, null);
 }
 
 // The editable row. `field` is the MathField it draws and drives; the caret is
@@ -639,21 +720,41 @@ function MathFieldView({ field, focused, disabled, onFocus, onBlur, onDone, plac
     else if (r.right > b.right - 8) box.scrollLeft += r.right - (b.right - 8);
   });
 
+  const target = el => {
+    const hit = el?.closest?.('[data-n],[data-b]');
+    return hit ? field.lookup(Number(hit.dataset.n || hit.dataset.b), !!hit.dataset.b) : null;
+  };
+  // A press places the caret; dragging from it selects. The pointer is
+  // captured so a drag that leaves the row keeps selecting.
+  const dragging = useMR(false);
   const onDown = e => {
     if (disabled) return;
     e.preventDefault();
-    const el = e.target.closest?.('[data-n],[data-b]');
-    const id = el ? Number(el.dataset.n || el.dataset.b) : null;
-    field.seek(el ? field.lookup(id, !!el.dataset.b) : null, e.clientX, rectOf);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    dragging.current = true;
+    field.seek(target(e.target), e.clientX, rectOf);
     inputRef.current?.focus();
     onFocus?.();
   };
+  const onMove = e => {
+    if (!dragging.current) return;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    field.seek(boxRef.current?.contains(under) ? target(under) : null, e.clientX, rectOf, true);
+  };
+  const onUp = () => { dragging.current = false; };
 
   const onKey = e => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key;
+    if (e.metaKey || e.ctrlKey) {
+      // Copy, cut and paste arrive as their own events; select-all is ours.
+      if (k.toLowerCase() === 'a' && !e.altKey) { field.selectAll(); e.preventDefault(); }
+      return;
+    }
+    if (e.altKey) return;
     if (k === 'Backspace') field.backspace();
     else if (k === 'Delete') field.del();
+    else if (k === 'ArrowLeft' && e.shiftKey) field.selectDir('L');
+    else if (k === 'ArrowRight' && e.shiftKey) field.selectDir('R');
     else if (k === 'ArrowLeft') field.left();
     else if (k === 'ArrowRight') field.right();
     else if (k === 'ArrowUp' || k === 'ArrowDown') {
@@ -670,19 +771,28 @@ function MathFieldView({ field, focused, disabled, onFocus, onBlur, onDone, plac
   // Anything that reached the input without a keydown (an IME, dictation).
   const onInput = e => { const v = e.target.value; if (v) field.write(v); e.target.value = ''; };
   const onPaste = e => { e.preventDefault(); field.insertText(e.clipboardData?.getData('text') || ''); };
+  const onCopy = e => {
+    if (!field.sel) return;
+    e.preventDefault();
+    e.clipboardData?.setData('text/plain', field.selectedText());
+  };
+  const onCut = e => { if (!field.sel) return; onCopy(e); field.cutSel(); field.changed(); };
 
   const empty = field.root.isEmpty();
   return (
-    <div ref={boxRef} className="fp-scroll" onPointerDown={onDown} style={{
+    <div ref={boxRef} className="fp-scroll" onPointerDown={onDown} onPointerMove={onMove}
+      onPointerUp={onUp} onPointerCancel={onUp} style={{
       position: 'relative', flex: 1, minWidth: 0, minHeight: 38, display: 'flex', alignItems: 'center',
       padding: '8px 0', boxSizing: 'border-box', overflowX: 'auto', overflowY: 'hidden',
       fontFamily: "'Geist Mono','ui-monospace',monospace", fontSize: 14, whiteSpace: 'nowrap',
       color, cursor: disabled ? 'default' : 'text',
+      // A sideways drag selects; up and down still scroll the list.
+      touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none',
     }}>
       {empty && !focused && placeholder}
-      {renderBlock(field.root, focused ? field.cur : null)}
+      {renderBlock(field.root, focused && !field.sel ? field.cur : null, focused ? field.sel : null)}
       <input ref={inputRef} inputMode="none" spellCheck={false} autoComplete="off" disabled={disabled}
-        onKeyDown={onKey} onInput={onInput} onPaste={onPaste}
+        onKeyDown={onKey} onInput={onInput} onPaste={onPaste} onCopy={onCopy} onCut={onCut}
         onFocus={onFocus} onBlur={onBlur}
         aria-label="Equation"
         style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0,
