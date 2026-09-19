@@ -271,15 +271,22 @@ Current design:
   every trajectory very slightly, which is why `npm run verify:levels` is part
   of changing it — one authored level's draft answer sat close enough to a
   hazard that a pixel was the difference.
-- **Where the world ends** (`outOfWorld`). Not a floor: the bound is
-  everything the level holds — every object, every star and the spawn — grown
-  by `WORLD_MARGIN` (10), inside a circle that clears the same contents by the
-  same margin and is never smaller than `WORLD_RADIUS` (20). **Stars size the
-  world**, so every level has a full margin of room past the furthest thing it
-  asks the ball to reach; they used not to, and the cost was a star that could
-  not be collected at all (Constellation's far column sat 0.05 outside the edge
-  it had to be taken through) and a level with no objects bounded only by the
-  circle. The camera never had this bug — auto-zoom already framed spawn, stars
+- **Where the world ends** (`outOfWorld`). Not a floor: the bound is **one box
+  around everything the level holds** — every object, every star and the spawn
+  — grown by `WORLD_MARGIN` (10), inside a circle that clears the same box by
+  the same margin and is never smaller than `WORLD_RADIUS` (20). **Stars size
+  the world**, so every level has a full margin of room past the furthest thing
+  it asks the ball to reach; they used not to, and the cost was a star that
+  could not be collected at all (Constellation's far column sat 0.05 outside
+  the edge it had to be taken through) and a level with no objects bounded only
+  by the circle. **One box, not a box each**, because a margin drawn around
+  every item separately leaves a hole wherever two of them are more than two
+  margins apart — and that hole is the flight path between them. Tunnel vision
+  asks for a star 26 units from the rest of its level: both ends were in
+  bounds, and the ball died halfway across at (7.6, 4.4), which made the level
+  unclearable. A box is also monotone — it can only ever contain more than the
+  per-item version did, so widening it cannot end a run that used to survive.
+  The camera never had either bug — auto-zoom already framed spawn, stars
   and objects — so the plane showed a star the run would not let you reach.
   A fixed floor at −13 was wrong in both directions — it
   let a ball sail sideways for as long as the clock allowed, and a pack that

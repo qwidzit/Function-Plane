@@ -454,14 +454,11 @@ function physicsStep(ph, colliders, dt, world) {
 function outOfWorld(ph, world) {
   const radius = world?.radius || WORLD_RADIUS;
   if (ph.x * ph.x + ph.y * ph.y > radius * radius) return true;
-  const boxes = world?.bounds;
-  if (!boxes || !boxes.length) return false;   // nothing placed: the circle is the whole rule
-  for (const b of boxes) {
-    const dx = Math.max(b.minX - ph.x, 0, ph.x - b.maxX);
-    const dy = Math.max(b.minY - ph.y, 0, ph.y - b.maxY);
-    if (dx * dx + dy * dy <= WORLD_MARGIN * WORLD_MARGIN) return false;
-  }
-  return true;
+  const b = world?.bounds;
+  if (!b) return false;   // nothing placed: the circle is the whole rule
+  const dx = Math.max(b.minX - ph.x, 0, ph.x - b.maxX);
+  const dy = Math.max(b.minY - ph.y, 0, ph.y - b.maxY);
+  return dx * dx + dy * dy > WORLD_MARGIN * WORLD_MARGIN;
 }
 
 // Drains one frame's elapsed time into whole ticks. Shared by the level and
@@ -500,21 +497,29 @@ function drainTicks(ph, colliders, world, ts) {
 // every object sat outside the edge it had to be collected through
 // (Constellation's far column missed by 0.05), and a level with no objects had
 // no bound but the circle. A star is a point, so its box is one.
+//
+// One box around the lot, not a box each. A margin around every item
+// separately leaves a hole wherever two of them are further apart than two
+// margins, and the hole is exactly where the ball has to fly: Tunnel vision
+// asks for a star 26 units from the rest of the level and killed the ball
+// halfway there, at (7.6, 4.4), with both ends of the journey in bounds.
 function makeWorld(objects, gravityFlip, stars, ball) {
   const bounds = [
     ...objects.map(o => FP_OBJECTS.bounds(o)),
     ...[...stars, ball].map(p => ({ minX: p.x, maxX: p.x, minY: p.y, maxY: p.y })),
-  ];
+  ].reduce((a, b) => ({
+    minX: Math.min(a.minX, b.minX), maxX: Math.max(a.maxX, b.maxX),
+    minY: Math.min(a.minY, b.minY), maxY: Math.max(a.maxY, b.maxY),
+  }));
   // How far the level itself reaches from the origin — the circle has to clear
-  // that by the margin too, or it cuts inside the boxes on a wide level.
-  const reach = bounds.reduce((m, b) => Math.max(m,
-    Math.hypot(Math.max(Math.abs(b.minX), Math.abs(b.maxX)),
-               Math.max(Math.abs(b.minY), Math.abs(b.maxY)))), 0);
+  // that by the margin too, or it cuts inside the box on a wide level.
+  const reach = Math.hypot(Math.max(Math.abs(bounds.minX), Math.abs(bounds.maxX)),
+                           Math.max(Math.abs(bounds.minY), Math.abs(bounds.maxY)));
   return {
     field:   FP_OBJECTS.makeField(objects, BALL_R),
     solids:  FP_OBJECTS.solidSegs(objects),
     hazards: objects.filter(o => o.kind === 'hazard'),
-    // What the world is built around — outOfWorld measures against these.
+    // What the world is built around — outOfWorld measures against it.
     bounds,
     radius:  Math.max(WORLD_RADIUS, reach + WORLD_MARGIN),
     gravityFlip: !!gravityFlip,

@@ -219,11 +219,13 @@ believing it.
   `CoordPlane` and nowhere else; it never reaches `makeRunColliders`. If you
   find yourself giving it an equation, it has stopped being decoration.
 - A ball dies sooner or later than it used to → the world is sized to the
-  level now (`WORLD_MARGIN` past every object, **star** and the spawn, inside a
-  circle that clears the same and is at least `WORLD_RADIUS`), so moving a star
-  moves the edge too. `makeWorld` takes the stars and the spawn for this —
-  a caller that passes objects alone silently shrinks the world back to the bug
-  it fixed. `npm run verify:levels` is the check.
+  level now: **one box** around every object, **star** and the spawn, grown by
+  `WORLD_MARGIN`, inside a circle that clears the same and is at least
+  `WORLD_RADIUS`. So moving a star moves the edge too. `makeWorld` takes the
+  stars and the spawn for this. Keep it one box — a margin per item leaves a
+  hole between any two more than two margins apart, which is exactly the flight
+  path between two distant stars, and it made Tunnel vision unclearable.
+  `npm run verify:levels` is the check.
 - Adding a kind of level object → it is one entry in `KINDS` (and `FORCE` /
   `INSIDE` if it acts) in `level-objects.jsx`. The engine, the plane, the
   studio's Objects tab and `getLevelData` are generic; if you find yourself

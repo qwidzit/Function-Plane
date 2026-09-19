@@ -1639,6 +1639,28 @@ it('sizes every level it ships around its stars, not just its objects', () => {
   }
 });
 
+it('keeps the way from one star to another inside the world', () => {
+  // Room around each star is not enough on its own: a margin drawn around
+  // every item separately leaves a hole between any two more than two margins
+  // apart, and that hole is the flight path. Tunnel vision's far star is 26
+  // units from the rest of its level, and the ball died halfway there with
+  // both ends in bounds.
+  for (const l of snapshot.data.levels) {
+    const ball = { x: l.ball_x, y: l.ball_y };
+    const world = global.window.makeWorld(l.objects || [], false, l.stars, ball);
+    const pts = [...l.stars, ball];
+    for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+      for (let t = 0; t <= 1.0001; t += 0.02) {
+        const p = { x: pts[i].x + (pts[j].x - pts[i].x) * t,
+                    y: pts[i].y + (pts[j].y - pts[i].y) * t };
+        ok(!global.window.outOfWorld(p, world),
+          `${l.pack_id}-${l.level_index}: the line from (${pts[i].x},${pts[i].y}) to ` +
+          `(${pts[j].x},${pts[j].y}) leaves the world at (${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+      }
+    }
+  }
+});
+
 it('keeps the fallback level goal on the authored scale', () => {
   // A _default far above the authored range makes any unauthored level
   // trivially 2-startable, which is how the 320 vs 30-90 gap went unnoticed.
