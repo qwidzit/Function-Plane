@@ -319,7 +319,23 @@ function compileFn(args, params, body) {
   const decl = params.length ? `const{${params.join(',')}}=window.FP_PARAMS||{};` : '';
   return new Function(...args, `${decl}try{return(${body});}catch(e){return NaN;}`);
 }
-function parseEquation(raw) {
+
+// A shifted curve is the same curve moved: y=f(x−a)+b, or F(x−a, y−b)=0 for
+// an implicit one. Done here, on the compiled function, so everything that
+// reads eq.fn — the plane, the colliders, a run — moves with it, and nothing
+// about the text, its class or its price changes.
+function parseEquation(raw, shift) {
+  const r = compileEquation(raw);
+  const sx = Number(shift?.x) || 0,
+    sy = Number(shift?.y) || 0;
+  if (!r.fn || !sx && !sy) return r;
+  const f = r.fn;
+  return {
+    ...r,
+    fn: r.isImplicit ? (x, y) => f(x - sx, y - sy) : x => f(x - sx) + sy
+  };
+}
+function compileEquation(raw) {
   const none = {
     fn: null,
     isImplicit: false,
@@ -1480,41 +1496,33 @@ function DomValBtn({
 function DomainEditor({
   eqId,
   domain,
+  disabled,
   onChange,
   domKb,
   onDomInput
 }) {
   const segs = domain || [];
-  const add = () => onChange([...segs, {
+  const add = () => !disabled && onChange([...segs, {
     xMin: -5,
     xMax: 5
   }]);
-  const remove = i => onChange(segs.filter((_, j) => j !== i));
+  const remove = i => !disabled && onChange(segs.filter((_, j) => j !== i));
   const update = (i, k, v) => onChange(segs.map((s, j) => j === i ? {
     ...s,
     [k]: v
   } : s));
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '8px 12px 10px',
-      background: 'var(--fp-surface-2)',
-      borderTop: '1px solid var(--lv-line)'
+      flex: 1,
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-      color: 'var(--fp-ink-3)',
-      marginBottom: 6
-    }
-  }, "Restrict domain"), segs.length === 0 && /*#__PURE__*/React.createElement("div", {
+  }, segs.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: 'var(--fp-ink-4)',
-      marginBottom: 6
+      padding: '7px 0 6px'
     }
-  }, "No restriction \u2014 curve draws everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
+  }, "No restriction \u2014 the curve exists everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: 'flex',
@@ -1532,7 +1540,7 @@ function DomainEditor({
     segId: `${eqId}-${i}-min`,
     val: seg.xMin,
     domKb: domKb,
-    onTap: () => onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i, 'xMin', v))
+    onTap: () => !disabled && onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i, 'xMin', v))
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
@@ -1542,7 +1550,7 @@ function DomainEditor({
     segId: `${eqId}-${i}-max`,
     val: seg.xMax,
     domKb: domKb,
-    onTap: () => onDomInput(`${eqId}-${i}-max`, seg.xMax, v => update(i, 'xMax', v))
+    onTap: () => !disabled && onDomInput(`${eqId}-${i}-max`, seg.xMax, v => update(i, 'xMax', v))
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => remove(i),
     style: {
@@ -1735,19 +1743,22 @@ function NumPad({
 // ─── Equation row ─────────────────────────────────────────────
 // Three states, one button: how the curve returns the ball. Drawn as the ball
 // over a floor with the arc it would take, so the state reads without words.
-const MAT_NEXT = {
-  none: 'dead',
-  dead: 'rubber',
-  rubber: null
-};
 // The three states have names, because the hints and the explainer cards use
 // them: `dead` is steel and `rubber` is rubber. The stored values stay as they
 // are — run history and every saved level are written in terms of them.
-const MAT_TITLE = {
-  none: 'Bounce: normal',
-  dead: 'Steel — the ball lands and rolls',
-  rubber: 'Rubber — the ball keeps all its speed'
-};
+const MAT_OPTS = [{
+  v: null,
+  label: 'Normal',
+  title: 'Bounce: normal'
+}, {
+  v: 'dead',
+  label: 'Steel',
+  title: 'Steel — the ball lands and rolls'
+}, {
+  v: 'rubber',
+  label: 'Rubber',
+  title: 'Rubber — the ball keeps all its speed'
+}];
 function MaterialIcon({
   m
 }) {
@@ -1775,6 +1786,170 @@ function MaterialIcon({
     fill: "currentColor"
   }));
 }
+
+// Everything about a curve that is not its equation: bounce (where the level
+// allows it), where it is moved to, and where it exists. Opens in the row in
+// place of the equation, so the numbers and the curve stay on screen together.
+const SHIFT_STEP = 0.5;
+function EqSettings({
+  eq,
+  onChange,
+  disabled,
+  materialsOn,
+  domKb,
+  onDomInput
+}) {
+  const shift = eq.shift || {
+    x: 0,
+    y: 0
+  };
+  const setShift = (k, v) => {
+    const next = {
+      ...shift,
+      [k]: Math.round(v * 100) / 100
+    };
+    onChange({
+      shift: next.x || next.y ? next : null
+    });
+  };
+  const label = {
+    fontSize: 10,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'var(--fp-ink-3)',
+    width: 52,
+    flex: '0 0 52px'
+  };
+  const nudge = (k, d) => /*#__PURE__*/React.createElement("button", {
+    onPointerDown: e => {
+      e.preventDefault();
+      if (!disabled) setShift(k, shift[k] + d);
+    },
+    "aria-label": `${k} ${d > 0 ? 'plus' : 'minus'}`,
+    style: {
+      width: 26,
+      height: 28,
+      borderRadius: 6,
+      border: '1px solid var(--lv-line)',
+      background: 'var(--fp-surface)',
+      color: 'var(--fp-ink-2)',
+      fontSize: 15,
+      lineHeight: 1
+    }
+  }, d > 0 ? '+' : '−');
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+      padding: '8px 8px 8px 0'
+    }
+  }, materialsOn && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: label
+  }, "Bounce"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flex: 1,
+      minWidth: 0,
+      gap: 3
+    }
+  }, MAT_OPTS.map(o => {
+    const on = (eq.material || null) === o.v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: o.label,
+      title: o.title,
+      onPointerDown: e => {
+        e.preventDefault();
+        if (!disabled) onChange({
+          material: o.v
+        });
+      },
+      style: {
+        flex: 1,
+        minWidth: 0,
+        height: 28,
+        borderRadius: 6,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        fontSize: 11,
+        fontWeight: 500,
+        border: `1px solid ${on ? 'var(--fp-accent)' : 'var(--lv-line)'}`,
+        background: on ? 'color-mix(in srgb, var(--fp-accent) 16%, var(--fp-surface))' : 'var(--fp-surface)',
+        color: on ? 'var(--fp-accent)' : 'var(--fp-ink-2)'
+      }
+    }, /*#__PURE__*/React.createElement(MaterialIcon, {
+      m: o.v
+    }), o.label);
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...label,
+      paddingTop: 7
+    },
+    title: "Moves the whole curve: y=f(x\u2212a)+b"
+  }, "Move"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 4
+    }
+  }, ['x', 'y'].map(k => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fp-mono",
+    style: {
+      fontSize: 11,
+      color: 'var(--fp-ink-3)',
+      width: 12
+    }
+  }, k), nudge(k, -SHIFT_STEP), /*#__PURE__*/React.createElement(DomValBtn, {
+    segId: `${eq.id}-shift-${k}`,
+    val: shift[k],
+    domKb: domKb,
+    label: `move along ${k}`,
+    onTap: () => !disabled && onDomInput(`${eq.id}-shift-${k}`, shift[k], v => setShift(k, v), `move along ${k}`)
+  }), nudge(k, SHIFT_STEP))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      ...label,
+      paddingTop: 7
+    }
+  }, "Domain"), /*#__PURE__*/React.createElement(DomainEditor, {
+    eqId: eq.id,
+    domain: eq.domain,
+    disabled: disabled,
+    onChange: domain => onChange({
+      domain: domain.length ? domain : null
+    }),
+    domKb: domKb,
+    onDomInput: onDomInput
+  })));
+}
 function EqRow({
   idx,
   eq,
@@ -1788,7 +1963,7 @@ function EqRow({
   onAddSliders,
   materialsOn
 }) {
-  const [domOpen, setDomOpen] = useSL(false);
+  const [settingsOpen, setSettingsOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
   const [, bump] = useSL(0);
   const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
@@ -1857,7 +2032,14 @@ function EqRow({
       fontFamily: 'ui-monospace,monospace',
       color: eq.param ? 'var(--fp-ink-3)' : eq.visible ? '#fff' : eq.color
     }
-  }, eq.param ? eq.param.name : idx + 1)), locked ? /*#__PURE__*/React.createElement("div", {
+  }, eq.param ? eq.param.name : idx + 1)), settingsOpen && !locked && !eq.param ? /*#__PURE__*/React.createElement(EqSettings, {
+    eq: eq,
+    onChange: onChange,
+    disabled: disabled,
+    materialsOn: materialsOn,
+    domKb: domKb,
+    onDomInput: onDomInput
+  }) : locked ? /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0,
@@ -1894,48 +2076,43 @@ function EqRow({
     },
     onBlur: () => setFocused(false),
     onDone: () => field.blur()
-  }), materialsOn && !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
+  }), !locked && !eq.param &&
+  /*#__PURE__*/
+  // Lit while open, and while anything in it is set, so a moved or cut
+  // curve says so from the row.
+  React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
-      if (!disabled) onChange({
-        material: MAT_NEXT[eq.material || 'none']
-      });
+      field.blur();
+      setSettingsOpen(o => !o);
     },
-    title: MAT_TITLE[eq.material || 'none'],
-    style: {
-      width: 30,
-      flex: '0 0 30px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: eq.material ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
-    }
-  }, /*#__PURE__*/React.createElement(MaterialIcon, {
-    m: eq.material || null
-  })), !locked && !eq.param && /*#__PURE__*/React.createElement("button", {
-    onPointerDown: e => {
-      e.preventDefault();
-      setDomOpen(o => !o);
-    },
-    title: "Restrict domain",
+    title: settingsOpen ? 'Back to the equation' : 'Curve settings: bounce, move, domain',
+    "aria-label": "Curve settings",
     style: {
       width: 32,
       flex: '0 0 32px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: domOpen ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
+      color: settingsOpen || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
     }
   }, /*#__PURE__*/React.createElement("svg", {
-    width: 14,
-    height: 14,
+    width: 16,
+    height: 16,
     viewBox: "0 0 24 24",
-    fill: "none"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M6 3v18M18 3v18M3 9h18M3 15h18",
-    stroke: "currentColor",
-    strokeWidth: 1.6,
-    strokeLinecap: "round"
+    fill: "currentColor"
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: 5,
+    cy: 12,
+    r: 2.1
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 12,
+    cy: 12,
+    r: 2.1
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: 19,
+    cy: 12,
+    r: 2.1
   }))), /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
@@ -2045,15 +2222,7 @@ function EqRow({
       fontSize: 11.5,
       fontWeight: 500
     }
-  }, "all")), domOpen && /*#__PURE__*/React.createElement(DomainEditor, {
-    eqId: eq.id,
-    domain: eq.domain,
-    onChange: domain => onChange({
-      domain: domain.length ? domain : null
-    }),
-    domKb: domKb,
-    onDomInput: onDomInput
-  }));
+  }, "all")));
 }
 
 // ─── Equations panel ──────────────────────────────────────────
@@ -2276,8 +2445,8 @@ function EquationsPanel({
       ...e,
       ...patch
     };
-    if ('expr' in patch) {
-      Object.assign(merged, parseEquation(patch.expr));
+    if ('expr' in patch || 'shift' in patch) {
+      Object.assign(merged, parseEquation(merged.expr, merged.shift));
       // Editing "a=3" into something else retires the parameter, or every
       // curve reading `a` would keep the value of a row that is gone.
       if (e.param && merged.param?.name !== e.param.name) delete window.FP_PARAMS[e.param.name];
@@ -2677,9 +2846,7 @@ function EquationsPanel({
       color: 'var(--fp-ink-3)',
       borderTop: '1px solid var(--lv-line)'
     }
-  }, "Bounce is adjustable here \u2014 tap a curve's ", /*#__PURE__*/React.createElement(MaterialIcon, {
-    m: null
-  }), " to make it steel or rubber."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
+  }, "Bounce is adjustable here \u2014 a curve's ", /*#__PURE__*/React.createElement("strong", null, "\u22EF"), " settings make it steel or rubber."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
       flex: '1 1 auto',
@@ -2827,19 +2994,23 @@ function LevelScreen({
       } catch {}
     }
   };
-  const loadFromHistory = (exprs, mats = []) => {
+  const loadFromHistory = (exprs, mats = [], shifts = []) => {
     setHistoryOpen(false);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
       let curve = 0;
       const rows = exprs.map((expr, i) => {
-        const parsed = parseEquation(expr);
+        // mats and shifts are aligned to the curves, not to the slider rows
+        // ahead of them.
+        const isCurve = !!compileEquation(expr).fn;
+        const shift = isCurve ? shifts[curve] || null : null;
+        const material = isCurve ? mats[curve++] || null : null;
         return {
           id: i + 1,
           expr,
-          ...parsed,
-          // mats is aligned to the curves, not to the slider rows ahead of them.
-          material: parsed.fn ? mats[curve++] || null : null,
+          ...parseEquation(expr, shift),
+          material,
+          shift,
           color: EQ_COLORS[(pre.length + i) % EQ_COLORS.length],
           visible: true,
           domain: null,
@@ -2961,6 +3132,7 @@ function LevelScreen({
         const runEntry = {
           exprs,
           mats: curves.map(e => e.material || null),
+          shifts: curves.map(e => e.shift || null),
           score: sc,
           time: finishT,
           stars: starCount(rating),
@@ -3712,7 +3884,7 @@ function HistoryPopup({
   }, /*#__PURE__*/React.createElement(MathExpr, {
     src: expr
   })))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onLoad(e.exprs, e.mats),
+    onClick: () => onLoad(e.exprs, e.mats, e.shifts),
     style: {
       width: '100%',
       height: 36,

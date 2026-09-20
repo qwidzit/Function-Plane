@@ -65,6 +65,7 @@ function levelToFile(b) {
       expr: e.expr,
       domain: e.domain || null,
       material: e.material || null,
+      shift: e.shift || null,
       visible: e.visible !== false,
     })),
     scoreGoal: goalOut(b.scoreGoal),
@@ -87,8 +88,10 @@ function fileToLevel(doc) {
       const segs = (Array.isArray(e.domain) ? e.domain : [])
         .filter(d => isFinite(d?.xMin) && isFinite(d?.xMax))
         .map(d => ({ xMin: Number(d.xMin), xMax: Number(d.xMax) }));
+      const sx = Number(e.shift?.x) || 0, sy = Number(e.shift?.y) || 0;
+      const shift = sx || sy ? { x: sx, y: sy } : null;
       return {
-        id: i + 1, expr: e.expr, ...parseEquation(e.expr),
+        id: i + 1, expr: e.expr, ...parseEquation(e.expr, shift), shift,
         color: SIM.EQ_COLORS[i % SIM.EQ_COLORS.length],
         visible: e.visible !== false,
         // An empty segment list is not "no restriction" — it is a curve with

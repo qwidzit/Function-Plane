@@ -253,15 +253,22 @@ function HowToPlayScreen({
       width: 20,
       height: 20,
       viewBox: "0 0 24 24",
-      fill: "none"
-    }, /*#__PURE__*/React.createElement("path", {
-      d: "M6 3v18M18 3v18M3 9h18M3 15h18",
-      stroke: "currentColor",
-      strokeWidth: 1.8,
-      strokeLinecap: "round"
+      fill: "currentColor"
+    }, /*#__PURE__*/React.createElement("circle", {
+      cx: 5,
+      cy: 12,
+      r: 2.2
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: 12,
+      cy: 12,
+      r: 2.2
+    }), /*#__PURE__*/React.createElement("circle", {
+      cx: 19,
+      cy: 12,
+      r: 2.2
     })),
-    title: "Domain restrictions"
-  }, "The grid icon on an equation row limits where its curve exists. Add a segment like x \u2208 [\u22123, 3], or several. A cut curve costs what the whole one costs."), /*#__PURE__*/React.createElement(HTPCard, {
+    title: "Curve settings"
+  }, "The \u22EF button on an equation row opens its settings where the equation was.", /*#__PURE__*/React.createElement("strong", null, " Move"), " shifts the whole curve along x and y, for when the shape is right and the place is not. ", /*#__PURE__*/React.createElement("strong", null, "Domain"), " limits where it exists: a segment like x \u2208 [\u22123, 3], or several. ", /*#__PURE__*/React.createElement("strong", null, "Bounce"), ", on levels that offer it, makes the curve steel or rubber. None of them change what the curve costs."), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#2d70b3",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -1043,7 +1050,7 @@ const FP_EXPLAINERS = {
       strokeLinecap: "round"
     })),
     pages: [{
-      heading: 'The bracket button',
+      heading: 'The ⋯ button',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
         x: 22,
         y: 30,
@@ -1078,9 +1085,18 @@ const FP_EXPLAINERS = {
         strokeWidth: 1.8,
         strokeLinecap: "round",
         fill: "none"
-      }, /*#__PURE__*/React.createElement("path", {
-        d: "M-6 -7v14M6 -7v14M-9 -2.5h18M-9 3.5h18"
+      }, /*#__PURE__*/React.createElement("g", {
+        fill: "#6042a6",
+        stroke: "none"
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: -6,
+        r: 1.9
       }), /*#__PURE__*/React.createElement("circle", {
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 6,
+        r: 1.9
+      })), /*#__PURE__*/React.createElement("circle", {
         r: 10,
         strokeWidth: 1.4
       }, /*#__PURE__*/React.createElement("animate", {
@@ -1096,7 +1112,7 @@ const FP_EXPLAINERS = {
         values: "0.75;0;0",
         keyTimes: holdTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The bracket button on an equation row sets the curve's ", /*#__PURE__*/React.createElement("strong", null, "domain"), " \u2014 the range of x where it exists.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The \u22EF button on an equation row opens its settings. ", /*#__PURE__*/React.createElement("strong", null, "Domain"), " is the range of x where the curve exists.")
     }, {
       heading: 'A track with an end',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
@@ -1200,7 +1216,7 @@ const FP_EXPLAINERS = {
       fill: "currentColor"
     })),
     pages: [{
-      heading: 'A third button on the row',
+      heading: 'Bounce, in the settings',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
         x: 22,
         y: 30,
@@ -1230,24 +1246,16 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "var(--fp-ink-2)"
       }, "y=\u22120.1x\u22122"), /*#__PURE__*/React.createElement("g", {
-        transform: "translate(155,40) scale(1.05)",
-        fill: "none"
-      }, /*#__PURE__*/React.createElement("path", {
-        d: "M1.5 13.5H14.5",
-        stroke: "#388c46",
-        strokeWidth: 1.6,
-        strokeLinecap: "round"
-      }), /*#__PURE__*/React.createElement("path", {
-        d: "M4 13 Q8 -1 12 13",
-        stroke: "#388c46",
-        strokeWidth: 1.3,
-        strokeLinecap: "round",
-        strokeDasharray: "2 1.5"
-      }), /*#__PURE__*/React.createElement("circle", {
-        cx: 4,
-        cy: 10.5,
-        r: 2.4,
+        transform: "translate(163,48)",
         fill: "#388c46"
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: -6,
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 6,
+        r: 1.9
       })), /*#__PURE__*/React.createElement("g", {
         transform: "translate(163,48)",
         fill: "none"
@@ -1268,7 +1276,7 @@ const FP_EXPLAINERS = {
         values: "0.75;0;0",
         keyTimes: holdTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "On this level every equation carries a ", /*#__PURE__*/React.createElement("strong", null, "bounce"), " button. It cycles the curve through three states: normal, ", /*#__PURE__*/React.createElement("strong", null, "steel"), ", and ", /*#__PURE__*/React.createElement("strong", null, "rubber"), ".")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "On this level every equation's \u22EF settings include ", /*#__PURE__*/React.createElement("strong", null, "bounce"), ": normal,", /*#__PURE__*/React.createElement("strong", null, " steel"), " or ", /*#__PURE__*/React.createElement("strong", null, "rubber"), ".")
     }, {
       heading: 'Rubber keeps everything',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("line", {

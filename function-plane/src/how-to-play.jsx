@@ -175,13 +175,16 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
         </HTPCard>
 
         <HTPCard color="#6042a6"
-          icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <path d="M6 3v18M18 3v18M3 9h18M3 15h18" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"/>
+          icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor">
+            <circle cx={5} cy={12} r={2.2}/><circle cx={12} cy={12} r={2.2}/><circle cx={19} cy={12} r={2.2}/>
           </svg>}
-          title="Domain restrictions"
+          title="Curve settings"
         >
-          The grid icon on an equation row limits where its curve exists. Add a segment like
-          x ∈ [−3, 3], or several. A cut curve costs what the whole one costs.
+          The ⋯ button on an equation row opens its settings where the equation was.
+          <strong> Move</strong> shifts the whole curve along x and y, for when the shape is
+          right and the place is not. <strong>Domain</strong> limits where it exists: a segment
+          like x ∈ [−3, 3], or several. <strong>Bounce</strong>, on levels that offer it, makes
+          the curve steel or rubber. None of them change what the curve costs.
         </HTPCard>
 
         <HTPCard color="#2d70b3"
@@ -654,7 +657,7 @@ const FP_EXPLAINERS = {
     </svg>,
     pages: [
       {
-        heading: 'The bracket button',
+        heading: 'The ⋯ button',
         art: (
           <Art>
             {/* An equation row, with the one button on it that matters here. */}
@@ -665,7 +668,7 @@ const FP_EXPLAINERS = {
               fontFamily="ui-monospace,monospace" fill="#fff">1</text>
             <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x²−2</text>
             <g transform="translate(165,48)" stroke="#6042a6" strokeWidth={1.8} strokeLinecap="round" fill="none">
-              <path d="M-6 -7v14M6 -7v14M-9 -2.5h18M-9 3.5h18"/>
+              <g fill="#6042a6" stroke="none"><circle cx={-6} r={1.9}/><circle r={1.9}/><circle cx={6} r={1.9}/></g>
               {/* One ring, expanding and gone — then a beat before the next. */}
               <circle r={10} strokeWidth={1.4}>
                 <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
@@ -677,8 +680,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          The bracket button on an equation row sets the curve's <strong>domain</strong> — the
-          range of x where it exists.
+          The ⋯ button on an equation row opens its settings. <strong>Domain</strong> is the
+          range of x where the curve exists.
         </>,
       },
       {
@@ -735,22 +738,18 @@ const FP_EXPLAINERS = {
     </svg>,
     pages: [
       {
-        heading: 'A third button on the row',
+        heading: 'Bounce, in the settings',
         art: (
           <Art>
-            {/* The row, and the one button this card is about. The button face
-                is MaterialIcon's own geometry so the drawing and the control
-                cannot drift apart. */}
+            {/* The row, and the button that opens what this card is about. */}
             <rect x={22} y={30} width={164} height={36} rx={9}
               fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
             <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
             <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
               fontFamily="ui-monospace,monospace" fill="#fff">1</text>
             <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=−0.1x−2</text>
-            <g transform="translate(155,40) scale(1.05)" fill="none">
-              <path d="M1.5 13.5H14.5" stroke="#388c46" strokeWidth={1.6} strokeLinecap="round"/>
-              <path d="M4 13 Q8 -1 12 13" stroke="#388c46" strokeWidth={1.3} strokeLinecap="round" strokeDasharray="2 1.5"/>
-              <circle cx={4} cy={10.5} r={2.4} fill="#388c46"/>
+            <g transform="translate(163,48)" fill="#388c46">
+              <circle cx={-6} r={1.9}/><circle r={1.9}/><circle cx={6} r={1.9}/>
             </g>
             <g transform="translate(163,48)" fill="none">
               {/* One ring, expanding and gone — the beat the domain card uses. */}
@@ -764,8 +763,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          On this level every equation carries a <strong>bounce</strong> button. It cycles the
-          curve through three states: normal, <strong>steel</strong>, and <strong>rubber</strong>.
+          On this level every equation's ⋯ settings include <strong>bounce</strong>: normal,
+          <strong> steel</strong> or <strong>rubber</strong>.
         </>,
       },
       {

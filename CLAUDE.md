@@ -113,6 +113,13 @@ believing it.
   `data-n` on every node and `data-b` on every block, then `seek` picks a
   side by x. Give every node its `data-n`, and an empty block a size — the
   dashed slot — or it is a place on paper and nowhere on screen.
+- A curve setting shows in the row but does nothing on the plane → the row's
+  ⋯ settings (bounce, move, domain) are fields on the equation object, and a
+  shift only takes effect through `parseEquation(expr, shift)`, which wraps
+  the compiled function. Anything that builds an equation object — the panel's
+  `update`, a loaded run, a studio file — has to pass the shift, and the run
+  entry has to carry it (`shifts`, beside `mats`) or *Load these equations*
+  brings back a curve in the wrong place.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.

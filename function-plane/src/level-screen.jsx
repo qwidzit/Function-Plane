@@ -304,7 +304,19 @@ function compileFn(args, params, body) {
   return new Function(...args, `${decl}try{return(${body});}catch(e){return NaN;}`);
 }
 
-function parseEquation(raw) {
+// A shifted curve is the same curve moved: y=f(x−a)+b, or F(x−a, y−b)=0 for
+// an implicit one. Done here, on the compiled function, so everything that
+// reads eq.fn — the plane, the colliders, a run — moves with it, and nothing
+// about the text, its class or its price changes.
+function parseEquation(raw, shift) {
+  const r = compileEquation(raw);
+  const sx = Number(shift?.x) || 0, sy = Number(shift?.y) || 0;
+  if (!r.fn || (!sx && !sy)) return r;
+  const f = r.fn;
+  return { ...r, fn: r.isImplicit ? (x, y) => f(x - sx, y - sy) : x => f(x - sx) + sy };
+}
+
+function compileEquation(raw) {
   const none = { fn: null, isImplicit: false, param: null };
   if (!raw || !raw.trim()) return none;
   const eq = raw.trim();
@@ -1052,35 +1064,27 @@ function DomValBtn({ segId, val, domKb, onTap, label }) {
 // eqId scopes each segment's NumPad id. Without it two equations' first
 // segments both answer to "0-min", so opening one highlighted and echoed the
 // keypad value into every equation's matching field at once.
-function DomainEditor({ eqId, domain, onChange, domKb, onDomInput }) {
+function DomainEditor({ eqId, domain, disabled, onChange, domKb, onDomInput }) {
   const segs = domain || [];
-  const add    = () => onChange([...segs, { xMin:-5, xMax:5 }]);
-  const remove = i => onChange(segs.filter((_,j)=>j!==i));
+  const add    = () => !disabled && onChange([...segs, { xMin:-5, xMax:5 }]);
+  const remove = i => !disabled && onChange(segs.filter((_,j)=>j!==i));
   const update = (i, k, v) => onChange(segs.map((s,j)=>j===i?{...s,[k]:v}:s));
 
   return (
-    <div style={{
-      padding:'8px 12px 10px',
-      background:'var(--fp-surface-2)',
-      borderTop:'1px solid var(--lv-line)',
-    }}>
-      <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase',
-        color:'var(--fp-ink-3)', marginBottom:6 }}>
-        Restrict domain
-      </div>
+    <div style={{ flex:1, minWidth:0 }}>
       {segs.length === 0 && (
-        <div style={{ fontSize:11, color:'var(--fp-ink-4)', marginBottom:6 }}>
-          No restriction — curve draws everywhere.
+        <div style={{ fontSize:11, color:'var(--fp-ink-4)', padding:'7px 0 6px' }}>
+          No restriction — the curve exists everywhere.
         </div>
       )}
       {segs.map((seg,i) => (
         <div key={i} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
           <span className="fp-mono" style={{ fontSize:11, color:'var(--fp-ink-3)' }}>x ∈</span>
           <DomValBtn segId={`${eqId}-${i}-min`} val={seg.xMin} domKb={domKb}
-            onTap={() => onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i,'xMin',v))}/>
+            onTap={() => !disabled && onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i,'xMin',v))}/>
           <span style={{ fontSize:11, color:'var(--fp-ink-3)' }}>to</span>
           <DomValBtn segId={`${eqId}-${i}-max`} val={seg.xMax} domKb={domKb}
-            onTap={() => onDomInput(`${eqId}-${i}-max`, seg.xMax, v => update(i,'xMax',v))}/>
+            onTap={() => !disabled && onDomInput(`${eqId}-${i}-max`, seg.xMax, v => update(i,'xMax',v))}/>
           <button onClick={()=>remove(i)} style={{ color:'var(--fp-ink-3)', fontSize:16, lineHeight:1, padding:'0 4px' }}>×</button>
         </div>
       ))}
@@ -1182,11 +1186,14 @@ function NumPad({ val, label = 'x-value', onChange, onDone }) {
 // ─── Equation row ─────────────────────────────────────────────
 // Three states, one button: how the curve returns the ball. Drawn as the ball
 // over a floor with the arc it would take, so the state reads without words.
-const MAT_NEXT  = { none: 'dead', dead: 'rubber', rubber: null };
 // The three states have names, because the hints and the explainer cards use
 // them: `dead` is steel and `rubber` is rubber. The stored values stay as they
 // are — run history and every saved level are written in terms of them.
-const MAT_TITLE = { none: 'Bounce: normal', dead: 'Steel — the ball lands and rolls', rubber: 'Rubber — the ball keeps all its speed' };
+const MAT_OPTS = [
+  { v: null,     label: 'Normal', title: 'Bounce: normal' },
+  { v: 'dead',   label: 'Steel',  title: 'Steel — the ball lands and rolls' },
+  { v: 'rubber', label: 'Rubber', title: 'Rubber — the ball keeps all its speed' },
+];
 function MaterialIcon({ m }) {
   const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
   return (
@@ -1198,8 +1205,77 @@ function MaterialIcon({ m }) {
   );
 }
 
+// Everything about a curve that is not its equation: bounce (where the level
+// allows it), where it is moved to, and where it exists. Opens in the row in
+// place of the equation, so the numbers and the curve stay on screen together.
+const SHIFT_STEP = 0.5;
+function EqSettings({ eq, onChange, disabled, materialsOn, domKb, onDomInput }) {
+  const shift = eq.shift || { x: 0, y: 0 };
+  const setShift = (k, v) => {
+    const next = { ...shift, [k]: Math.round(v * 100) / 100 };
+    onChange({ shift: next.x || next.y ? next : null });
+  };
+  const label = { fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fp-ink-3)',
+    width:52, flex:'0 0 52px' };
+  const nudge = (k, d) => (
+    <button onPointerDown={e=>{e.preventDefault(); if (!disabled) setShift(k, shift[k] + d);}}
+      aria-label={`${k} ${d > 0 ? 'plus' : 'minus'}`} style={{
+      width:26, height:28, borderRadius:6, border:'1px solid var(--lv-line)',
+      background:'var(--fp-surface)', color:'var(--fp-ink-2)', fontSize:15, lineHeight:1,
+    }}>{d > 0 ? '+' : '−'}</button>
+  );
+  return (
+    <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:8, padding:'8px 8px 8px 0' }}>
+      {materialsOn && (
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={label}>Bounce</span>
+          <div style={{ display:'flex', flex:1, minWidth:0, gap:3 }}>
+            {MAT_OPTS.map(o => {
+              const on = (eq.material || null) === o.v;
+              return (
+                <button key={o.label} title={o.title}
+                  onPointerDown={e=>{e.preventDefault(); if (!disabled) onChange({ material: o.v });}}
+                  style={{
+                    flex:1, minWidth:0, height:28, borderRadius:6, display:'flex', alignItems:'center',
+                    justifyContent:'center', gap:4, fontSize:11, fontWeight:500,
+                    border:`1px solid ${on ? 'var(--fp-accent)' : 'var(--lv-line)'}`,
+                    background: on ? 'color-mix(in srgb, var(--fp-accent) 16%, var(--fp-surface))' : 'var(--fp-surface)',
+                    color: on ? 'var(--fp-accent)' : 'var(--fp-ink-2)',
+                  }}>
+                  <MaterialIcon m={o.v}/>{o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* One axis per line: both on one would not fit a phone beside the row's buttons. */}
+      <div style={{ display:'flex', alignItems:'flex-start', gap:6 }}>
+        <span style={{ ...label, paddingTop:7 }} title="Moves the whole curve: y=f(x−a)+b">Move</span>
+        <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+          {['x', 'y'].map(k => (
+            <div key={k} style={{ display:'flex', alignItems:'center', gap:3 }}>
+              <span className="fp-mono" style={{ fontSize:11, color:'var(--fp-ink-3)', width:12 }}>{k}</span>
+              {nudge(k, -SHIFT_STEP)}
+              <DomValBtn segId={`${eq.id}-shift-${k}`} val={shift[k]} domKb={domKb} label={`move along ${k}`}
+                onTap={() => !disabled && onDomInput(`${eq.id}-shift-${k}`, shift[k], v => setShift(k, v), `move along ${k}`)}/>
+              {nudge(k, SHIFT_STEP)}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:6 }}>
+        <span style={{ ...label, paddingTop:7 }}>Domain</span>
+        <DomainEditor eqId={eq.id} domain={eq.domain} disabled={disabled}
+          onChange={domain => onChange({ domain: domain.length ? domain : null })}
+          domKb={domKb} onDomInput={onDomInput}/>
+      </div>
+    </div>
+  );
+}
+
 function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDomInput, missing, onAddSliders, materialsOn }) {
-  const [domOpen, setDomOpen] = useSL(false);
+  const [settingsOpen, setSettingsOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
   const [, bump] = useSL(0);
   const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
@@ -1241,7 +1317,10 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
           }}>{eq.param ? eq.param.name : idx+1}</span>
         </button>
 
-        {locked ? (
+        {settingsOpen && !locked && !eq.param ? (
+          <EqSettings eq={eq} onChange={onChange} disabled={disabled} materialsOn={materialsOn}
+            domKb={domKb} onDomInput={onDomInput}/>
+        ) : locked ? (
           <div style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', minHeight:38, padding:'8px 0',
             fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:14, color:'var(--fp-ink-2)',
             overflow:'hidden', whiteSpace:'nowrap' }}>
@@ -1258,26 +1337,18 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
             onDone={() => field.blur()}/>
         )}
 
-        {materialsOn && !locked && !eq.param && (
-          <button onPointerDown={e=>{e.preventDefault(); if (!disabled) onChange({ material: MAT_NEXT[eq.material || 'none'] });}}
-            title={MAT_TITLE[eq.material || 'none']}
-            style={{
-              width:30, flex:'0 0 30px', display:'flex', alignItems:'center', justifyContent:'center',
-              color: eq.material ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
-            }}>
-            <MaterialIcon m={eq.material || null}/>
-          </button>
-        )}
-
         {!locked && !eq.param && (
-          <button onPointerDown={e=>{e.preventDefault(); setDomOpen(o=>!o);}}
-            title="Restrict domain"
+          // Lit while open, and while anything in it is set, so a moved or cut
+          // curve says so from the row.
+          <button onPointerDown={e=>{e.preventDefault(); field.blur(); setSettingsOpen(o=>!o);}}
+            title={settingsOpen ? 'Back to the equation' : 'Curve settings: bounce, move, domain'}
+            aria-label="Curve settings"
             style={{
-              width:32, flex:'0 0 32px', display:'flex', alignItems:'center',
-              justifyContent:'center', color: domOpen ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
+              width:32, flex:'0 0 32px', display:'flex', alignItems:'center', justifyContent:'center',
+              color: settingsOpen || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
             }}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-              <path d="M6 3v18M18 3v18M3 9h18M3 15h18" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+              <circle cx={5} cy={12} r={2.1}/><circle cx={12} cy={12} r={2.1}/><circle cx={19} cy={12} r={2.1}/>
             </svg>
           </button>
         )}
@@ -1328,15 +1399,6 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
         </div>
       )}
 
-      {domOpen && (
-        <DomainEditor
-          eqId={eq.id}
-          domain={eq.domain}
-          onChange={domain => onChange({ domain: domain.length ? domain : null })}
-          domKb={domKb}
-          onDomInput={onDomInput}
-        />
-      )}
     </div>
   );
 }
@@ -1451,8 +1513,8 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
     if (e.id !== id) return e;
     if (e.preplaced && 'expr' in patch) return e;  // can't edit pre-placed
     const merged = { ...e, ...patch };
-    if ('expr' in patch) {
-      Object.assign(merged, parseEquation(patch.expr));
+    if ('expr' in patch || 'shift' in patch) {
+      Object.assign(merged, parseEquation(merged.expr, merged.shift));
       // Editing "a=3" into something else retires the parameter, or every
       // curve reading `a` would keep the value of a row that is gone.
       if (e.param && merged.param?.name !== e.param.name) delete window.FP_PARAMS[e.param.name];
@@ -1651,7 +1713,7 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
       )}
       {tab === 'eq' && materialsOn && (
         <div style={{ padding:'6px 14px', fontSize:11, color:'var(--fp-ink-3)', borderTop:'1px solid var(--lv-line)' }}>
-          Bounce is adjustable here — tap a curve's <MaterialIcon m={null}/> to make it steel or rubber.
+          Bounce is adjustable here — a curve's <strong>⋯</strong> settings make it steel or rubber.
         </div>
       )}
 
@@ -1763,17 +1825,19 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     if (done) { try { localStorage.setItem(`fp-tip-${done.key}`, '1'); } catch {} }
   };
 
-  const loadFromHistory = (exprs, mats = []) => {
+  const loadFromHistory = (exprs, mats = [], shifts = []) => {
     setHistoryOpen(false);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
       let curve = 0;
       const rows = exprs.map((expr, i) => {
-        const parsed = parseEquation(expr);
+        // mats and shifts are aligned to the curves, not to the slider rows
+        // ahead of them.
+        const isCurve = !!compileEquation(expr).fn;
+        const shift = isCurve ? (shifts[curve] || null) : null;
+        const material = isCurve ? (mats[curve++] || null) : null;
         return {
-          id: i + 1, expr, ...parsed,
-          // mats is aligned to the curves, not to the slider rows ahead of them.
-          material: parsed.fn ? (mats[curve++] || null) : null,
+          id: i + 1, expr, ...parseEquation(expr, shift), material, shift,
           color: EQ_COLORS[(pre.length + i) % EQ_COLORS.length],
           visible: true, domain: null, preplaced: false,
         };
@@ -1890,7 +1954,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
         // so it rides the same merge and upload every other score does and is
         // still there after a reinstall or on another device.
         const runEntry = {
-          exprs, mats: curves.map(e => e.material || null),
+          exprs, mats: curves.map(e => e.material || null), shifts: curves.map(e => e.shift || null),
           score: sc, time: finishT, stars: starCount(rating), bits: rating,
           ts: Date.now(),
         };
@@ -2300,7 +2364,7 @@ function HistoryPopup({ entries = [], onClose, onLoad }) {
                   }}><MathExpr src={expr}/></div>
                 ))}
               </div>
-              <button onClick={() => onLoad(e.exprs, e.mats)} style={{
+              <button onClick={() => onLoad(e.exprs, e.mats, e.shifts)} style={{
                 width:'100%', height:36, borderRadius:10,
                 background:'var(--fp-ink)', color:'var(--fp-bg)',
                 fontSize:12.5, fontWeight:500,

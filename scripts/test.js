@@ -297,6 +297,22 @@ it('leaves a hidden curve out of the score and the equation count', () => {
     'rows with no visible field — the audit\'s — are all live');
 });
 
+it('moves a curve by its shift without touching its text', () => {
+  // A shift is the same curve elsewhere — y=f(x−a)+b, F(x−a, y−b)=0 — applied
+  // on the compiled function so the plane, the colliders and a run all move
+  // with it, and the price does not.
+  const sh = scoring.parseEquation('y=x^2', { x: 1, y: 2 });
+  eq(sh.fn(1), 2, 'the vertex moved to (1, 2)');
+  eq(sh.fn(3), 6);
+  const im = scoring.parseEquation('x^2+y^2=1', { x: 3, y: -1 });
+  eq(im.isImplicit, true);
+  near(im.fn(4, -1), 0, 1e-12, 'the circle is centred on (3, −1)');
+  eq(scoring.parseEquation('y=x^2', null).fn(3), 9, 'no shift is the curve itself');
+  eq(scoring.parseEquation('a=2', { x: 1, y: 1 }).param.name, 'a', 'a slider row has nothing to move');
+  const priced = e => scoring.computeScore([{ expr: e, ...scoring.parseEquation(e, { x: 5, y: 5 }) }]);
+  eq(priced('y=x^2'), scoring.computeScore([{ expr: 'y=x^2', ...scoring.parseEquation('y=x^2') }]), 'a moved curve costs the same');
+});
+
 it('parses a negated power whose base has nested parentheses', () => {
   // -(5*(x+1))^3 came back as a broken equation: maths reads -x^2 as -(x^2)
   // and JS rejects that spelling outright, so the source is rewritten before

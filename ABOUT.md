@@ -668,14 +668,31 @@ are tick-counted precisely so the leaderboard compares play rather than
 hardware (see *Sim timing*); the wind animation is the *drawing*, the force
 is the same every tick, and `npm test` runs the same field twice to prove it.
 
-**Materials** are not objects — they belong to the curve. On a level with
-`materials` on (and in the sandbox, unless an imported level says otherwise)
-every row gets a three-state
-bounce toggle: normal, **dead** (the ball lands and rolls) and **rubber**
-(perfectly elastic). Dead curves draw heavier, rubber ones dashed like a
-spring, so the material reads from the plane and not only from the row. Run
-history stores each curve's material so *Load these equations* restores it.
-Scores don't depend on materials, so the audit needs nothing new.
+**Curve settings** are everything about a curve that is not its equation,
+and they open in the row *in place of the equation* from its ⋯ button, so
+the numbers and the curve stay on screen together. The button is lit while
+any of them is set. Three sections, none of which changes what a curve costs:
+
+- **Bounce** — only on a level with `materials` on (and in the sandbox,
+  unless an imported level says otherwise): normal, **dead** (steel to the
+  player: the ball lands and rolls) and **rubber** (perfectly elastic). Dead
+  curves draw heavier, rubber ones dashed like a spring, so the material reads
+  from the plane and not only from the row.
+- **Move** — a shift `{ x, y }` that puts the same curve elsewhere:
+  `y = f(x−a) + b`, or `F(x−a, y−b) = 0` for an implicit one. It is
+  applied by `parseEquation(expr, shift)` on the *compiled* function, so the
+  plane, the colliders and a run all move with it and nothing about the text,
+  its class or its price changes. Reparse whenever the expression *or* the
+  shift changes. Nudge buttons step by 0.5; the value opens the `NumPad`.
+  The domain is in plane coordinates, so a moved curve is still cut where the
+  segment says. Preplaced curves are plain strings and cannot carry one.
+- **Domain** — the segments of x where the curve exists, as before.
+
+Run history stores each curve's material and shift (`mats`, `shifts`,
+aligned to the curves, not to the slider rows ahead of them) so *Load these
+equations* restores both; a studio level file keeps `shift` per equation.
+Scores depend on neither, so the audit and the leaderboard trigger need
+nothing new.
 
 **Gravity flip** (`modifier: 'gravityFlip'`) lives in `drainTicks`: after a
 tick's substeps, if `ph.bounces` grew, `ph.gSign` flips — once per *tick*,
