@@ -131,9 +131,9 @@ const LEVEL_HINTS = {
   'r-I-4': 'Quadratic',
   'r-I-5': 'Linear',
   'r-I-6': 'Quadratic',
-  'r-I-7': 'Use 3 functions',
+  'r-I-7': 'Use multiple equations',
   'r-I-8': 'Quadratic',
-  'r-I-9': 'Use 2 functions',
+  'r-I-9': 'Use 2 equations',
   'r-II-0': 'Linear',
   'r-II-1': 'Linear',
   'r-II-2': 'Constant',
@@ -142,8 +142,8 @@ const LEVEL_HINTS = {
   'r-II-5': 'Quadratic',
   'r-II-6': 'Linear',
   'r-II-7': 'Linear',
-  'r-II-8': 'Use 2 functions',
-  'r-II-9': 'Use 2 functions',
+  'r-II-8': 'Use 2 equations',
+  'r-II-9': 'Use 2 equations',
   'r-III-0': 'Quadratic',
   'r-III-1': 'Quadratic',
   'r-III-2': 'Quadratic',
@@ -152,7 +152,7 @@ const LEVEL_HINTS = {
   'r-III-5': 'Use rubber material',
   'r-III-6': 'Use rubber material',
   'r-III-7': 'Linear',
-  'r-III-8': 'Use 3 functions'
+  'r-III-8': 'Use multiple equations'
   // Level X is the finale and deliberately has none.
 };
 function getHint(packId, levelIndex) {

@@ -344,7 +344,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": "Use multiple functions",
+      "hint": "Use multiple equations",
       "objects": [
         {
           "kind": "hazard",
@@ -485,7 +485,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": "Use 3 functions",
+      "hint": "Use multiple equations",
       "objects": [
         {
           "kind": "fan",
@@ -592,7 +592,7 @@
       "explain": null,
       "preplaced": [],
       "outline": [],
-      "hint": "Use multiple functions",
+      "hint": "Use multiple equations",
       "objects": [
         {
           "kind": "fan",

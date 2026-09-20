@@ -114,6 +114,7 @@ store-assets/              # Play listing copy, screenshots, Console answers
 supabase/config.toml       # Supabase project config
 capacitor.config.json      # native shell config (appId app.functionplane)
 README.md                  # the public front door
+TODO.md                    # what is left, by where you do it
 MOBILE-BUILD.md            # how to build the Android/iOS apps
 NETWORK-ACCESS.md          # where writes never arrive, and the ~€3/mo fix
 ```
