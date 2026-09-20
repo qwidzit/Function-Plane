@@ -55,8 +55,11 @@ needs a Mac to generate the project and has not been built yet.
 | [`ABOUT.md`](./ABOUT.md) | How it all works: physics, classifier, level data, auth, the native shells |
 | [`CLAUDE.md`](./CLAUDE.md) | Conventions, and what to run before calling a change done |
 | [`MOBILE-BUILD.md`](./MOBILE-BUILD.md) | Building the Android and iOS apps |
-| [`TODO.md`](./TODO.md) | What is left, grouped by where you do it |
+| [`TODO.md`](./TODO.md) | **Start here.** What is left, and where the release stands |
 | [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) | The same work by area, with how each item got there |
-| [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) | Why writes from some countries never arrive |
+| [`COMMANDS.md`](./COMMANDS.md) | Copy-paste commands from "code changed" to "bundle uploaded" |
+| [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md) | What premium is, and the Play Console and Supabase wiring behind it |
+| [`PLAYTEST-SETUP.md`](./PLAYTEST-SETUP.md) | Running closed testing and reaching production access |
+| [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) | Writes that never arrive from some countries — and why the fix is on hold |
 
 Built by Quant. Bugs and requests: functionplane.support@gmail.com.

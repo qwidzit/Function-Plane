@@ -5,7 +5,33 @@ is what that looks like, how it was proved, and what fixing it costs.
 
 It is filed separately from `ABOUT.md` because it is not about how the game
 works: nothing here is a bug in the app, and no amount of code changes the
-answer. `RELEASE-CHECKLIST.md` item **11c** tracks the fix.
+answer. `TODO.md` item **11c** tracks it.
+
+> ## Superseded — 20 September 2026
+>
+> **The fault below does not currently reproduce, and no relay was bought.**
+> Re-measured the same way: `edge_logs` for `cf.country = 'RU'` over 24 h
+> showed **29 POSTs, 28 of them 2xx** — `level_scores`, `progress` and
+> `auth/v1/token` all writing — and a 16,631-byte GET returned intact, above
+> the 16,384-byte cap Russian ISPs apply to interfered traffic.
+>
+> Three explanations fit and cannot be told apart: the interference is
+> intermittent, the route changed, or the original measurement was wrong.
+> Supabase caps log retention at 24 hours, so the window below cannot be
+> re-examined.
+>
+> Two things worth knowing before trusting either measurement:
+> - **The verification command in the old plan could never pass.** It posted
+>   `"kind":"proxy-test"`, which violates `client_errors_kind_ck`
+>   (`'error' | 'unhandledrejection' | 'react'`). It returns 400 on every
+>   network, relay or no relay.
+> - **Every Russian request in the logs comes from one IP, one city.** That is
+>   the developer. It says nothing about other Russian ISPs.
+>
+> `fp-probe.bat` re-measures this across two ISPs. Decision deferred to
+> Build 3. If a relay is ever built: **not Hetzner** — it is one of the four
+> networks Russia interferes with (Cloudflare, Hetzner, DigitalOcean, OVH) and
+> it no longer serves Russian customers.
 
 ## What was measured
 

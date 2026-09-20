@@ -4,6 +4,15 @@ Everything still outstanding before Function Plane can go public on Google
 Play. Account setup and tester recruitment are deliberately excluded — this is
 the work on the game itself.
 
+> **Build 2 shipped to closed testing on 20 September 2026** — signed,
+> uploaded, day 11 of the 14-day window. Only the App content forms and the
+> website legal resync remain, and neither needs a build. Live status is in
+> [`TODO.md`](./TODO.md); this file keeps the history of how each item got
+> where it is.
+>
+> Item numbering runs to **33** here. New work is numbered from **34** in
+> `TODO.md` — item 34 is the reset epoch.
+
 **Who** is either **Claude** (can be done in this repo without you) or **You**
 (needs your machine, your accounts, or your judgement). A few say **Both**:
 Claude writes the code, you supply a key or press the button.

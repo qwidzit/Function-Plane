@@ -8,9 +8,12 @@ what's left to ship — is in [`ABOUT.md`](./ABOUT.md).** Read it before
 changing anything you don't already understand; this file assumes it.
 
 Two things live outside it: [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) (why
-writes from some countries never arrive, and what it costs to fix — not a code
-problem, don't try to solve it in the app) and
-[`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) (what is left before launch).
+writes from some countries never arrive — not a code problem, don't try to
+solve it in the app; its premise stopped reproducing on 20 September 2026 and
+the fix is on hold, so read its header before acting on it) and
+[`TODO.md`](./TODO.md) (what is left, and where the release stands).
+[`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) keeps the same work by area
+with the history behind each item.
 
 ## Before calling a change done
 

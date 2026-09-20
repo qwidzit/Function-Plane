@@ -5,6 +5,24 @@ Everything still to do, grouped by **where you do it**.
 area, with the history of how each item got to where it is; the numbers below
 point back at it.
 
+> ## Where the release stands — 20 September 2026
+>
+> **Build 2 is signed, uploaded and live on the closed track.** `versionCode`
+> 2, `versionName` 1.0, Play Billing included and verified present in the
+> bundle. Closed testing is on **day 11 of the 14** Google requires.
+>
+> **Done:** the store product (`premium_lifetime`, one-time, activated), the
+> Google Cloud service account and its key, both Supabase secrets, and licence
+> testing. The test purchase itself is still to run — it is the first thing
+> that exercises `GOOGLE_SERVICE_ACCOUNT` end to end.
+>
+> **Left:** the App content forms (§4) and the website legal resync (§5).
+> Nothing left needs another build.
+>
+> **Deferred to Build 3 (§7):** the Russia relay, whose premise stopped
+> reproducing, and a reset epoch, without which no leaderboard wipe can
+> actually stick.
+
 ## First, the question that decides everything
 
 **Levels, packs and achievements are not in the build.** `overrides-store.js`
@@ -67,7 +85,7 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
-| 16 | Wipe progress, scores and times. **Do it the day you send the opt-in link**, not now — anything played between now and then would land on the board you just cleaned |
+| 16 | ~~Wipe progress, scores and times.~~ **Does not work as written — see 34.** A server-side wipe is undone by any device that still holds local progress: `_syncProgressDown` merges remote with local, local wins on every field, and the merge is uploaded straight back (`accounts.js:168`). It clears the board only for players installing fresh, which is true at production rollout and not before. Testers already holding the app keep their records regardless |
 | 5 | `GOOGLE_SERVICE_ACCOUNT` — Edge Function secret, the whole JSON key on one line |
 | 8b | `REFUND_SWEEP_SECRET` in **two** places: the Edge Function secret, and the database vault via `select vault.create_secret('<same value>', 'refund_sweep_secret');`. Until both exist the nightly sweep returns without calling anything |
 | — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
@@ -121,8 +139,69 @@ player on their next launch. No build, no deploy.
 |---|---|
 | 21 | **Back the keystore up offline.** Nothing else on this page is irreversible |
 | 31 | Test on a real low-end device: frame rate, touch targets, the custom keyboard, cold-start offline |
-| 11c | Writes from Russia never arrive — GETs answered, zero POSTs received. Not a code problem. The ~€3/mo fix is in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md). Verify a candidate host answers a POST from that network before paying for more than a month |
+| 11c | **Does not currently reproduce (20 September).** `edge_logs` for `cf.country = 'RU'`, 24 h: 29 POSTs, 28 of them 2xx — `level_scores`, `progress` and `auth/v1/token` all writing. A 16,631-byte GET returned intact, above the 16,384 cap Russian ISPs apply to interfered traffic. Deferred to Build 3; run `fp-probe.bat` across two ISPs for a few days before buying anything. Only one Russian IP has ever appeared in the logs, so this proves the developer's connection works and nothing about anyone else's. Background in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
 | — | Build and upload: `npm test`, `npx cap sync android`, `gradlew bundleRelease`. Steps in [`COMMANDS.md`](./COMMANDS.md) |
+
+## 7. Build 3
+
+Each of these needs a client change, so each costs a build. Nothing here
+ships in Build 2.
+
+| # | What |
+|---|---|
+| 34 | **A reset epoch, so records can actually be cleared.** Detailed below |
+| 11c | The Russia relay, if the probe data justifies it. See section 6 |
+
+### 34 — reset epoch
+
+**Goal.** The server can reset leaderboard records and have it stick, while a
+player's device keeps enough progress to stay playable offline. Today neither
+half is true: a reset cannot be made to stick, and the only thing that would
+make it stick is deleting what the player needs offline.
+
+**Three things block it, two of them silently.**
+
+1. `level_scores_guard` clamps every downward write:
+   ```sql
+   new.best_time := least(old.best_time, new.best_time);
+   new.stars     := greatest(old.stars, new.stars);
+   ```
+   Postgres `least()` ignores NULLs, so `update level_scores set best_time =
+   null` reports rows updated and changes nothing. The guard is right to do
+   this — it is what stops a client posting a worse run — but it means no
+   reset can come in over the normal write path.
+2. `_mergeProgress` (`accounts.js:216`) resolves every field toward the better
+   value: `if (ta === null) return tb`. A cleared server field loses to any
+   local value.
+3. `_syncProgressDown` (`accounts.js:168`) merges remote with local, writes
+   the merge to disk, then `_scheduleUpload`s it. A tester signing in does not
+   merely ignore the reset — it **restores and re-uploads** the old records.
+
+**Sketch.** A monotonic `reset_epoch` on the server; the client stores the
+last epoch it has applied. When the server epoch is ahead, the client takes
+the reset branch instead of merging: clear the record fields, keep the
+entitlement fields, store the new epoch, upload the cleared state. Offline it
+simply never sees a new epoch and keeps playing. The server-side clear needs a
+path the guard permits — an epoch-aware exception in `level_scores_guard`, or
+a `security definer` reset function — not a trigger disabled by hand.
+
+**Decide before building:**
+- What "everything" covers. Clearing `best_time` and `best_score` while
+  keeping `stars` is coherent. Clearing stars too is not, unless offline
+  unlocks are allowed to diverge from `profiles.total_stars`, which
+  `sync_total_stars()` derives from `level_scores`, and which pack unlock
+  thresholds read.
+- Whether a reset is global or per-player. Global is what a leaderboard wipe
+  wants; per-player is what a "reset my progress" button would want. They can
+  share a mechanism but not a value.
+- What an offline device shows in the meantime — its own old time, or nothing.
+  A player who beats a cleared record offline and syncs later should not
+  resurrect the pre-reset value.
+
+**Why it matters beyond tidiness.** Records set before a level's board changed
+are not comparable with records set after, and 75 commits of level authoring
+landed between Build 1 and Build 2. Without this, the only honest reset is to
+wait for old installs to disappear.
 
 ## Known and accepted
 

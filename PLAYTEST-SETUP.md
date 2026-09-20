@@ -3,6 +3,17 @@
 Every step here is yours — none of it can be done from the repo. Follow it in
 order.
 
+> **Status — 20 September 2026: the setup below is done and the clock is
+> running. Day 11 of 14.** Build 2 is live on the closed track. What remains
+> is to hold engagement to day 14 and then apply for production access; the
+> starting steps are kept for reference and for the next track.
+>
+> Do **not** wipe the board before then. Part E's instruction to clear
+> `level_scores` and `progress` assumed testers had not arrived yet — they
+> arrived eleven days ago, and three of the six accounts are real testers.
+> A wipe now deletes live tester progress three days from the finish line, and
+> it would not even hold: see `TODO.md` item 34.
+
 Read this first: **closed testing is not a finished-game gate.** Google
 requires 12 testers opted in for 14 continuous days before a new personal
 developer account can publish publicly. The clock runs on the testers, not on

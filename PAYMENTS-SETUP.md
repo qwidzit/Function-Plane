@@ -2,6 +2,22 @@
 
 What is built, and the steps that need your machine and your accounts.
 
+> **Status — 20 September 2026: configured, not yet proven.** The product
+> exists and is activated, the service account and key are made, and both
+> Supabase secrets are set. The licence-tester purchase has **not** been run,
+> and it is the first thing that exercises `GOOGLE_SERVICE_ACCOUNT` end to
+> end — until it passes, none of this is known to work.
+>
+> Two things the Console changed since this was written: in-app products are
+> now called **One-time products**, and a product's **Purchase option ID**
+> takes hyphens only, so it cannot be `premium_lifetime` like the Product ID.
+>
+> **Google Play billing does not work in Russia.** Play suspended purchases
+> for users there in March 2022, so Russian players cannot buy premium at all.
+> Separately, a developer whose disbursement bank account is in Russia has all
+> purchases fail *worldwide* — this account's is not, so only the first
+> applies.
+
 **What is sold:** one lifetime unlock of every pack, **€4.90**, **through
 Google Play only**. Not a subscription — `is_premium` is a boolean with no
 expiry column, so nothing in the schema could express a lapsed subscription.
