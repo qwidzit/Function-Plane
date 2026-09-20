@@ -23,14 +23,22 @@ Needs `versionCode` +1 and a new AAB. Nothing else on this page does.
 
 | # | What | Note |
 |---|---|---|
-| 5 | **Decide on Play Billing** | `capacitor-plugin-cdv-purchase` is not installed, so `FP_BILLING.available()` is false and the premium card hides itself — a build without it sells nothing and has no dead button. Adding it later is always another upload. |
-| 29 | **`FP_STORE_LINKS.android`** | Empty in `src/store-config.js`. Paste `https://play.google.com/store/apps/details?id=app.functionplane` — it follows from the appId, so it does not have to wait for the listing to exist. Until it is set, Rate shows the "not on the store yet" popup. |
+| 5 | **Install Play Billing** | Decided: it ships. On your machine: `npm install capacitor-plugin-cdv-purchase` then `npx cap sync android`. Then check the merged `android/app/src/main/AndroidManifest.xml` contains `com.android.vending.BILLING` — without it the Console keeps the product page greyed out. Nothing to do in this repo; `billing.js` is already written against it. |
+| ~~29~~ | ~~`FP_STORE_LINKS.android`~~ | **Done.** Set to the appId's listing URL. |
+| ~~17a~~ | ~~The privacy policy had no purchase wording~~ | **Done.** The in-app copy only changes in a build, so it went in this one. The website half is §5. |
 | 23 | **Bump the version** | `versionCode`, `versionName`, `FP_BUILD` in `store-config.js`, and the `v 1.0 · build N` string on the main and settings screens. `npm test` fails if they drift. |
 | 4 | **`npm run snapshot:data`** | The last content step, after every admin-panel edit is final. Only from a networked machine — the sandbox proxy refuses the Supabase host. More than a new `Generated:` line means the database moved since. |
 | — | Bump `sw.js` | `const CACHE = 'fp-vNN'`. Web players stay on the old app otherwise. |
 
 Anything the phone pass turns up that is a *code* problem also lands here. A
 level that cannot be cleared because of its goals does not — that is §2.
+
+**The order that matters.** Play will not show you the in-app product page
+until it has seen a build that declares the billing permission. So it goes:
+install the plugin → build → upload → *then* create `premium_lifetime`,
+set up the service account, add the secrets, and test as a licence tester.
+The Console work in §4 marked "only if billing ships" all sits after the
+upload, not before it.
 
 ## 2. In the admin panel
 
@@ -60,8 +68,8 @@ player on their next launch. No build, no deploy.
 | # | What |
 |---|---|
 | 16 | Wipe progress, scores and times. **Do it the day you send the opt-in link**, not now — anything played between now and then would land on the board you just cleaned |
-| 8b | `REFUND_SWEEP_SECRET` in two places, or the nightly Play refund sweep does nothing |
-| 5 | `GOOGLE_SERVICE_ACCOUNT` secret — only if billing ships |
+| 5 | `GOOGLE_SERVICE_ACCOUNT` — Edge Function secret, the whole JSON key on one line |
+| 8b | `REFUND_SWEEP_SECRET` in **two** places: the Edge Function secret, and the database vault via `select vault.create_secret('<same value>', 'refund_sweep_secret');`. Until both exist the nightly sweep returns without calling anything |
 | — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
 
 **Checked and clear (20 September):**
@@ -91,17 +99,21 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
-| 30 | Data safety ▸ App info and performance ▸ **Crash logs**: collected, not shared, not linked to the user. Not yet ticked |
+| 30 | Data safety ▸ App info and performance ▸ **Crash logs**: collected, not shared, **not** linked to the user |
+| 27b | Data safety ▸ Financial info ▸ **Purchase history**: collected, not shared, **linked** to the user, optional, app functionality. New — the app keeps a purchase row against the account. Exact answers in `store-assets/LISTING.md` |
 | 26 | Re-capture the screenshots against the authored boards. Re-shoot the sandbox with curves on the plane before using it at all |
-| 28 | Re-take the content rating questionnaire — only in the release that ships billing, where the digital-goods answers change |
-| 5 | Create the **`premium_lifetime`** product at €4.90 — only if billing ships |
+| 28 | Re-take the content rating questionnaire. The digital-purchases answer is Yes now and the filed rating was taken on a No |
+| — | The listing's **In-app purchases** answer becomes **Yes** |
+| 5 | Create **`premium_lifetime`** at €4.90 and **activate** it — a draft product cannot be bought, including by you. Play only offers the product page once it has seen a build declaring the billing permission, so **this comes after the upload, not before** |
+| 5 | Google Cloud → service account → JSON key. Play Console ▸ Users and permissions → invite that address, grant *View financial data* and *Manage orders and subscriptions*. **Allow up to 24 h to propagate** — until it does, every verification returns 401 and the app says the purchase could not be confirmed |
+| 5 | Play Console ▸ Setup ▸ **License testing** → add your testers, so their purchases complete for free |
 | — | Once build 1 clears review: copy the opt-in link from the track's Testers tab, get to 12+ opted-in testers, hold 14 continuous days, then apply for production access. Roll out staged, ~20% first |
 
 ## 5. On the website
 
 | # | What |
 |---|---|
-| 17 | **The live site still serves the 4 May privacy text.** Hand `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` plus `privacy.html` and `delete-account.html` to the website agent. Then fetch all three pages and compare the served HTML against `legal/` — a previous deploy returned the homepage with a 200, so a status code proves nothing |
+| 17 | **The live site still serves the 4 May privacy text**, and the repo copy has moved on twice since. Hand `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` plus `privacy.html` and `delete-account.html` to the website agent — the prompt now carries the purchase disclosure as change 6. Then fetch all three pages and compare the served HTML against `legal/`: a previous deploy returned the homepage with a 200, so a status code proves nothing. I cannot check this from here — the egress proxy blocks the domain |
 
 ## 6. On your machine
 
