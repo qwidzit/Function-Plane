@@ -26,7 +26,7 @@ Needs `versionCode` +1 and a new AAB. Nothing else on this page does.
 | 5 | **Install Play Billing** | Decided: it ships. On your machine: `npm install capacitor-plugin-cdv-purchase` then `npx cap sync android`. Then check the merged `android/app/src/main/AndroidManifest.xml` contains `com.android.vending.BILLING` — without it the Console keeps the product page greyed out. Nothing to do in this repo; `billing.js` is already written against it. |
 | ~~29~~ | ~~`FP_STORE_LINKS.android`~~ | **Done.** Set to the appId's listing URL. |
 | ~~17a~~ | ~~The privacy policy had no purchase wording~~ | **Done.** The in-app copy only changes in a build, so it went in this one. The website half is §5. |
-| 23 | **Bump the version** | `versionCode`, `versionName`, `FP_BUILD` in `store-config.js`, and the `v 1.0 · build N` string on the main and settings screens. `npm test` fails if they drift. |
+| 23 | **Bump `versionCode` to 2** | The repo half is done — `FP_BUILD` and both screen strings read `build 2`. `versionCode` lives in `android/app/build.gradle`, which is gitignored and local to you: set it to **2** before the upload. `versionName` stays `"1.0"`. It must increase on every upload, forever. |
 | 4 | **`npm run snapshot:data`** | The last content step, after every admin-panel edit is final. Only from a networked machine — the sandbox proxy refuses the Supabase host. More than a new `Generated:` line means the database moved since. |
 | — | Bump `sw.js` | `const CACHE = 'fp-vNN'`. Web players stay on the old app otherwise. |
 

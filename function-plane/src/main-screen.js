@@ -254,7 +254,7 @@ function MainScreen({
       paddingTop: 10,
       flex: '0 0 auto'
     }
-  }, "v 1.0 \xB7 build 1"), ratePopup && /*#__PURE__*/React.createElement("div", {
+  }, "v 1.0 \xB7 build 2"), ratePopup && /*#__PURE__*/React.createElement("div", {
     onClick: () => setRatePopup(false),
     style: {
       position: 'absolute',

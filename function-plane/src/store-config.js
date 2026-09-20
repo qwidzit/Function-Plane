@@ -31,7 +31,7 @@ window.FP_PREMIUM_PRICE = '€4.90';
 // The build this is, for crash reports. It is the same number the version
 // string on the main and settings screens prints, and `npm test` fails if the
 // three drift — bump all of them with `versionCode` at upload time.
-window.FP_BUILD = 1;
+window.FP_BUILD = 2;
 
 // Running inside the Capacitor shell rather than a browser tab. Anything that
 // only makes sense in one of the two asks this — the payment channel below,
