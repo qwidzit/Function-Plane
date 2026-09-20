@@ -21,7 +21,8 @@
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
-    "@capacitor/ios": "^8.5.0"
+    "@capacitor/ios": "^8.5.0",
+    "capacitor-plugin-cdv-purchase": "^13.18.0"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
