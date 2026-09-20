@@ -53,19 +53,39 @@ player on their next launch. No build, no deploy.
 |---|---|
 | 3 | Raise *Impossible?* (`stars_210`) if a hidden pack is ever released. 210 is 70 levels × 3 — release more and the achievement stops meaning "a perfect game" |
 | 2 | Re-tune anything the phone pass found. Goals are the common case and they live here |
-| 3b | One phrasing left over: `r-IV-8` says `Circle` and `r-V-2` says `Use a circle`. Same hint, two forms. One line in the studio, whichever you prefer |
 | 1d | Unhide Trigonometry, Exponential, Inversion and Roman VI–X once they are authored. All are empty today — v2, not a launch blocker |
 
 ## 3. In Supabase
 
 | # | What |
 |---|---|
-| 11 | Confirm `20260816_leaderboard_integrity.sql` is applied — trigger, columns, policies |
-| 13 | RLS sweep over every table. Players write only their own rows; only the admin account writes the override tables. The four known holes are closed (13b, 13c); this is everything else |
-| 14 | One glance at Authentication ▸ Sign In / Providers ▸ Email to see *Confirm email* unticked. Signup has no "check your inbox" state, so turning it on would strand every new player |
-| 16 | Wipe progress, scores and times so the public leaderboard starts clean |
+| 16 | Wipe progress, scores and times. **Do it the day you send the opt-in link**, not now — anything played between now and then would land on the board you just cleaned |
 | 8b | `REFUND_SWEEP_SECRET` in two places, or the nightly Play refund sweep does nothing |
 | 5 | `GOOGLE_SERVICE_ACCOUNT` secret — only if billing ships |
+| — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
+
+**Checked and clear (20 September):**
+
+- **11 — the leaderboard migration is live.** `level_scores_guard` plus the three
+  `level_scores_stars_*` triggers exist, and `sync_total_stars`,
+  `admin_set_premium` and `void_purchase` are all present.
+- **13 — the RLS sweep passes.** RLS is on for all ten tables. Overrides and
+  `news` are read-all / admin-write; `progress` and `push_subscriptions` are
+  owner-only; `level_scores` inserts and updates only as `auth.uid() = user_id`
+  and deletes own-or-admin; `client_errors` is insert-for-anyone, read-admin,
+  with no update or delete path; `purchases` carries no policy at all, so only
+  the edge functions' service role touches it. `profiles` has SELECT, INSERT and
+  DELETE policies and **no UPDATE** — read-only to clients, as intended. Two
+  things worth knowing: the table holds no email (id, name, avatar,
+  total_stars, is_premium, created_at), so the open read policy leaks nothing;
+  and the whole admin gate rests on `profiles.name = 'Test Account'`, which
+  holds because `profiles_name_lower_key` makes the name unique
+  case-insensitively and no client can UPDATE one. The `profiles_insert` policy
+  is dead — there is no INSERT grant, and rows come from the
+  `on_auth_user_created` trigger.
+- **14 — email confirmation is off.** All six accounts have
+  `email_confirmed_at` within 0 s of `created_at`, which only happens on
+  auto-confirm.
 
 ## 4. In Play Console
 
