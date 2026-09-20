@@ -18,6 +18,10 @@ exactly; the live site is the only place still serving the old text.
 The level count below is what ships today: seven visible packs of ten. Send a
 new number only when Trigonometry and Inversion are unhidden.
 
+Since this prompt was first written the app has gained Play Billing, so the
+policy now also discloses the purchase record. That is change 6 below, and it
+is why the effective date moved again.
+
 ---
 
 The Function Plane game is being submitted to Google Play, and Google compares
@@ -43,7 +47,7 @@ collection. What changed:
    server logs record IP addresses, for security.
 2. `privacy.html`, section 1 — the **Gameplay data** paragraph now also
    mentions the equations submitted for a level.
-3. `privacy.html` — the effective date is now 28 August 2026.
+3. `privacy.html` — the effective date is now **20 September 2026**.
 4. `delete-account.html` — the "what gets deleted" table row for level progress
    now names submitted equations too.
 5. `privacy.html`, section 1 — a new paragraph headed **Crash reports**, and
@@ -52,6 +56,14 @@ collection. What changed:
    fault; the reports carry no account or identifier, are not linked to anyone,
    and are deleted after thirty days. There is still no crash-reporting or
    analytics provider — that sentence must survive any rewording.
+6. `privacy.html`, section 1 — a new paragraph headed **Purchases**, because
+   the app now sells a one-off premium unlock through Google Play. It says the
+   payment is Google's and no card details reach us, and that we keep a record
+   of the purchase tied to the account so it can be restored on another
+   device. Section 3 gains **Google LLC (Google Play)** as a second processor,
+   and the line that used to read "Supabase is the only one" now reads "Those
+   are the only two". Section 5 adds purchase records to what account deletion
+   removes.
 
 ## 2. Sweep the rest of the site for stale claims
 
@@ -68,10 +80,12 @@ simply silent.
   that same database, not to a crash-reporting service.
 - **Accounts are optional.** The whole game is playable signed out, with
   progress stored on the device.
-- **Money.** There are no purchases available today. If any page advertises
-  premium, a price, a subscription, or a "buy" or "upgrade" call to action,
-  remove it or mark it clearly as not yet available — it must not be possible
-  to reach a checkout, and there must be no Stripe link live anywhere.
+- **Money.** The game sells exactly one thing: a one-time premium unlock of
+  all packs, €4.90, **through Google Play only** — not a subscription, and
+  never a checkout on this website. The app is still in closed testing, so
+  nobody can buy it yet; if any page advertises premium, mark it as coming
+  with the Play release rather than as available. There must be no Stripe
+  link, no "buy" button and no checkout reachable from the site at all.
 - **Ads.** The game has none. No page should say otherwise.
 - **Availability.** The game is not on Google Play yet — it is entering closed
   testing. Do not add a "Get it on Google Play" badge, store link, or "download

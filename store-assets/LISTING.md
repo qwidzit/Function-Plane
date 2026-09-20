@@ -112,17 +112,31 @@ Answer exactly this. Every line is true of the app as it stands.
 | Personal info → **User IDs** (display name) | Yes | No | Yes | Account management, app functionality |
 | App activity → **In-app actions** (level progress, scores, times) | Yes | No | Yes | App functionality (cross-device sync, leaderboards) |
 | App info and performance → **Crash logs** | Yes | No | No — sent automatically | App functionality (diagnosing faults) |
+| Financial info → **Purchase history** | Yes | No | Yes — buying is optional | App functionality (keeping and restoring the unlock) |
 
 **Crash logs are not linked to a user.** Answer *No* to "Is this data linked to
 a user's identity?" — the report carries the message, the trace, the screen and
 the build, and no account, name or device identifier. See `error-log.js`.
 
+**Purchase history is linked to a user, and is only declarable once billing
+ships.** The `purchases` table holds one row per verified purchase — the
+store's token, the product, an order reference, when it was bought and whether
+it was voided — keyed on `user_id`, which is what lets Restore return the
+unlock on another device. So: *Collected* yes, *Shared* no, *Processed
+ephemerally* no, *Linked to a user's identity* **yes**, *Users can choose
+whether it is collected* **yes** (buying is optional), purpose **App
+functionality**. Card details, billing address and every other payment
+credential stay with Google Play and never reach us, so none of that is
+declarable here. Drop this row again if a build ever ships without billing.
+
 ### Declare NOT collected
 
-Location, financial info, health, messages, photos/videos, audio, files,
-calendar, contacts, device or other IDs, **advertising ID**. Under *App info
-and performance*, **Diagnostics** and **Other app performance data** are not
-collected either — only Crash logs above.
+Location, health, messages, photos/videos, audio, files,
+calendar, contacts, device or other IDs, **advertising ID**. Under *Financial
+info*, everything except Purchase history — no payment info, no credit score,
+no other financial info. Under *App info and performance*, **Diagnostics** and
+**Other app performance data** are not collected either — only Crash logs
+above.
 
 ### Other declarations
 

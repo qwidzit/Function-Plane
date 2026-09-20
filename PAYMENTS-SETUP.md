@@ -156,9 +156,16 @@ a different webhook; the Play side and everything downstream is untouched.
 - [ ] Play Console → the listing's **In-app purchases** answer becomes **Yes**.
 - [ ] **Re-take the content rating questionnaire** — the digital-purchases
       question is now Yes, and the old rating was filed on a No.
-- [ ] Data safety: unchanged. Nothing new is collected and no third-party SDK
-      was added, which was the point of doing the verification server-side
-      rather than through a billing provider.
+- [ ] Data safety: **add Financial info ▸ Purchase history** — collected, not
+      shared, linked to the user, optional, for app functionality. Doing the
+      verification server-side keeps every *other* answer unchanged and adds no
+      processor, but the `purchases` row is still a purchase record held
+      against an account, and that is a declarable type. Exact answers in
+      `store-assets/LISTING.md`.
+- [ ] Privacy policy: the **Purchases** paragraph and Google Play as a
+      processor are already in `legal-screens.jsx` and `legal/privacy.html`
+      (effective 20 September 2026). The in-app copy only changes in a build,
+      so it has to go up with this one.
 
 ## 4. Proving it works
 

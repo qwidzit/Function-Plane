@@ -19,7 +19,7 @@ const LEGAL_WEBSITE    = 'https://functionplane.pages.dev';         // public si
 // dates. They must match the hosted copies in `legal/` exactly: Google reads
 // the published policy against the Play Data safety declaration, and a player
 // reading a different one in the app is the same document saying two things.
-const PRIVACY_EFFECTIVE = '28 August 2026';
+const PRIVACY_EFFECTIVE = '20 September 2026';
 const TERMS_EFFECTIVE   = '4 May 2026';
 const APP_NAME         = 'Function Plane';
 
@@ -42,6 +42,14 @@ plaintext — they are salted and hashed by our authentication provider.
 **Gameplay data.** We store your level progress — the stars earned, best score
 and best time for each level, and the equations you submitted for it — so it
 can sync between your devices and appear on global leaderboards.
+
+**Purchases.** If you buy the premium unlock, Google Play takes the payment —
+we never receive your card details, billing address, or any payment
+credential. We store a record of the purchase: the product, the store, the
+store's purchase token, an order reference, when it was bought, and whether it
+was later refunded. It is tied to your account, which is what restores the
+unlock when you sign in on another device. Deleting your account deletes this
+record.
 
 **Technical data.** The app collects no device identifiers and no location of
 any kind, and it requests no location, contacts, photo, microphone, or storage
@@ -79,8 +87,11 @@ terms:
 
 * **Supabase, Inc.** — authentication, database, and storage. Data is hosted
   on Supabase infrastructure. See https://supabase.com/privacy
+* **Google LLC (Google Play)** — takes the payment for the premium unlock and
+  tells us whether a purchase is valid. Only involved if you buy something.
+  See https://policies.google.com/privacy
 
-Supabase is the only one — crash reports go to that same database rather than
+Those are the only two — crash reports go to the Supabase database rather than
 to a crash-reporting service. The app bundles all of its code, fonts and
 images, so it contacts no content delivery network, font service, analytics provider
 or advertising network — there are none in the app.
@@ -95,8 +106,8 @@ device information are never shown publicly.
 
 We retain your account information for as long as your account exists. You can
 delete your account at any time from inside the app (Account → Delete
-account). When you delete your account, your profile, progress, and
-leaderboard entries are removed within 30 days. Aggregate, non-identifying
+account). When you delete your account, your profile, progress, leaderboard
+entries and purchase records are removed within 30 days. Aggregate, non-identifying
 statistics may be retained.
 
 ## 6. Your rights

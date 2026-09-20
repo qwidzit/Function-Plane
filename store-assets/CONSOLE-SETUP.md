@@ -299,8 +299,11 @@ set shows placeholder levels.
 Billing, so there is nothing to buy, and the premium entry point is hidden
 outright on the `play` channel (`PremiumCard` returns null) — a reviewer sees
 no prices and no dead button. This becomes **Yes** in the release that ships
-billing, along with re-taking the content rating questionnaire and revisiting
-the Data safety answers if a third-party billing SDK goes in.
+billing, along with re-taking the content rating questionnaire **and adding
+Financial info ▸ Purchase history to Data safety** — the app keeps a purchase
+record against the account, which is a collected data type whether or not a
+third-party SDK is involved. The exact answers are in
+[`LISTING.md`](./LISTING.md#data-types-to-declare).
 
 **Countries and testers** come after this checklist, on the closed-testing
 track. Nothing in this file changes for them.
