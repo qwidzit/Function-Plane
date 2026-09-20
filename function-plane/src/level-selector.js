@@ -21,7 +21,7 @@ function LevelSelector({
   // itself: a freshly-unlocked pack still has null (untouched) entries,
   // which used to lock every level including the first.
   const isLevelUnlocked = i => {
-    if (i === 0) return true;
+    if (i === 0 || hasFullAccess()) return true;
     const prev = data.stars[i - 1];
     return prev != null && prev >= 1;
   };

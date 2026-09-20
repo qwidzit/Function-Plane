@@ -291,7 +291,10 @@ function LevelCompletePopup({
                   </div>
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--fp-ink)', fontWeight: row.self ? 600 : 500, display: 'flex', alignItems: 'center', gap: 7 }}>
                     {row.avatar && <span style={{ fontSize: 14 }}>{row.avatar}</span>}
-                    <span>{row.self ? `${row.name} (you)` : row.name}</span>
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {row.self ? `${row.name} (you)` : row.name}
+                    </span>
+                    {row.premium && <PremiumBadge size={11}/>}
                   </div>
                   <div style={{ width: 60, textAlign: 'right' }}>
                     <span className="fp-mono" style={{ fontSize: 13, fontWeight: row.self ? 700 : 600, color: 'var(--fp-ink)' }}>

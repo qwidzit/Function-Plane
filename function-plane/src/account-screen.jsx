@@ -96,7 +96,7 @@ function PremiumCard({ onPremium }) {
         </div>
         <div>
           <div style={{ fontSize:15, fontWeight:600, color:'var(--fp-ink)', marginBottom:3, letterSpacing:'-0.01em' }}>Function Plane Premium</div>
-          <div style={{ fontSize:12.5, color:'var(--fp-ink-3)', lineHeight:1.5 }}>Unlock all packs and support development.</div>
+          <div style={{ fontSize:12.5, color:'var(--fp-ink-3)', lineHeight:1.5 }}>Unlock every pack and every level, and support development.</div>
         </div>
       </div>
       <div style={{ padding:'12px 18px 16px', paddingLeft:74 }}>
@@ -460,7 +460,7 @@ function PremiumView({ onBack, padX }) {
       setBusy(false);
       if (e.detail?.premium) {
         setIsPremium(true);
-        setMsg({ text:'Purchase confirmed — every pack is unlocked.', ok:true });
+        setMsg({ text:'Purchase confirmed — every pack and level is unlocked.', ok:true });
       } else if (e.detail?.error) {
         setMsg({ text: e.detail.error, ok:false });
       }
@@ -506,7 +506,7 @@ function PremiumView({ onBack, padX }) {
       .then(active => {
         setIsPremium(active);
         setMsg(active
-          ? { text:'Premium restored — every pack is unlocked on this account.', ok:true }
+          ? { text:'Premium restored — every pack and level is unlocked on this account.', ok:true }
           : { text:'No purchase found on this account. If you bought premium under a different email, sign in with that one.', ok:false });
       })
       .catch(e => setMsg({ text: e.message || 'Could not reach the server', ok:false }))
@@ -523,13 +523,13 @@ function PremiumView({ onBack, padX }) {
             </svg>
           </div>
           <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic', fontSize:28, letterSpacing:'-0.02em', color:'var(--fp-ink)', marginBottom:6 }}>Unlock everything</div>
-          <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>All packs, now and later.</div>
+          <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>Every pack and every level, now and later.</div>
         </div>
 
         <StatusLine msg={msg.text} ok={msg.ok}/>
 
         <div style={{ background:'var(--fp-surface)', border:'1px solid var(--fp-line)', borderRadius:16, padding:'14px 18px', marginBottom:22 }}>
-          {['All themed packs, unlocked now','All future chapter packs','One payment, not a subscription','Support indie development'].map((f, i, arr) => (
+          {['Every level of every pack, unlocked now','All future chapter packs','One payment, not a subscription','Support indie development'].map((f, i, arr) => (
             <div key={f} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom: i < arr.length-1 ? '1px solid var(--fp-line)' : 'none' }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="var(--fp-accent)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>
               <span style={{ fontSize:13.5, color:'var(--fp-ink)' }}>{f}</span>

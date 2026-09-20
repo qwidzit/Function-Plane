@@ -418,7 +418,16 @@ function LevelCompletePopup({
     style: {
       fontSize: 14
     }
-  }, row.avatar), /*#__PURE__*/React.createElement("span", null, row.self ? `${row.name} (you)` : row.name)), /*#__PURE__*/React.createElement("div", {
+  }, row.avatar), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, row.self ? `${row.name} (you)` : row.name), row.premium && /*#__PURE__*/React.createElement(PremiumBadge, {
+    size: 11
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 60,
       textAlign: 'right'

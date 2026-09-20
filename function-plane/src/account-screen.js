@@ -238,7 +238,7 @@ function PremiumCard({
       color: 'var(--fp-ink-3)',
       lineHeight: 1.5
     }
-  }, "Unlock all packs and support development."))), /*#__PURE__*/React.createElement("div", {
+  }, "Unlock every pack and every level, and support development."))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 18px 16px',
       paddingLeft: 74
@@ -1054,7 +1054,7 @@ function PremiumView({
       if (e.detail?.premium) {
         setIsPremium(true);
         setMsg({
-          text: 'Purchase confirmed — every pack is unlocked.',
+          text: 'Purchase confirmed — every pack and level is unlocked.',
           ok: true
         });
       } else if (e.detail?.error) {
@@ -1111,7 +1111,7 @@ function PremiumView({
     askStore.then(() => FP_AUTH.refreshEntitlement()).then(active => {
       setIsPremium(active);
       setMsg(active ? {
-        text: 'Premium restored — every pack is unlocked on this account.',
+        text: 'Premium restored — every pack and level is unlocked on this account.',
         ok: true
       } : {
         text: 'No purchase found on this account. If you bought premium under a different email, sign in with that one.',
@@ -1173,7 +1173,7 @@ function PremiumView({
       color: 'var(--fp-ink-3)',
       lineHeight: 1.55
     }
-  }, "All packs, now and later.")), /*#__PURE__*/React.createElement(StatusLine, {
+  }, "Every pack and every level, now and later.")), /*#__PURE__*/React.createElement(StatusLine, {
     msg: msg.text,
     ok: msg.ok
   }), /*#__PURE__*/React.createElement("div", {
@@ -1184,7 +1184,7 @@ function PremiumView({
       padding: '14px 18px',
       marginBottom: 22
     }
-  }, ['All themed packs, unlocked now', 'All future chapter packs', 'One payment, not a subscription', 'Support indie development'].map((f, i, arr) => /*#__PURE__*/React.createElement("div", {
+  }, ['Every level of every pack, unlocked now', 'All future chapter packs', 'One payment, not a subscription', 'Support indie development'].map((f, i, arr) => /*#__PURE__*/React.createElement("div", {
     key: f,
     style: {
       display: 'flex',

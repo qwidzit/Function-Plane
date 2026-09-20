@@ -155,6 +155,24 @@ function MiniGraph({ kind = 'I', w = 56, h = 36, c = 'var(--fp-ink)', dim = 'var
   );
 }
 
+// Premium, beside a name on a leaderboard. The premium screen's own star, in
+// the accent colour rather than --lv-star, because a gold star next to a
+// player already means stars earned and this is not that.
+function PremiumBadge({ size = 13 }) {
+  return (
+    <span title="Premium" aria-label="Premium" style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: size + 7, height: size + 7, borderRadius: '50%', flex: '0 0 auto',
+      background: 'color-mix(in srgb, var(--fp-accent) 16%, transparent)',
+    }}>
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+          fill="var(--fp-accent)"/>
+      </svg>
+    </span>
+  );
+}
+
 // Ghost button — square icon tile w/ label below
 function IconTile({ icon, label, onClick, badge = null }) {
   return (
@@ -184,4 +202,4 @@ function IconTile({ icon, label, onClick, badge = null }) {
   );
 }
 
-Object.assign(window, { Icon, Wordmark, WordmarkSmall, Stars, MiniGraph, IconTile });
+Object.assign(window, { Icon, Wordmark, WordmarkSmall, Stars, MiniGraph, PremiumBadge, IconTile });

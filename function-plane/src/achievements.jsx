@@ -419,9 +419,13 @@ function LeaderboardTab({ padX, myStars }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 16,
               }}>{row.avatar || '🟢'}</div>
-              <span style={{ fontSize: 13.5, fontWeight: row.self ? 600 : 500, color: 'var(--fp-ink)' }}>
+              <span style={{
+                fontSize: 13.5, fontWeight: row.self ? 600 : 500, color: 'var(--fp-ink)',
+                minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {row.self ? `${row.name} (you)` : row.name}
               </span>
+              {row.premium && <PremiumBadge size={12}/>}
             </div>
             <div style={{ width: 48, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
               <span className="fp-mono" style={{ fontSize: 13, fontWeight: row.self ? 700 : 600, color: 'var(--fp-ink)' }}>{row.stars}</span>

@@ -507,12 +507,12 @@
   async function _lbFetchStarsRaw() {
     const { data, error } = await _sb
       .from('profiles')
-      .select('id, name, avatar, total_stars')
+      .select('id, name, avatar, total_stars, is_premium')
       .order('total_stars', { ascending: false })
       .limit(25);
     if (error) throw new Error(error.message || 'stars leaderboard failed');
     return (data || []).map((r, i) => ({
-      id: r.id, name: r.name, avatar: r.avatar,
+      id: r.id, name: r.name, avatar: r.avatar, premium: !!r.is_premium,
       stars: r.total_stars, rank: i + 1,
     }));
   }
@@ -534,7 +534,7 @@
     // Two-query join: fetch profiles separately so we don't depend on FK embed
     const ids = [...new Set(scores.map(s => s.user_id))];
     const { data: profs, error: pErr } = await _sb
-      .from('profiles').select('id, name, avatar').in('id', ids);
+      .from('profiles').select('id, name, avatar, is_premium').in('id', ids);
     if (pErr) throw new Error(pErr.message || 'leaderboard profiles failed');
     const pmap = new Map((profs || []).map(p => [p.id, p]));
 
@@ -544,6 +544,7 @@
         id: s.user_id,
         name:   p.name   || 'Player',
         avatar: p.avatar || '🟢',
+        premium: !!p.is_premium,
         score: isTime ? null : s.best_score,
         time:  isTime ? s.best_time  : null,
         rank: i + 1,
@@ -560,6 +561,7 @@
       if (_currentUser && !rows.find(r => r.self)) {
         rows.push({
           id: _currentUser.id, name: _currentUser.name, avatar: _currentUser.avatar,
+          premium: !!_currentUser.isPremium,
           stars: _countStars(getActiveProgress()), rank: null, self: true,
         });
       }
@@ -589,6 +591,7 @@
     if (v == null) return [];
     return [{
       id: _currentUser.id, name: _currentUser.name, avatar: _currentUser.avatar,
+      premium: !!_currentUser.isPremium,
       score: isTime ? null : v, time: isTime ? v : null,
       rank: null, self: true,
     }];

@@ -1104,9 +1104,19 @@ re-look against real play. Records already stored keep their stars.
   for the header, but what the database stores is its own. Before that, a
   player could PATCH themselves to the top of the table with the publishable
   key.
-- `FP_AUTH.isPremium()` reads that flag; `data.jsx`/`computePackLocked`
-  unlocks **all packs** when it's true (admins also get full access for
-  testing).
+- `FP_AUTH.isPremium()` reads that flag; `hasFullAccess()` in `data.jsx` is
+  the one place that turns it into access, and it opens **every pack and every
+  level inside it** (admins too, for testing). Three call sites ask it —
+  `computePackLocked`, `findContinuePoint`, and `isLevelUnlocked` in
+  `level-selector.jsx` — because a premium player whose pack list and level
+  list disagreed is how this went wrong before: the pack opened, then every
+  level past the first sat locked on a `null` that means "never touched".
+  It does **not** open a hidden pack: visibility is an authoring switch, not
+  an entitlement, and `visiblePacks` filters those for everyone but an admin.
+- The leaderboards mark premium players with a badge. `is_premium` rides along
+  in both profile selects in `accounts.js` as `row.premium`, and `PremiumBadge`
+  in `ui-kit.jsx` draws it in the accent colour rather than `--lv-star`,
+  because a gold star beside a name already means stars earned.
 - Premium is **account-based, not device-based** — buying on any channel and
   logging in anywhere grants access everywhere. Whatever payment path is
   used, the job is always the same: flip `is_premium` on the user's profile
@@ -1379,7 +1389,7 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
 
 ### Payments — dual path + environment detection *(partly built)*
 
-**What is sold:** one lifetime unlock of every pack, **€4.90**, through Google
+**What is sold:** one lifetime unlock of every pack and every level, **€4.90**, through Google
 Play. Not a subscription — `is_premium` is a boolean with no expiry column, so
 nothing in the schema could express a lapsed subscription, and a permanent
 unlock is what it can honestly carry. `FP_PREMIUM_PRICE` in `store-config.js`

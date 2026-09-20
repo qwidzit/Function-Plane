@@ -693,9 +693,15 @@ function LeaderboardTab({
     style: {
       fontSize: 13.5,
       fontWeight: row.self ? 600 : 500,
-      color: 'var(--fp-ink)'
+      color: 'var(--fp-ink)',
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
-  }, row.self ? `${row.name} (you)` : row.name)), /*#__PURE__*/React.createElement("div", {
+  }, row.self ? `${row.name} (you)` : row.name), row.premium && /*#__PURE__*/React.createElement(PremiumBadge, {
+    size: 12
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 48,
       textAlign: 'right',

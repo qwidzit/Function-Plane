@@ -303,10 +303,18 @@ function totalStarsAll(progress) {
   return Object.keys(progress).reduce((a, k) => a + packTotalStars(progress, k), 0);
 }
 
+// Premium opens every pack *and* every level inside it; admins get the same for
+// testing. It does not open hidden packs — visibility is an authoring switch,
+// not an entitlement, and `visiblePacks` filters those out for everyone but an
+// admin. Three call sites ask this, so it lives in one place: a premium player
+// whose pack list and level list disagreed is how this went wrong before.
+function hasFullAccess() {
+  return !!(window.FP_AUTH && (FP_AUTH.isPremium?.() || FP_AUTH.isAdmin?.()));
+}
+
 // Returns { locked: bool, reason: 'stars'|'prev_pack', need?: number, have?: number, prevPackName?: string }
 function computePackLocked(progress, pack) {
-  // Premium players have everything unlocked; admins also get full access for testing.
-  if (window.FP_AUTH && (FP_AUTH.isPremium?.() || FP_AUTH.isAdmin?.())) return {
+  if (hasFullAccess()) return {
     locked: false
   };
   const id = pack.id;
@@ -352,14 +360,18 @@ function computePackLocked(progress, pack) {
   };
 }
 function findContinuePoint(progress) {
+  const full = hasFullAccess();
   for (const pack of [...ROMAN_PACKS, ...SPECIAL_PACKS]) {
-    if (packIsLocked(progress, pack.id)) continue;
+    // A hidden pack is never a continue point, entitlement or not.
+    if (window.FP_PACK_OVERRIDES?.[pack.id]?.is_hidden) continue;
+    if (!full && packIsLocked(progress, pack.id)) continue;
     const pd = progress[pack.id];
     if (!pd) continue;
     for (let i = 0; i < 10; i++) {
       const s = pd.stars[i];
-      if (s === null) break;
-      if (s === -1 || s === 0) return {
+      // null is "never touched". Locked for a free player, playable for premium.
+      if (s === null && !full) break;
+      if (s === null || s === -1 || s === 0) return {
         pack,
         levelIndex: i
       };
@@ -391,6 +403,7 @@ Object.assign(window, {
   starBitsOf,
   starCount,
   computePackLocked,
+  hasFullAccess,
   findContinuePoint,
   LEVEL_NAMES,
   LEVEL_GRAPH
