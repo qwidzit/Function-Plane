@@ -399,31 +399,6 @@ function MiniGraph({
   }));
 }
 
-// Pill button — primary
-function PrimaryButton({
-  children,
-  onClick,
-  icon = null
-}) {
-  return /*#__PURE__*/React.createElement("button", {
-    onClick: onClick,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      width: '100%',
-      height: 56,
-      borderRadius: 14,
-      background: 'var(--fp-accent)',
-      color: 'var(--fp-accent-ink)',
-      fontSize: 17,
-      fontWeight: 500,
-      letterSpacing: '-0.01em'
-    }
-  }, icon, children);
-}
-
 // Ghost button — square icon tile w/ label below
 function IconTile({
   icon,
@@ -485,6 +460,5 @@ Object.assign(window, {
   WordmarkSmall,
   Stars,
   MiniGraph,
-  PrimaryButton,
   IconTile
 });

@@ -55,22 +55,4 @@ function AppLogo({ size = 96, radius = null, theme = 'light' }) {
   );
 }
 
-// A larger marketing variant — same DNA but with a hint of f(x) below
-function AppLogoLarge({ size = 240 }) {
-  return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-      <AppLogo size={size} />
-      <div style={{
-        fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic',
-        fontSize: size * 0.13, letterSpacing: '-0.02em', color: 'var(--fp-ink)',
-        display: 'flex', alignItems: 'baseline', gap: 6,
-      }}>
-        <span>Function</span>
-        <span style={{ fontStyle: 'normal', opacity: 0.5 }}>Plane</span>
-      </div>
-    </div>
-  );
-}
-
 window.AppLogo = AppLogo;
-window.AppLogoLarge = AppLogoLarge;

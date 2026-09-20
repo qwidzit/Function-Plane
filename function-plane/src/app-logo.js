@@ -114,37 +114,4 @@ function AppLogo({
     fill: "rgba(0,0,0,0.25)"
   })));
 }
-
-// A larger marketing variant — same DNA but with a hint of f(x) below
-function AppLogoLarge({
-  size = 240
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'inline-flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 14
-    }
-  }, /*#__PURE__*/React.createElement(AppLogo, {
-    size: size
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif', Georgia, serif",
-      fontStyle: 'italic',
-      fontSize: size * 0.13,
-      letterSpacing: '-0.02em',
-      color: 'var(--fp-ink)',
-      display: 'flex',
-      alignItems: 'baseline',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "Function"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontStyle: 'normal',
-      opacity: 0.5
-    }
-  }, "Plane")));
-}
 window.AppLogo = AppLogo;
-window.AppLogoLarge = AppLogoLarge;

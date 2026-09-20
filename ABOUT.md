@@ -105,10 +105,15 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     ...                    # per-screen components
 scripts/
   build-jsx.js              # JSX -> JS compiler; run after every .jsx edit
+  test.js                   # the whole suite, zero dependencies (npm test)
+  verify-levels.js          # replays every authored level's intended solution
   snapshot-overrides.js     # pulls Supabase override tables -> overrides-snapshot.js
+levels/                    # authored drafts — the written record of what a level asks
 legal/                     # hostable Privacy/Terms HTML for the website (see below)
+store-assets/              # Play listing copy, screenshots, Console answers
 supabase/config.toml       # Supabase project config
 capacitor.config.json      # native shell config (appId app.functionplane)
+README.md                  # the public front door
 MOBILE-BUILD.md            # how to build the Android/iOS apps
 NETWORK-ACCESS.md          # where writes never arrive, and the ~€3/mo fix
 ```
@@ -1080,7 +1085,7 @@ checks the two agree.
 
 **This changed what a run is worth.** A run that clears the equation goal and
 misses the score goal now scores 2 stars where it scored 3, so pack totals,
-`SPECIAL_UNLOCK_STARS` thresholds and the `stars_200` target are all worth a
+`SPECIAL_UNLOCK_STARS` thresholds and the `stars_210` target are all worth a
 re-look against real play. Records already stored keep their stars.
 
 ## Supabase & entitlement model
@@ -1359,14 +1364,15 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
   and are **deployed on the website** at:
   - https://functionplane.pages.dev/privacy.html
   - https://functionplane.pages.dev/terms.html
-- `legal/WEBSITE-AGENT-PROMPT.md` is the handoff prompt used to deploy them
-  to the separate website repo.
+- `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` is the handoff prompt for the
+  separate website repo. The live pages still serve the 4 May text — see item 17
+  in [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md).
 - Support: functionplane.support@gmail.com.
 
-> The website Terms (`legal/terms.html`) intentionally use **store-neutral**
-> billing wording (not "Google Play handles billing") because the game sells
-> via both Google Play and the web. If you touch `TERMS_TEXT` in
-> `legal-screens.jsx`, keep it store-neutral to match.
+> The website Terms (`legal/terms.html`) use **store-neutral** billing wording,
+> not "Google Play handles billing" — the sales channel has moved once already
+> and naming it in a legal document means reissuing the document. If you touch
+> `TERMS_TEXT` in `legal-screens.jsx`, keep it store-neutral to match.
 
 ## Roadmap / left to do
 

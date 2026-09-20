@@ -210,33 +210,6 @@ function freshProgress() {
   return out;
 }
 
-function buildProgress(state) {
-  const all = [...ROMAN_PACKS, ...SPECIAL_PACKS];
-  const out = {};
-  all.forEach(p => {
-    out[p.id] = { stars: Array(10).fill(-1), best: Array(10).fill(null) };
-  });
-  if (state === 'mid') {
-    out['r-I'].stars   = [3,3,3,2,3,3,2,3,3,3];
-    out['r-I'].best    = [120,140,160,210,180,220,250,240,270,300];
-    out['r-II'].stars  = [3,3,2,3,2,3,2,1,-1,-1];
-    out['r-II'].best   = [180,200,260,230,280,260,310,360,null,null];
-    out['r-III'].stars = [3,2,2,1,-1,-1,-1,-1,-1,-1];
-    out['r-III'].best  = [220,290,310,420,null,null,null,null,null,null];
-    out['r-IV'].stars  = [2,-1,-1,-1,-1,-1,-1,-1,-1,-1];
-    out['r-IV'].best   = [380,null,null,null,null,null,null,null,null,null];
-    for (let i = 4; i < 10; i++) out[ROMAN_PACKS[i].id].stars = Array(10).fill(null);
-    out['s-lin'].stars  = [3,3,3,3,2,3,3,2,3,3];
-    out['s-lin'].best   = [140,160,180,200,260,220,240,290,250,310];
-    out['s-qua'].stars  = [3,2,2,-1,-1,-1,-1,-1,-1,-1];
-    out['s-qua'].best   = [200,280,310,null,null,null,null,null,null,null];
-    out['s-trig'].stars = Array(10).fill(null);
-    out['s-exp'].stars  = Array(10).fill(null);
-    out['s-flip'].stars = Array(10).fill(null);
-  }
-  return out;
-}
-
 // Stars earned per level are stored two ways on purpose: `stars[i]` is how
 // many (what every total, threshold and leaderboard row counts) and
 // `starBits[i]` is which ones (what the level screens draw), because the
@@ -320,7 +293,7 @@ Object.assign(window, {
   ROMAN_PACKS, SPECIAL_PACKS, LEVELS,
   SPECIAL_UNLOCK_STARS,
   getLevelData, getLevelName, getHint, getPack, visiblePacks, applyOverrides,
-  freshProgress, buildProgress,
+  freshProgress,
   packTotalStars, packIsLocked, packIsComplete, totalStarsAll,
   starBitsOf, starCount,
   computePackLocked,

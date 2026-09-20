@@ -165,7 +165,7 @@ function SupportPopup({ onClose }) {
           letterSpacing: '-0.02em', marginBottom: 8,
         }}>Contact support</div>
         <div style={{ fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.55, marginBottom: 14 }}>
-          Bugs and feature requests go here:
+          Found a bug, have a feature request, or want to say hi? Email us:
         </div>
         <a href={`mailto:${email}`} style={{
           display: 'block', padding: '12px 14px', borderRadius: 10,

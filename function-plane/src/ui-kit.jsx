@@ -155,21 +155,6 @@ function MiniGraph({ kind = 'I', w = 56, h = 36, c = 'var(--fp-ink)', dim = 'var
   );
 }
 
-// Pill button — primary
-function PrimaryButton({ children, onClick, icon = null }) {
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-      width: '100%', height: 56, borderRadius: 14,
-      background: 'var(--fp-accent)', color: 'var(--fp-accent-ink)',
-      fontSize: 17, fontWeight: 500, letterSpacing: '-0.01em',
-    }}>
-      {icon}
-      {children}
-    </button>
-  );
-}
-
 // Ghost button — square icon tile w/ label below
 function IconTile({ icon, label, onClick, badge = null }) {
   return (
@@ -199,4 +184,4 @@ function IconTile({ icon, label, onClick, badge = null }) {
   );
 }
 
-Object.assign(window, { Icon, Wordmark, WordmarkSmall, Stars, MiniGraph, PrimaryButton, IconTile });
+Object.assign(window, { Icon, Wordmark, WordmarkSmall, Stars, MiniGraph, IconTile });

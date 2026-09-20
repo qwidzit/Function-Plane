@@ -300,7 +300,7 @@ function MainScreen({
       lineHeight: 1.6,
       marginBottom: 22
     }
-  }, "Function Plane isn't on Google Play yet. Ratings open with the listing."), /*#__PURE__*/React.createElement("button", {
+  }, "Function Plane isn't on Google Play yet \u2014 but it will be soon! Check back later to leave a rating."), /*#__PURE__*/React.createElement("button", {
     onClick: () => setRatePopup(false),
     style: {
       width: '100%',

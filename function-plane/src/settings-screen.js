@@ -288,7 +288,7 @@ function SupportPopup({
       lineHeight: 1.55,
       marginBottom: 14
     }
-  }, "Bugs and feature requests go here:"), /*#__PURE__*/React.createElement("a", {
+  }, "Found a bug, have a feature request, or want to say hi? Email us:"), /*#__PURE__*/React.createElement("a", {
     href: `mailto:${email}`,
     style: {
       display: 'block',
