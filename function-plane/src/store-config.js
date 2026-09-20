@@ -6,7 +6,7 @@
 // a tester never lands on a 404 — and the web build's premium screen says
 // "get the Android app" in words rather than offering a dead link.
 window.FP_STORE_LINKS = {
-  android: '',  // 'https://play.google.com/store/apps/details?id=app.functionplane'
+  android: 'https://play.google.com/store/apps/details?id=app.functionplane',
   web:     'https://functionplane.pages.dev',
 };
 
