@@ -1789,7 +1789,8 @@ function MaterialIcon({
 
 // Everything about a curve that is not its equation: bounce (where the level
 // allows it), where it is moved to, and where it exists. Opens in the row in
-// place of the equation, so the numbers and the curve stay on screen together.
+// place of the field, with the equation kept in view above, so the numbers,
+// the equation and the curve stay on screen together.
 const SHIFT_STEP = 0.5;
 function EqSettings({
   eq,
@@ -1846,7 +1847,20 @@ function EqSettings({
       gap: 8,
       padding: '8px 8px 8px 0'
     }
-  }, materialsOn && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Geist Mono','ui-monospace',monospace",
+      fontSize: 13,
+      color: 'var(--fp-ink-2)',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: 22
+    }
+  }, /*#__PURE__*/React.createElement(MathExpr, {
+    src: eq.expr
+  })), materialsOn && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -2839,14 +2853,7 @@ function EquationsPanel({
     style: {
       color: 'var(--fp-ink)'
     }
-  }, allowedClass), " equations."), tab === 'eq' && materialsOn && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '6px 14px',
-      fontSize: 11,
-      color: 'var(--fp-ink-3)',
-      borderTop: '1px solid var(--lv-line)'
-    }
-  }, "Bounce is adjustable here \u2014 a curve's ", /*#__PURE__*/React.createElement("strong", null, "\u22EF"), " settings make it steel or rubber."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
+  }, allowedClass), " equations."), tab === 'eq' && /*#__PURE__*/React.createElement("div", {
     className: "fp-scroll",
     style: {
       flex: '1 1 auto',

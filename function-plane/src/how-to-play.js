@@ -1189,7 +1189,8 @@ const FP_EXPLAINERS = {
     }]
   },
   // Two cards, not one: a level teaches rubber or steel, never both at once,
-  // and the button page belongs with the first of them a player meets.
+  // and each opens with where the control lives, since either may be the
+  // first a player meets.
   rubber: {
     title: 'Rubber',
     color: '#388c46',
@@ -1356,6 +1357,68 @@ const FP_EXPLAINERS = {
       fill: "currentColor"
     })),
     pages: [{
+      heading: 'Bounce, in the settings',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
+        x: 22,
+        y: 30,
+        width: 164,
+        height: 36,
+        rx: 9,
+        fill: "var(--fp-surface)",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.14
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 40,
+        cy: 48,
+        r: 8,
+        fill: CURVE_C
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 40,
+        y: 52,
+        textAnchor: "middle",
+        fontSize: 9,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#fff"
+      }, "1"), /*#__PURE__*/React.createElement("text", {
+        x: 57,
+        y: 53,
+        fontSize: 12.5,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-2)"
+      }, "y=0.2x\u22123"), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(163,48)",
+        fill: "#5b6670"
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: -6,
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 6,
+        r: 1.9
+      })), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(163,48)",
+        fill: "none"
+      }, /*#__PURE__*/React.createElement("circle", {
+        r: 10,
+        stroke: "#5b6670",
+        strokeWidth: 1.4
+      }, /*#__PURE__*/React.createElement("animate", {
+        attributeName: "r",
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "9;19;19",
+        keyTimes: holdTimes
+      }), /*#__PURE__*/React.createElement("animate", {
+        attributeName: "stroke-opacity",
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "0.75;0;0",
+        keyTimes: holdTimes
+      })))),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "On this level every equation's \u22EF settings include ", /*#__PURE__*/React.createElement("strong", null, "bounce"), ": normal,", /*#__PURE__*/React.createElement("strong", null, " steel"), " or ", /*#__PURE__*/React.createElement("strong", null, "rubber"), ".")
+    }, {
       heading: 'Steel does not bounce',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
         d: "M12 26 L196 76",

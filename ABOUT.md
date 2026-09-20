@@ -669,9 +669,12 @@ hardware (see *Sim timing*); the wind animation is the *drawing*, the force
 is the same every tick, and `npm test` runs the same field twice to prove it.
 
 **Curve settings** are everything about a curve that is not its equation,
-and they open in the row *in place of the equation* from its ⋯ button, so
-the numbers and the curve stay on screen together. The button is lit while
-any of them is set. Three sections, none of which changes what a curve costs:
+and they open in the row *in place of the field* from its ⋯ button, with the
+equation kept in view above them, so the numbers, the equation and the curve
+stay on screen together. The button is lit while any of them is set. There is
+no banner announcing them: the rubber and steel explainer decks each open
+with the ⋯ button, and How to Play has a card. Three sections, none of which
+changes what a curve costs:
 
 - **Bounce** — only on a level with `materials` on (and in the sandbox,
   unless an imported level says otherwise): normal, **dead** (steel to the
