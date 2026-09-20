@@ -53,8 +53,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           </svg>}
           title="The goal"
         >
-          Guide the ball from its start position to collect every star. The ball rolls under
-          gravity along curves you draw. <em>All stars must be collected</em> for a level to complete.
+          The ball falls under gravity and rolls along the curves you draw. Steer it onto every
+          star.
         </HTPCard>
 
         <HTPCard color="#388c46"
@@ -64,14 +64,13 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Write equations"
         >
           <div style={{ marginBottom: 8 }}>
-            Tap <strong>Add</strong> in the panel and type an equation in any form:
+            Tap <strong>+</strong> in the equations panel and write any form you like:
           </div>
           <CodeLine><M e="y=sin(x)"/></CodeLine>
           <CodeLine><M e="x^2+y^2=25"/></CodeLine>
           <CodeLine><M e="y=0.5x-1"/></CodeLine>
           <div style={{ marginTop: 8 }}>
-            On mobile the custom math keyboard appears automatically.
-            Tap the <strong>⌨</strong> button to show or hide it.
+            The math keyboard opens with the row. The <strong>⌨</strong> button hides it.
           </div>
         </HTPCard>
 
@@ -81,9 +80,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           </svg>}
           title="Press Play"
         >
-          When your equations look right, press <strong>Play</strong>. The ball drops from its
-          starting position (dashed circle) and rolls along your curves. Press <strong>Stop</strong> at
-          any time to reset and adjust.
+          <strong>Play</strong> drops the ball from the dashed circle. <strong>Stop</strong> resets it.
+          Equations are locked while a run is going.
         </HTPCard>
 
         <HTPCard color="#c74440"
@@ -94,13 +92,13 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Star rating"
         >
           <div style={{ marginBottom: 8 }}>
-            Three stars, and each is earned on its own — any combination of them:
+            Three stars, each earned on its own:
           </div>
-          <RatingRow>You collected every star</RatingRow>
-          <RatingRow>Your score is at or below the score goal</RatingRow>
-          <RatingRow>You used no more equations than the equation goal</RatingRow>
+          <RatingRow>Every star collected</RatingRow>
+          <RatingRow>Score at or below the score goal</RatingRow>
+          <RatingRow>Equations at or below the equation goal</RatingRow>
           <div style={{ marginTop: 8 }}>
-            So beating the equation goal while missing the score goal earns two, not three.
+            Miss the score goal but beat the equation goal and you still take two.
           </div>
         </HTPCard>
 
@@ -113,8 +111,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Score & complexity"
         >
           <div style={{ marginBottom: 10 }}>
-            Score = 20 pts per equation + that equation's complexity.
-            <strong> Lower is better.</strong> Fewer, simpler equations score less.
+            An equation costs 20 pts plus its complexity, from the table below.
+            <strong> Lower is better.</strong>
           </div>
           <div style={{
             background: 'var(--fp-surface)',
@@ -149,10 +147,9 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
             ))}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5 }}>
-            Every transcendental function beyond the first in one equation adds 60% of the base —
-            sin(cos(x)) costs far more than sin(x). Mixing a transcendental with a degree-2-or-higher
-            polynomial (sin(x)·x²) then multiplies the total by 1.3, and polynomials above degree 3
-            add 5 pts per extra power.
+            Surcharges inside one equation: each transcendental past the first adds 60% of the base
+            (sin(cos(x))), mixing one with a degree-2-or-higher polynomial (sin(x)·x²) multiplies the
+            total by 1.3, and every polynomial power above 3 adds 5 pts.
           </div>
         </HTPCard>
 
@@ -164,16 +161,16 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Advanced operators"
         >
           <div style={{ marginBottom: 8 }}>
-            Switch the keyboard to the <strong>𝑓𝑥</strong> tab for inverse trig and higher-order operators.
-            Each takes its body as the last argument, written as a normal expression in <span className="fp-mono">x</span> (and <span className="fp-mono">n</span> for sums).
+            Inverse trig and the higher-order operators are on the keyboard's <strong>𝑓𝑥</strong> tab.
+            Each takes its body as the last argument — an ordinary expression in <span className="fp-mono">x</span>, or <span className="fp-mono">n</span> inside a sum.
           </div>
           <CodeLine><M e="y=arcsin(x)"/></CodeLine>
           <CodeLine><M e="y=sum(1,5,n*x^n)"/><Note>Σ from n=1..5</Note></CodeLine>
           <CodeLine><M e="y=deriv(sin(x))"/><Note>≈ cos(x)</Note></CodeLine>
           <CodeLine><M e="y=integ(x^2)"/><Note>∫₀ˣ t² dt = x³/3</Note></CodeLine>
           <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5, marginTop: 8 }}>
-            Numerical operators — sums are capped at 200 terms, integrals use ~150 sample points.
-            Powerful, but each one adds significant complexity to your score.
+            All four are computed numerically: a sum stops at 200 terms, an integral takes about 150
+            samples. They are also the most expensive things you can write.
           </div>
         </HTPCard>
 
@@ -183,9 +180,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           </svg>}
           title="Domain restrictions"
         >
-          Tap the grid icon on any equation to restrict where it appears on the plane.
-          Add segments like x ∈ [−3, 3] to show only part of a curve.
-          Multiple segments are supported — useful for building ramps and platforms.
+          The grid icon on an equation row limits where its curve exists. Add a segment like
+          x ∈ [−3, 3], or several. A cut curve costs what the whole one costs.
         </HTPCard>
 
         <HTPCard color="#2d70b3"
@@ -195,8 +191,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           title="Pan & zoom"
           last
         >
-          Drag the plane with one finger to pan. Pinch with two fingers (or use the +/− buttons)
-          to zoom in and out. The crosshair button resets the view to the origin.
+          One finger drags the plane. Two fingers pinch to zoom, as do the +/− buttons. The
+          crosshair recentres on the origin.
         </HTPCard>
 
         {!advanced && (
@@ -618,8 +614,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          The run ends half a second after the last star. Miss one and the ball simply falls
-          out of the world — press <strong>Play</strong> again and adjust.
+          The run ends half a second after the last star. Miss one and the ball falls out of the
+          world.
         </>,
       },
       {
@@ -643,8 +639,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          Fewer and simpler equations score better, so a line beats a parabola and one curve
-          beats two. The two goal chips above the plane say what this level is asking for.
+          A line costs less than a parabola, and one curve costs less than two. The chips above
+          the plane are this level's two goals.
         </>,
       },
     ],
@@ -681,8 +677,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          Every equation row has a bracket button. It restricts the curve's
-          <strong> domain</strong> — the range of x where it exists at all.
+          The bracket button on an equation row sets the curve's <strong>domain</strong> — the
+          range of x where it exists.
         </>,
       },
       {
@@ -699,8 +695,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          Past the limit the curve is not drawn and not solid, so the ball flies off the end
-          of it instead of riding on into trouble.
+          Past the limit there is nothing drawn and nothing solid. The ball leaves the track at
+          the cut.
         </>,
       },
       {
@@ -721,8 +717,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          A restricted curve scores exactly what the full one does. When one shaped track can
-          be cut into the two you need, that is one equation instead of two.
+          A cut curve scores what the whole one scores. Cut one curve into the two pieces you
+          need and you have paid for a single equation.
         </>,
       },
     ],
@@ -788,8 +784,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          A rubber curve returns the ball at exactly the speed it arrived with. Every hop
-          reaches the height of the one before it, and it never runs down.
+          A rubber curve returns the ball at the speed it arrived with. Every hop reaches the
+          height of the last one.
         </>,
       },
       {
@@ -807,8 +803,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          The bounce is a property of the curve, not another equation. A rubber line scores
-          exactly what the same plain line scores.
+          Bounce belongs to the curve, not to a second equation. A rubber line costs what a
+          plain line costs.
         </>,
       },
     ],
@@ -834,8 +830,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          The ball lands on a steel curve and rolls along it. It keeps the speed it had
-          <em> along</em> the curve and loses the part that would have thrown it back up.
+          A steel curve does not bounce. The ball lands, keeps the speed it had
+          <em> along</em> the curve, and rolls.
         </>,
       },
       {
@@ -863,8 +859,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          A normal curve throws the ball up off the landing, and there is not always room for
-          that. Steel takes the first bounce out of the run entirely.
+          A normal curve throws the ball back up off the landing, and there is not always room
+          above. Steel keeps it low.
         </>,
       },
     ],
@@ -900,8 +896,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          A fan is the shaded box, not the bar at its base. It blows the way the arrow points,
-          the whole time the ball is in there — and the number on it is how hard.
+          The fan is the shaded box. It blows the way the arrow points for as long as the ball
+          is inside, and the number on it is the force.
         </>,
       },
       {
@@ -913,11 +909,10 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          It does not care what your track is doing. The ball keeps the speed it arrived with
-          and the wind is simply added to gravity while it is inside.
+          Inside the box the wind is added to gravity. Nothing else about the ball changes.
           <div style={{ marginTop: 8 }}>
-            Clip the edge and you get part of the push: it builds from about a third of the
-            ball being inside up to the full force once it is properly in.
+            Clip the edge and you get part of the push. Below about a third of the ball inside,
+            the fan does nothing.
           </div>
         </>,
       },
@@ -931,8 +926,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          The solid bar at the fan's base is part of it. That edge is a wall — the ball lands
-          on it, and cannot be rolled into the fan from behind.
+          The solid bar at the base is a wall. The ball lands on it and cannot get into the fan
+          from behind.
         </>,
       },
     ],
@@ -956,8 +951,7 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          The dashed red areas are hazards. They do nothing to your curve and everything to
-          your ball.
+          The dashed red boxes are hazards. They are fixed — nothing you write moves one.
         </>,
       },
       {
@@ -976,8 +970,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          The moment the ball's edge meets one, the run fails — it does not matter how many
-          stars you had already collected.
+          The run fails the moment the ball's edge touches one, however many stars it has
+          already taken.
         </>,
       },
       {
@@ -992,8 +986,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          Your curve may cross a hazard; only the <em>ball</em> must not. Watch where it
-          bounces, not just where the track goes — and remember you can cut a curve short.
+          A curve may cross a hazard — only the <em>ball</em> must not. Watch where it bounces,
+          and cut the curve short if the track itself is the problem.
         </>,
       },
     ],
@@ -1019,8 +1013,7 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          Inside this box gravity is switched off. Nothing pulls the ball down and nothing
-          pushes it up.
+          Gravity is switched off inside the box. Curves still work in there as usual.
         </>,
       },
       {
@@ -1039,9 +1032,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          Its speed and direction stay exactly as they were on the way in. It does not level
-          off; it stops <em>gaining</em> speed downward, so the arc becomes the straight line it
-          was already heading along — and the fall picks up again on the way out.
+          The ball keeps the speed and direction it had at the mouth, so the arc straightens
+          into a line. It does not level off. The fall resumes on the way out.
         </>,
       },
       {
@@ -1059,9 +1051,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          It will not lift the ball, and two overlapping boxes do not cancel back to normal.
-          A ball with no speed of its own does not start moving inside one — it sits exactly
-          where it is until something outside the box gives it a push.
+          A ball with no speed of its own stays where it is. Zero gravity cannot start it moving
+          or lift it, and two overlapping boxes do not cancel back to normal.
         </>,
       },
     ],
@@ -1094,8 +1085,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          Anywhere inside the ring the ball is pulled toward the centre by the same amount —
-          the number on it. Outside the ring it does nothing at all.
+          Inside the ring the ball is pulled toward the centre by the number shown. Outside the
+          ring, nothing.
         </>,
       },
       {
@@ -1111,8 +1102,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          A pull from the side turns a straight throw into an arc. Aim past a well and it will
-          curve the ball round for you — no extra equation needed.
+          A pull from the side bends a straight flight into an arc. Aim past a well and it turns
+          the ball for you.
         </>,
       },
       {
@@ -1128,8 +1119,8 @@ const FP_OBJECT_TUTORIALS = {
           </Art>
         ),
         body: <>
-          A well drags as well as pulls, so the ball never leaves with as much as it brought.
-          Fall too deep into one and it will not climb back out.
+          A well drags as it pulls, so the ball leaves slower than it arrived. Fall deep enough
+          and it never leaves.
         </>,
       },
     ],

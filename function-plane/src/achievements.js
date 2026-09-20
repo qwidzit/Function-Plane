@@ -647,7 +647,7 @@ function LeaderboardTab({
       padding: '24px 0',
       lineHeight: 1.6
     }
-  }, signedIn ? 'No scores yet — be the first to register!' : 'Sign in to appear on the global leaderboard.'), rows !== null && rows.map((row, i) => /*#__PURE__*/React.createElement("div", {
+  }, signedIn ? 'No scores yet — be the first.' : 'Sign in to appear on the global leaderboard.'), rows !== null && rows.map((row, i) => /*#__PURE__*/React.createElement("div", {
     key: row.id,
     style: {
       display: 'flex',
@@ -721,7 +721,7 @@ function LeaderboardTab({
       color: 'var(--fp-ink-4)',
       padding: '14px 0 8px'
     }
-  }, "You currently have ", /*#__PURE__*/React.createElement("span", {
+  }, "You have ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono",
     style: {
       color: 'var(--fp-ink-2)'

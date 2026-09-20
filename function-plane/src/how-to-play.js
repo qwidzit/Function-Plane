@@ -92,7 +92,7 @@ function HowToPlayScreen({
       strokeLinecap: "round"
     })),
     title: "The goal"
-  }, "Guide the ball from its start position to collect every star. The ball rolls under gravity along curves you draw. ", /*#__PURE__*/React.createElement("em", null, "All stars must be collected"), " for a level to complete."), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "The ball falls under gravity and rolls along the curves you draw. Steer it onto every star."), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#388c46",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -110,7 +110,7 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "Add"), " in the panel and type an equation in any form:"), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+  }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " in the equations panel and write any form you like:"), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
     e: "y=sin(x)"
   })), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
     e: "x^2+y^2=25"
@@ -120,7 +120,7 @@ function HowToPlayScreen({
     style: {
       marginTop: 8
     }
-  }, "On mobile the custom math keyboard appears automatically. Tap the ", /*#__PURE__*/React.createElement("strong", null, "\u2328"), " button to show or hide it.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "The math keyboard opens with the row. The ", /*#__PURE__*/React.createElement("strong", null, "\u2328"), " button hides it.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#6042a6",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -131,7 +131,7 @@ function HowToPlayScreen({
       d: "M5 3L19 12L5 21Z"
     })),
     title: "Press Play"
-  }, "When your equations look right, press ", /*#__PURE__*/React.createElement("strong", null, "Play"), ". The ball drops from its starting position (dashed circle) and rolls along your curves. Press ", /*#__PURE__*/React.createElement("strong", null, "Stop"), " at any time to reset and adjust."), /*#__PURE__*/React.createElement(HTPCard, {
+  }, /*#__PURE__*/React.createElement("strong", null, "Play"), " drops the ball from the dashed circle. ", /*#__PURE__*/React.createElement("strong", null, "Stop"), " resets it. Equations are locked while a run is going."), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#c74440",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -150,11 +150,11 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Three stars, and each is earned on its own \u2014 any combination of them:"), /*#__PURE__*/React.createElement(RatingRow, null, "You collected every star"), /*#__PURE__*/React.createElement(RatingRow, null, "Your score is at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, null, "You used no more equations than the equation goal"), /*#__PURE__*/React.createElement("div", {
+  }, "Three stars, each earned on its own:"), /*#__PURE__*/React.createElement(RatingRow, null, "Every star collected"), /*#__PURE__*/React.createElement(RatingRow, null, "Score at or below the score goal"), /*#__PURE__*/React.createElement(RatingRow, null, "Equations at or below the equation goal"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
-  }, "So beating the equation goal while missing the score goal earns two, not three.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "Miss the score goal but beat the equation goal and you still take two.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#fa7e19",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -173,7 +173,7 @@ function HowToPlayScreen({
     style: {
       marginBottom: 10
     }
-  }, "Score = 20 pts per equation + that equation's complexity.", /*#__PURE__*/React.createElement("strong", null, " Lower is better."), " Fewer, simpler equations score less."), /*#__PURE__*/React.createElement("div", {
+  }, "An equation costs 20 pts plus its complexity, from the table below.", /*#__PURE__*/React.createElement("strong", null, " Lower is better.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',
@@ -209,7 +209,7 @@ function HowToPlayScreen({
       color: 'var(--fp-ink-4)',
       lineHeight: 1.5
     }
-  }, "Every transcendental function beyond the first in one equation adds 60% of the base \u2014 sin(cos(x)) costs far more than sin(x). Mixing a transcendental with a degree-2-or-higher polynomial (sin(x)\xB7x\xB2) then multiplies the total by 1.3, and polynomials above degree 3 add 5 pts per extra power.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "Surcharges inside one equation: each transcendental past the first adds 60% of the base (sin(cos(x))), mixing one with a degree-2-or-higher polynomial (sin(x)\xB7x\xB2) multiplies the total by 1.3, and every polynomial power above 3 adds 5 pts.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#6042a6",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -228,11 +228,11 @@ function HowToPlayScreen({
     style: {
       marginBottom: 8
     }
-  }, "Switch the keyboard to the ", /*#__PURE__*/React.createElement("strong", null, "\uD835\uDC53\uD835\uDC65"), " tab for inverse trig and higher-order operators. Each takes its body as the last argument, written as a normal expression in ", /*#__PURE__*/React.createElement("span", {
+  }, "Inverse trig and the higher-order operators are on the keyboard's ", /*#__PURE__*/React.createElement("strong", null, "\uD835\uDC53\uD835\uDC65"), " tab. Each takes its body as the last argument \u2014 an ordinary expression in ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
-  }, "x"), " (and ", /*#__PURE__*/React.createElement("span", {
+  }, "x"), ", or ", /*#__PURE__*/React.createElement("span", {
     className: "fp-mono"
-  }, "n"), " for sums)."), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
+  }, "n"), " inside a sum."), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
     e: "y=arcsin(x)"
   })), /*#__PURE__*/React.createElement(CodeLine, null, /*#__PURE__*/React.createElement(M, {
     e: "y=sum(1,5,n*x^n)"
@@ -247,7 +247,7 @@ function HowToPlayScreen({
       lineHeight: 1.5,
       marginTop: 8
     }
-  }, "Numerical operators \u2014 sums are capped at 200 terms, integrals use ~150 sample points. Powerful, but each one adds significant complexity to your score.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "All four are computed numerically: a sum stops at 200 terms, an integral takes about 150 samples. They are also the most expensive things you can write.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#6042a6",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -261,7 +261,7 @@ function HowToPlayScreen({
       strokeLinecap: "round"
     })),
     title: "Domain restrictions"
-  }, "Tap the grid icon on any equation to restrict where it appears on the plane. Add segments like x \u2208 [\u22123, 3] to show only part of a curve. Multiple segments are supported \u2014 useful for building ramps and platforms."), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "The grid icon on an equation row limits where its curve exists. Add a segment like x \u2208 [\u22123, 3], or several. A cut curve costs what the whole one costs."), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#2d70b3",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -277,7 +277,7 @@ function HowToPlayScreen({
     })),
     title: "Pan & zoom",
     last: true
-  }, "Drag the plane with one finger to pan. Pinch with two fingers (or use the +/\u2212 buttons) to zoom in and out. The crosshair button resets the view to the origin."), !advanced && /*#__PURE__*/React.createElement("button", {
+  }, "One finger drags the plane. Two fingers pinch to zoom, as do the +/\u2212 buttons. The crosshair recentres on the origin."), !advanced && /*#__PURE__*/React.createElement("button", {
     onClick: () => setAdvanced(true),
     style: {
       width: '100%',
@@ -973,7 +973,7 @@ const FP_EXPLAINERS = {
       }, artStar(cx, cy, 0.74, at))), /*#__PURE__*/React.createElement(ArtBall, {
         path: TRACK_B
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The run ends half a second after the last star. Miss one and the ball simply falls out of the world \u2014 press ", /*#__PURE__*/React.createElement("strong", null, "Play"), " again and adjust.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The run ends half a second after the last star. Miss one and the ball falls out of the world.")
     }, {
       heading: 'Keep it cheap',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("text", {
@@ -1020,7 +1020,7 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "#c74440"
       }, "85")),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Fewer and simpler equations score better, so a line beats a parabola and one curve beats two. The two goal chips above the plane say what this level is asking for.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A line costs less than a parabola, and one curve costs less than two. The chips above the plane are this level's two goals.")
     }]
   },
   domain: {
@@ -1096,7 +1096,7 @@ const FP_EXPLAINERS = {
         values: "0.75;0;0",
         keyTimes: holdTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Every equation row has a bracket button. It restricts the curve's", /*#__PURE__*/React.createElement("strong", null, " domain"), " \u2014 the range of x where it exists at all.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The bracket button on an equation row sets the curve's ", /*#__PURE__*/React.createElement("strong", null, "domain"), " \u2014 the range of x where it exists.")
     }, {
       heading: 'A track with an end',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
@@ -1126,7 +1126,7 @@ const FP_EXPLAINERS = {
         dur: 3.4,
         path: "M14,69 C 46,69 70,27 100,21 C 124,16 148,30 176,74"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Past the limit the curve is not drawn and not solid, so the ball flies off the end of it instead of riding on into trouble.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Past the limit there is nothing drawn and nothing solid. The ball leaves the track at the cut.")
     }, {
       heading: 'It is free',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
@@ -1169,7 +1169,7 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
       }, "20")),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A restricted curve scores exactly what the full one does. When one shaped track can be cut into the two you need, that is one equation instead of two.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A cut curve scores what the whole one scores. Cut one curve into the two pieces you need and you have paid for a single equation.")
     }]
   },
   // Two cards, not one: a level teaches rubber or steel, never both at once,
@@ -1292,7 +1292,7 @@ const FP_EXPLAINERS = {
         dur: 3.6,
         n: 72
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A rubber curve returns the ball at exactly the speed it arrived with. Every hop reaches the height of the one before it, and it never runs down.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A rubber curve returns the ball at the speed it arrived with. Every hop reaches the height of the last one.")
     }, {
       heading: 'It is free',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
@@ -1325,7 +1325,7 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
       }, "30")),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The bounce is a property of the curve, not another equation. A rubber line scores exactly what the same plain line scores.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Bounce belongs to the curve, not to a second equation. A rubber line costs what a plain line costs.")
     }]
   },
   steel: {
@@ -1359,7 +1359,7 @@ const FP_EXPLAINERS = {
         dur: 3.4,
         path: "M60,10 L60,32 L196,69"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The ball lands on a steel curve and rolls along it. It keeps the speed it had", /*#__PURE__*/React.createElement("em", null, " along"), " the curve and loses the part that would have thrown it back up.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A steel curve does not bounce. The ball lands, keeps the speed it had", /*#__PURE__*/React.createElement("em", null, " along"), " the curve, and rolls.")
     }, {
       heading: 'Which is how you get under things',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
@@ -1407,7 +1407,7 @@ const FP_EXPLAINERS = {
         dur: 3.4,
         path: "M16,8 L16,35 L196,73"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A normal curve throws the ball up off the landing, and there is not always room for that. Steel takes the first bounce out of the run entirely.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A normal curve throws the ball back up off the landing, and there is not always room above. Steel keeps it low.")
     }]
   }
 };
@@ -1467,17 +1467,17 @@ const FP_OBJECT_TUTORIALS = {
         begin: `${k * 0.4}s`,
         repeatCount: "indefinite"
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A fan is the shaded box, not the bar at its base. It blows the way the arrow points, the whole time the ball is in there \u2014 and the number on it is how hard.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The fan is the shaded box. It blows the way the arrow points for as long as the ball is inside, and the number on it is the force.")
     }, {
       heading: 'Wind and gravity add up',
       art: /*#__PURE__*/React.createElement(Art, null, fanBox(74, 84, 60, 66), /*#__PURE__*/React.createElement(ArtBall, {
         path: "M12,26 C 52,58 74,78 104,52 C 126,32 140,40 196,74"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "It does not care what your track is doing. The ball keeps the speed it arrived with and the wind is simply added to gravity while it is inside.", /*#__PURE__*/React.createElement("div", {
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Inside the box the wind is added to gravity. Nothing else about the ball changes.", /*#__PURE__*/React.createElement("div", {
         style: {
           marginTop: 8
         }
-      }, "Clip the edge and you get part of the push: it builds from about a third of the ball being inside up to the full force once it is properly in."))
+      }, "Clip the edge and you get part of the push. Below about a third of the ball inside, the fan does nothing."))
     }, {
       heading: 'The base is a wall',
       art: /*#__PURE__*/React.createElement(Art, null, fanBox(74, 84, 60, 60, {
@@ -1491,7 +1491,7 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 3,
         strokeLinecap: "round"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The solid bar at the fan's base is part of it. That edge is a wall \u2014 the ball lands on it, and cannot be rolled into the fan from behind.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The solid bar at the base is a wall. The ball lands on it and cannot get into the fan from behind.")
     }]
   },
   hazard: {
@@ -1535,7 +1535,7 @@ const FP_OBJECT_TUTORIALS = {
         strokeWidth: 1.4,
         opacity: 0.5
       }))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The dashed red areas are hazards. They do nothing to your curve and everything to your ball.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The dashed red boxes are hazards. They are fixed \u2014 nothing you write moves one.")
     }, {
       heading: 'One touch ends the run',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
@@ -1566,7 +1566,7 @@ const FP_OBJECT_TUTORIALS = {
         repeatCount: "indefinite",
         keyTimes: `0;${RUN - 0.03};${RUN + 0.02};${FADE};1`
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The moment the ball's edge meets one, the run fails \u2014 it does not matter how many stars you had already collected.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The run fails the moment the ball's edge touches one, however many stars it has already taken.")
     }, {
       heading: 'Route around it',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
@@ -1589,7 +1589,7 @@ const FP_OBJECT_TUTORIALS = {
       }), /*#__PURE__*/React.createElement(ArtBall, {
         path: "M10,59 C 60,59 60,13 104,13 C 148,13 148,59 198,59"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Your curve may cross a hazard; only the ", /*#__PURE__*/React.createElement("em", null, "ball"), " must not. Watch where it bounces, not just where the track goes \u2014 and remember you can cut a curve short.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A curve may cross a hazard \u2014 only the ", /*#__PURE__*/React.createElement("em", null, "ball"), " must not. Watch where it bounces, and cut the curve short if the track itself is the problem.")
     }]
   },
   zerog: {
@@ -1649,7 +1649,7 @@ const FP_OBJECT_TUTORIALS = {
         dur: "3s",
         repeatCount: "indefinite"
       }))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Inside this box gravity is switched off. Nothing pulls the ball down and nothing pushes it up.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Gravity is switched off inside the box. Curves still work in there as usual.")
     }, {
       heading: 'It keeps whatever it arrived with',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
@@ -1688,7 +1688,7 @@ const FP_OBJECT_TUTORIALS = {
         at: zgAt,
         dur: 3.2
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Its speed and direction stay exactly as they were on the way in. It does not level off; it stops ", /*#__PURE__*/React.createElement("em", null, "gaining"), " speed downward, so the arc becomes the straight line it was already heading along \u2014 and the fall picks up again on the way out.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The ball keeps the speed and direction it had at the mouth, so the arc straightens into a line. It does not level off. The fall resumes on the way out.")
     }, {
       heading: 'It cannot start the ball',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
@@ -1715,7 +1715,7 @@ const FP_OBJECT_TUTORIALS = {
         r: 7,
         fill: "var(--fp-ink)"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "It will not lift the ball, and two overlapping boxes do not cancel back to normal. A ball with no speed of its own does not start moving inside one \u2014 it sits exactly where it is until something outside the box gives it a push.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A ball with no speed of its own stays where it is. Zero gravity cannot start it moving or lift it, and two overlapping boxes do not cancel back to normal.")
     }]
   },
   well: {
@@ -1782,7 +1782,7 @@ const FP_OBJECT_TUTORIALS = {
         opacity: 0.6,
         transform: `rotate(${a} 104 48)`
       }))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Anywhere inside the ring the ball is pulled toward the centre by the same amount \u2014 the number on it. Outside the ring it does nothing at all.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Inside the ring the ball is pulled toward the centre by the number shown. Outside the ring, nothing.")
     }, {
       heading: 'It bends the flight',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("circle", {
@@ -1810,7 +1810,7 @@ const FP_OBJECT_TUTORIALS = {
       }), /*#__PURE__*/React.createElement(ArtBall, {
         path: "M8,20 C 60,26 96,26 116,52"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A pull from the side turns a straight throw into an arc. Aim past a well and it will curve the ball round for you \u2014 no extra equation needed.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A pull from the side bends a straight flight into an arc. Aim past a well and it turns the ball for you.")
     }, {
       heading: 'Crossing one costs speed',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("circle", {
@@ -1838,7 +1838,7 @@ const FP_OBJECT_TUTORIALS = {
       }), /*#__PURE__*/React.createElement(ArtBall, {
         path: "M10,48 C 60,48 70,84 104,84 C 138,84 148,48 104,48"
       })),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A well drags as well as pulls, so the ball never leaves with as much as it brought. Fall too deep into one and it will not climb back out.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A well drags as it pulls, so the ball leaves slower than it arrived. Fall deep enough and it never leaves.")
     }]
   }
 };

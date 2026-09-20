@@ -128,7 +128,7 @@ function GuestView({ onBack, padX, onSignIn, onRegister, onPremium }) {
           <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic', fontSize:28, letterSpacing:'-0.02em', color:'var(--fp-ink)', marginBottom:8 }}>Guest</div>
 
           <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', textAlign:'center', lineHeight:1.55, maxWidth:280, marginBottom:28 }}>
-            Create an account to sync progress across devices and compete on the global leaderboard.
+            An account syncs your progress between devices and puts you on the leaderboard.
           </div>
 
           <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:10 }}>
@@ -178,7 +178,7 @@ function SignedInView({ account, progress, onBack, padX, onPremium, onAdmin }) {
       {signOutOpen && (
         <ConfirmPopup
           title="Sign out?"
-          body="Your progress is saved on the server, so you can sign back in any time on this or another device."
+          body="Your progress is on the server. Sign back in on any device to get it."
           confirmLabel="Sign out"
           danger={false}
           busy={busy}
@@ -226,7 +226,7 @@ function SignedInView({ account, progress, onBack, padX, onPremium, onAdmin }) {
           <div>
             <div style={{ fontSize:13, fontWeight:500, color:'var(--fp-ink)' }}>Progress synced</div>
             <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', lineHeight:1.5 }}>
-              Sign in on any device with this account to continue where you left off.
+              This account carries your progress to every device you sign in on.
             </div>
           </div>
         </div>
@@ -398,7 +398,7 @@ function RegisterView({ onBack, padX, onSuccess }) {
         </button>
 
         <div style={{ textAlign:'center', marginTop:16, fontSize:11.5, color:'var(--fp-ink-4)', lineHeight:1.55 }}>
-          Your progress will sync across all your devices.
+          The progress on this device comes with you.
         </div>
       </div>
     </ScreenFrame>
@@ -449,7 +449,7 @@ function PremiumView({ onBack, padX }) {
   // profile, and a guest has no row to write it to.
   const needsAccount = () => {
     if (FP_AUTH.getActive()) return false;
-    setMsg({ text:'Sign in first — premium is stored on your account so it follows you to any device.', ok:false });
+    setMsg({ text:'Sign in first. Premium is stored on your account, not on this device.', ok:false });
     return true;
   };
 
@@ -476,7 +476,7 @@ function PremiumView({ onBack, padX }) {
     if (!window.FP_BILLING?.available()) {
       window.fpConfirm?.({
         title: 'Not available yet',
-        body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
+        body: 'Google Play billing isn\'t switched on in this build yet. Whatever you have unlocked stays unlocked.',
         confirmLabel: 'OK',
       });
       return;
@@ -523,13 +523,13 @@ function PremiumView({ onBack, padX }) {
             </svg>
           </div>
           <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic', fontSize:28, letterSpacing:'-0.02em', color:'var(--fp-ink)', marginBottom:6 }}>Unlock everything</div>
-          <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>All packs, now and forever.</div>
+          <div style={{ fontSize:13.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>All packs, now and later.</div>
         </div>
 
         <StatusLine msg={msg.text} ok={msg.ok}/>
 
         <div style={{ background:'var(--fp-surface)', border:'1px solid var(--fp-line)', borderRadius:16, padding:'14px 18px', marginBottom:22 }}>
-          {['All themed packs unlocked immediately','All future chapter packs included','One payment — not a subscription','Support indie development'].map((f, i, arr) => (
+          {['All themed packs, unlocked now','All future chapter packs','One payment, not a subscription','Support indie development'].map((f, i, arr) => (
             <div key={f} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom: i < arr.length-1 ? '1px solid var(--fp-line)' : 'none' }}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="var(--fp-accent)" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/></svg>
               <span style={{ fontSize:13.5, color:'var(--fp-ink)' }}>{f}</span>
@@ -559,7 +559,7 @@ function PremiumView({ onBack, padX }) {
           <div style={{ borderRadius:16, background:'var(--fp-surface-2)', border:'1px solid var(--fp-line)', padding:'16px 18px' }}>
             <div style={{ fontSize:14, fontWeight:600, color:'var(--fp-ink)', marginBottom:5 }}>Available in the Android app</div>
             <div style={{ fontSize:12.5, color:'var(--fp-ink-3)', lineHeight:1.55 }}>
-              Premium is sold through Google Play. Buy it there once and it unlocks every pack on this account — including here, on the web, after Restore purchases.
+              Premium is sold through Google Play. Buy it there, then tap Restore purchases here.
             </div>
             {storeLink && (
               <button onClick={() => window.open(storeLink, '_blank', 'noopener,noreferrer')}
@@ -575,7 +575,7 @@ function PremiumView({ onBack, padX }) {
         </button>
 
         <div style={{ textAlign:'center', marginTop:14, fontSize:11, color:'var(--fp-ink-4)', lineHeight:1.6 }}>
-          One payment, no subscription.<br/>Premium follows your account, not this device.
+          Premium is tied to your account, not to this device.
         </div>
 
       </div>

@@ -587,7 +587,7 @@ function LockedPackPopup({
       display: 'block',
       marginTop: 4
     }
-  }, "You have ", have, "/", need, " so far.")), isStars && /*#__PURE__*/React.createElement("div", {
+  }, "You have ", have, ".")), isStars && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       fontSize: 13.5,
@@ -606,7 +606,7 @@ function LockedPackPopup({
       display: 'block',
       marginTop: 4
     }
-  }, "You have ", totalStars, " / ", need, " so far."), /*#__PURE__*/React.createElement("div", {
+  }, "You have ", totalStars, "."), /*#__PURE__*/React.createElement("div", {
     style: {
       height: 5,
       background: 'var(--fp-line)',

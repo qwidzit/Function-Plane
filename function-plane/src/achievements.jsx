@@ -388,7 +388,7 @@ function LeaderboardTab({ padX, myStars }) {
         {rows !== null && rows.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--fp-ink-3)', fontSize: 12.5, padding: '24px 0', lineHeight: 1.6 }}>
             {signedIn
-              ? 'No scores yet — be the first to register!'
+              ? 'No scores yet — be the first.'
               : 'Sign in to appear on the global leaderboard.'}
           </div>
         )}
@@ -432,7 +432,7 @@ function LeaderboardTab({ padX, myStars }) {
 
         {!signedIn && (
           <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--fp-ink-4)', padding: '14px 0 8px' }}>
-            You currently have <span className="fp-mono" style={{ color: 'var(--fp-ink-2)' }}>{myStars}</span> ★ as Guest
+            You have <span className="fp-mono" style={{ color: 'var(--fp-ink-2)' }}>{myStars}</span> ★ as Guest
           </div>
         )}
       </div>

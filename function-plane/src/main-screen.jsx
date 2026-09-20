@@ -161,8 +161,7 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
               color: 'var(--fp-ink)', marginBottom: 10,
             }}>Coming soon</div>
             <div style={{ fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.6, marginBottom: 22 }}>
-              Function Plane isn't on Google Play yet — but it will be soon!
-              Check back later to leave a rating.
+              Function Plane isn't on Google Play yet. Ratings open with the listing.
             </div>
             <button onClick={() => setRatePopup(false)} style={{
               width: '100%', height: 44, borderRadius: 12,

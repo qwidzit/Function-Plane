@@ -353,7 +353,7 @@ function GuestView({
       maxWidth: 280,
       marginBottom: 28
     }
-  }, "Create an account to sync progress across devices and compete on the global leaderboard."), /*#__PURE__*/React.createElement("div", {
+  }, "An account syncs your progress between devices and puts you on the leaderboard."), /*#__PURE__*/React.createElement("div", {
     style: {
       width: '100%',
       display: 'flex',
@@ -449,7 +449,7 @@ function SignedInView({
     }
   }, signOutOpen && /*#__PURE__*/React.createElement(ConfirmPopup, {
     title: "Sign out?",
-    body: "Your progress is saved on the server, so you can sign back in any time on this or another device.",
+    body: "Your progress is on the server. Sign back in on any device to get it.",
     confirmLabel: "Sign out",
     danger: false,
     busy: busy,
@@ -581,7 +581,7 @@ function SignedInView({
       color: 'var(--fp-ink-3)',
       lineHeight: 1.5
     }
-  }, "Sign in on any device with this account to continue where you left off."))), /*#__PURE__*/React.createElement("div", {
+  }, "This account carries your progress to every device you sign in on."))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',
@@ -949,7 +949,7 @@ function RegisterView({
       color: 'var(--fp-ink-4)',
       lineHeight: 1.55
     }
-  }, "Your progress will sync across all your devices.")));
+  }, "The progress on this device comes with you.")));
 }
 
 // ─── Reset password ────────────────────────────────────────────────────────
@@ -1040,7 +1040,7 @@ function PremiumView({
   const needsAccount = () => {
     if (FP_AUTH.getActive()) return false;
     setMsg({
-      text: 'Sign in first — premium is stored on your account so it follows you to any device.',
+      text: 'Sign in first. Premium is stored on your account, not on this device.',
       ok: false
     });
     return true;
@@ -1075,7 +1075,7 @@ function PremiumView({
     if (!window.FP_BILLING?.available()) {
       window.fpConfirm?.({
         title: 'Not available yet',
-        body: 'Purchases through Google Play aren\'t switched on in this build. Anything you have already unlocked stays unlocked, and premium will appear here once billing goes live.',
+        body: 'Google Play billing isn\'t switched on in this build yet. Whatever you have unlocked stays unlocked.',
         confirmLabel: 'OK'
       });
       return;
@@ -1173,7 +1173,7 @@ function PremiumView({
       color: 'var(--fp-ink-3)',
       lineHeight: 1.55
     }
-  }, "All packs, now and forever.")), /*#__PURE__*/React.createElement(StatusLine, {
+  }, "All packs, now and later.")), /*#__PURE__*/React.createElement(StatusLine, {
     msg: msg.text,
     ok: msg.ok
   }), /*#__PURE__*/React.createElement("div", {
@@ -1184,7 +1184,7 @@ function PremiumView({
       padding: '14px 18px',
       marginBottom: 22
     }
-  }, ['All themed packs unlocked immediately', 'All future chapter packs included', 'One payment — not a subscription', 'Support indie development'].map((f, i, arr) => /*#__PURE__*/React.createElement("div", {
+  }, ['All themed packs, unlocked now', 'All future chapter packs', 'One payment, not a subscription', 'Support indie development'].map((f, i, arr) => /*#__PURE__*/React.createElement("div", {
     key: f,
     style: {
       display: 'flex',
@@ -1289,7 +1289,7 @@ function PremiumView({
       color: 'var(--fp-ink-3)',
       lineHeight: 1.55
     }
-  }, "Premium is sold through Google Play. Buy it there once and it unlocks every pack on this account \u2014 including here, on the web, after Restore purchases."), storeLink && /*#__PURE__*/React.createElement("button", {
+  }, "Premium is sold through Google Play. Buy it there, then tap Restore purchases here."), storeLink && /*#__PURE__*/React.createElement("button", {
     onClick: () => window.open(storeLink, '_blank', 'noopener,noreferrer'),
     style: {
       width: '100%',
@@ -1332,7 +1332,7 @@ function PremiumView({
       color: 'var(--fp-ink-4)',
       lineHeight: 1.6
     }
-  }, "One payment, no subscription.", /*#__PURE__*/React.createElement("br", null), "Premium follows your account, not this device.")));
+  }, "Premium is tied to your account, not to this device.")));
 }
 
 // ─── Confirm popup ──────────────────────────────────────────────────────────

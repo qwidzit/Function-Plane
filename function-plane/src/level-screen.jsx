@@ -1790,7 +1790,9 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       expr: e.expr, cls: detectClass(e.expr, window.FP_PARAMS),
     })).filter(({ cls }) => !classMatches(packAllowedClass, cls));
     if (offenders.length === 0) return null;
-    return `Only ${packAllowedClass} equations are allowed in this pack — please remove or change the others.`;
+    return offenders.length === 1
+      ? `One equation is not ${packAllowedClass}.`
+      : `${offenders.length} equations are not ${packAllowedClass}.`;
   }, [equations, packAllowedClass]);
 
   const handlePlay = () => {
@@ -2275,7 +2277,7 @@ function HistoryPopup({ entries = [], onClose, onLoad }) {
         <div className="fp-scroll" style={{ flex:1, overflowY:'auto', padding:'0 22px' }}>
           {entries.length === 0 && (
             <div style={{ padding:'18px 0', fontSize:13, color:'var(--fp-ink-3)', textAlign:'center', lineHeight:1.55 }}>
-              No completed runs yet.<br/>Solve the level once and your equations will be saved here.
+              No completed runs yet.<br/>Clear the level once and its equations are kept here.
             </div>
           )}
           {entries.map((e, i) => (

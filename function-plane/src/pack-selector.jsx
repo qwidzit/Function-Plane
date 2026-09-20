@@ -343,7 +343,7 @@ function LockedPackPopup({ pack, lockInfo, totalStars, onClose }) {
             Earn <strong style={{ color: 'var(--fp-ink)' }}>{need}/30★</strong> in <strong style={{ color: 'var(--fp-ink)' }}>{prevPackName}</strong> to unlock this chapter.
             <br/>
             <span style={{ fontSize: 12, color: 'var(--fp-ink-4)', display: 'block', marginTop: 4 }}>
-              You have {have}/{need} so far.
+              You have {have}.
             </span>
           </div>
         )}
@@ -353,7 +353,7 @@ function LockedPackPopup({ pack, lockInfo, totalStars, onClose }) {
             Earn <strong style={{ color: 'var(--fp-ink)' }}>{need} total stars</strong> to unlock this pack.
             <br/>
             <span style={{ fontSize: 12, color: 'var(--fp-ink-4)', display: 'block', marginTop: 4 }}>
-              You have {totalStars} / {need} so far.
+              You have {totalStars}.
             </span>
             {/* Progress bar */}
             <div style={{ height: 5, background: 'var(--fp-line)', borderRadius: 3, margin: '12px auto 0', maxWidth: 200 }}>

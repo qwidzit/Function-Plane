@@ -6,10 +6,10 @@ const {
 
 // Short explanations shown in the ⓘ popup next to gameplay & sound settings.
 const SETTING_HELP = {
-  sound: 'Plays short tones when the ball bounces, you collect a star, and on level success or failure.',
+  sound: 'Short tones on a bounce, a collected star, and the end of a run.',
   volume: 'Master volume for sound effects.',
-  gridLabels: 'Show numeric labels along the X and Y axes of the level plane.',
-  autoZoom: 'When you press Play, automatically zoom and pan so the ball, target stars, and your function fit on screen.'
+  gridLabels: 'Number the x and y axes on the plane.',
+  autoZoom: 'On Play, frame the ball, the stars and your curves.'
 };
 function SettingsScreen({
   onBack,
@@ -288,7 +288,7 @@ function SupportPopup({
       lineHeight: 1.55,
       marginBottom: 14
     }
-  }, "Found a bug, have a feature request, or want to say hi? Email us:"), /*#__PURE__*/React.createElement("a", {
+  }, "Bugs and feature requests go here:"), /*#__PURE__*/React.createElement("a", {
     href: `mailto:${email}`,
     style: {
       display: 'block',

@@ -2861,7 +2861,7 @@ function LevelScreen({
       cls
     }) => !classMatches(packAllowedClass, cls));
     if (offenders.length === 0) return null;
-    return `Only ${packAllowedClass} equations are allowed in this pack — please remove or change the others.`;
+    return offenders.length === 1 ? `One equation is not ${packAllowedClass}.` : `${offenders.length} equations are not ${packAllowedClass}.`;
   }, [equations, packAllowedClass]);
   const handlePlay = () => {
     if (running) {
@@ -3651,7 +3651,7 @@ function HistoryPopup({
       textAlign: 'center',
       lineHeight: 1.55
     }
-  }, "No completed runs yet.", /*#__PURE__*/React.createElement("br", null), "Solve the level once and your equations will be saved here."), entries.map((e, i) => /*#__PURE__*/React.createElement("div", {
+  }, "No completed runs yet.", /*#__PURE__*/React.createElement("br", null), "Clear the level once and its equations are kept here."), entries.map((e, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       border: '1px solid var(--fp-line)',
