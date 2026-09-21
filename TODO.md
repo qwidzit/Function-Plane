@@ -131,7 +131,8 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
-| 17 | **The live site still serves the 4 May privacy text**, and the repo copy has moved on twice since. Hand `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` plus `privacy.html` and `delete-account.html` to the website agent — the prompt now carries the purchase disclosure as change 6. Then fetch all three pages and compare the served HTML against `legal/`: a previous deploy returned the homepage with a 200, so a status code proves nothing. I cannot check this from here — the egress proxy blocks the domain |
+| 17 | **Committed in the website repo on 21 September, not yet pushed.** `privacy.html`, `terms.html` and `delete-account.html` copied from `legal/`, and the homepage's "talks only to its own backend" now says Premium goes through Google Play. Push it, then fetch all three pages and compare the served HTML against `legal/` — a previous deploy returned the homepage with a 200, so a status code proves nothing. Only then send the App content changes for review: reviewers read the privacy URL against the Data safety form |
+| 36 | **Account deletion does not delete the sign-in account.** The app deletes `progress`, `level_scores` and `profiles` but cannot touch `auth.users`, so the email, password hash and any `purchases` row (which cascades from `auth.users`) survive — while `delete-account.html` says all of them go. `supabase/migrations/20260921_delete_account_completely.sql` fixes it server-side with no build: a trigger on profile deletion removes the auth user. Written, not yet applied |
 
 ## 6. On your machine
 
@@ -151,6 +152,7 @@ ships in Build 2.
 |---|---|
 | 34 | **A reset epoch, so records can actually be cleared.** Detailed below |
 | 11c | The Russia relay, if the probe data justifies it. See section 6 |
+| 35 | Bring `legal-screens.jsx` level with `legal/terms.html` and `legal/delete-account.html`. On 21 September the terms gained "a refund or chargeback removes Premium" and "Premium can only be bought where Google Play offers in-app purchases", and the deletion table gained the purchase record. The in-app copy has neither; its privacy text already matches |
 
 ### 34 — reset epoch
 

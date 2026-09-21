@@ -1375,9 +1375,11 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
   and are **deployed on the website** at:
   - https://functionplane.pages.dev/privacy.html
   - https://functionplane.pages.dev/terms.html
-- `legal/WEBSITE-AGENT-PROMPT-PRIVACY-UPDATE.md` is the handoff prompt for the
-  separate website repo. The live pages still serve the 4 May text — see item 17
-  in [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md).
+- The website repo (`qwidzit/Function-Plane-Website`, cloned here as
+  `Function-Plane-Website/`, gitignored) serves copies of the three pages. Edit
+  `legal/`, then copy the file across verbatim — they are meant to be
+  byte-identical apart from line endings. `legal-screens.jsx` is a third,
+  in-app copy and needs a build to change.
 - Support: functionplane.support@gmail.com.
 
 > The website Terms (`legal/terms.html`) use **store-neutral** billing wording,
