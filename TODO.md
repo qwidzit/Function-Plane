@@ -17,12 +17,15 @@ point back at it.
 > refund-sweep secrets and the service-account key, and the store screenshots
 > (re-captured against the authored levels).
 >
-> **Blocking production:** the Google Play Android Developer API is switched
-> off in the service account's Cloud project, so no purchase can be confirmed
+> **Blocking production:** the API is on, but Google refuses the service
+> account for *insufficient permissions*, so no purchase can be confirmed
 > (§4). No test purchase has been made yet — `purchases` is empty.
 >
+> **In Build 3:** a reset of everyone's progress now sticks (item 34, its
+> migration applied). Run it once Build 3 has reached the testers (§3, 16).
+>
 > **Deferred past launch (§7):** the Russia relay, whose premise stopped
-> reproducing, and the reset epoch — unless it goes into Build 3.
+> reproducing.
 
 ## First, the question that decides everything
 
@@ -44,10 +47,10 @@ Needs `versionCode` +1 and a new AAB.
 |---|---|---|
 | ~~35~~ | ~~In-app terms behind `legal/terms.html`~~ | **Done in the repo (25 September).** The terms gained "refunded or charged back removes Premium" and "only where Google Play offers in-app purchases". The legal renderer also split every wrapped bullet into a bullet plus a stray paragraph mid-sentence — visible in Build 2 — and now joins them |
 | ~~37~~ | ~~Load these equations drops a curve's domain~~ | **Done in the repo (25 September).** The run entry stores `domains` beside `mats` and `shifts`, and one function (`rowsFromRun`) turns a run back into rows, so all three restore on the same curve-aligned index. Runs saved before this load unrestricted, as they did; a new win records the domain. `npm test` round-trips a run through JSON and back |
-| 34 | Reset epoch — optional | Only if the closed-test records should not carry into production. Decide first; detailed in §7 |
+| ~~34~~ | ~~Reset epoch~~ | **Done (25 September), and its migration is applied.** A reset now sticks on every device — see §3 item 16 for how and when to run one |
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| — | Bump `sw.js` | `fp-v88` as of the build 3 bump; bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v89` as of the reset epoch; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -78,7 +81,7 @@ player on their next launch. No build, no deploy.
 |---|---|
 | 36 | **Apply `supabase/migrations/20260921_delete_account_completely.sql`.** Not applied as of 25 September — the `profiles_delete_auth_user` trigger does not exist. Until it is, the app's Delete account leaves the email, password hash and `purchases` row behind while the live `delete-account` page says they go. Server-side only, no build: the app already deletes the profile last, `purchases` cascades from `auth.users`, and `profiles_delete` only lets a player delete their own row |
 | — | Delete the `stripe-webhook` edge function. There is no Stripe provider (checklist 10c), and it is deployed with JWT verification off |
-| 16 | ~~Wipe progress, scores and times.~~ **Does not work as written — see 34.** A server-side wipe is undone by any device that still holds local progress: `_syncProgressDown` merges remote with local, local wins on every field, and the merge is uploaded straight back (`accounts.js:168`) |
+| 16 | **Reset progress, scores and times for everyone, once Build 3 is live.** `select public.reset_all_progress();` in the SQL editor. It bumps `game_state.reset_epoch` and deletes every `level_scores` and `progress` row; each Build 3 device clears its own copy the next time it reaches the server and keeps saving locally from there. Premium, purchases and names are untouched. **Run it only after Build 3 has reached the testers:** Build 2 knows nothing of the epoch, so from the moment of a reset every save it makes is refused with a sync-error toast until it updates. Play made offline after a reset and before the device next connects is cleared with the rest |
 | — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
 
 **Checked and clear:**
@@ -108,7 +111,8 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
-| 5 | **Enable the Google Play Android Developer API** in Cloud project 1096366903282 — the one the service account belongs to. Blocks every purchase |
+| ~~5~~ | ~~Enable the Google Play Android Developer API~~ | **Done (25 September).** Google now answers — with *insufficient permissions* (next row) |
+| 5 | **Give the service account its Play permissions.** Google refuses the sweep with "The current user has insufficient permissions to perform the requested operation." Play Console ▸ Users and permissions ▸ the service account ▸ **Account permissions**: *View financial data, orders and cancellation survey responses* and *Manage orders and subscriptions*, with the app included. Changes can take up to 24 h to reach the API |
 | 5 | **Make a test purchase** as a licence tester once the API is on. The first end-to-end run of `play-verify`; a row should appear in `purchases` and the account should show Premium |
 | 26 | Replace the uploaded screenshots with `store-assets/screenshots/01`–`08`, in that order |
 | — | Confirm the listing's **In-app purchases** answer reads **Yes**, and that `premium_lifetime` is **active**, not draft |
@@ -141,59 +145,21 @@ Each of these needs a client change, so each costs a build.
 
 | # | What |
 |---|---|
-| 34 | **A reset epoch, so records can actually be cleared.** Detailed below — or in Build 3, if the decision is made in time |
 | 11c | The Russia relay, if the probe data justifies it. See section 6 |
 
-### 34 — reset epoch
+### 34 — reset epoch (done 25 September)
 
-**Goal.** The server can reset leaderboard records and have it stick, while a
-player's device keeps enough progress to stay playable offline. Today neither
-half is true: a reset cannot be made to stick, and the only thing that would
-make it stick is deleting what the player needs offline.
+A reset could not stick: `level_scores_guard` refuses to lower a record,
+`_mergeProgress` resolves every field toward the better value, and
+`_syncProgressDown` uploads the merge. It is now an epoch — see *Resets* in
+[`ABOUT.md`](./ABOUT.md). The open questions were settled as:
 
-**Three things block it, two of them silently.**
-
-1. `level_scores_guard` clamps every downward write:
-   ```sql
-   new.best_time := least(old.best_time, new.best_time);
-   new.stars     := greatest(old.stars, new.stars);
-   ```
-   Postgres `least()` ignores NULLs, so `update level_scores set best_time =
-   null` reports rows updated and changes nothing. The guard is right to do
-   this — it is what stops a client posting a worse run — but it means no
-   reset can come in over the normal write path.
-2. `_mergeProgress` (`accounts.js:216`) resolves every field toward the better
-   value: `if (ta === null) return tb`. A cleared server field loses to any
-   local value.
-3. `_syncProgressDown` (`accounts.js:168`) merges remote with local, writes
-   the merge to disk, then `_scheduleUpload`s it. A tester signing in does not
-   merely ignore the reset — it **restores and re-uploads** the old records.
-
-**Sketch.** A monotonic `reset_epoch` on the server; the client stores the
-last epoch it has applied. When the server epoch is ahead, the client takes
-the reset branch instead of merging: clear the record fields, keep the
-entitlement fields, store the new epoch, upload the cleared state. Offline it
-simply never sees a new epoch and keeps playing. The server-side clear needs a
-path the guard permits — an epoch-aware exception in `level_scores_guard`, or
-a `security definer` reset function — not a trigger disabled by hand.
-
-**Decide before building:**
-- What "everything" covers. Clearing `best_time` and `best_score` while
-  keeping `stars` is coherent. Clearing stars too is not, unless offline
-  unlocks are allowed to diverge from `profiles.total_stars`, which
-  `sync_total_stars()` derives from `level_scores`, and which pack unlock
-  thresholds read.
-- Whether a reset is global or per-player. Global is what a leaderboard wipe
-  wants; per-player is what a "reset my progress" button would want. They can
-  share a mechanism but not a value.
-- What an offline device shows in the meantime — its own old time, or nothing.
-  A player who beats a cleared record offline and syncs later should not
-  resurrect the pre-reset value.
-
-**Why it matters beyond tidiness.** Records set before a level's board changed
-are not comparable with records set after, and 75 commits of level authoring
-landed between Build 1 and Build 2. Without this, the only honest reset is to
-wait for old installs to disappear.
+- **Everything is cleared**, stars included, so offline unlocks and
+  `profiles.total_stars` never disagree. Premium is not progress and stays.
+- **Global only.** A per-player "reset my progress" would need its own value.
+- **Offline, a device keeps playing on its old progress** and cannot upload
+  it. When it next reaches the server it clears everything, including play
+  made after the reset, which is the price of never resurrecting an old record.
 
 ## Known and accepted
 

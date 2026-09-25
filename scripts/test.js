@@ -1317,6 +1317,27 @@ it('bounds every network call with a timeout', () => {
   }
 });
 
+it('makes a reset stick on every device', () => {
+  // A server wipe never lasted: every device merged its local progress with
+  // the cleared copy, won every field and uploaded it back. The scenario runs
+  // the real accounts.js against a stub that refuses stale epochs the way
+  // 20260925_reset_epoch.sql does.
+  const r = JSON.parse(require('child_process').execFileSync(
+    process.execPath, [path.join(__dirname, 'reset-epoch-scenario.js')], { encoding: 'utf8' }));
+  ok(!r.error, r.error);
+  eq(r.boot.account, null, 'a pre-reset account save is cleared on boot');
+  eq(r.boot.guest, null, 'so is the guest save, which uploads on register');
+  eq(r.boot.queue, null, 'and an upload queued before the reset');
+  eq(r.boot.epoch, 1, 'the device adopts the server epoch');
+  eq(r.boot.staleAccepted, 0, 'nothing from before the reset reaches the server');
+  ok(r.boot.settings, 'settings survive a reset');
+  ok(r.after.local, 'progress after the reset is still saved locally');
+  ok(r.after.uploads.length === 2 && r.after.uploads.every(u => u.rows.every(row => row.epoch === 1)),
+    'and uploads under the new epoch');
+  eq(r.live.local, null, 'a reset while the app is open clears it on the next refused upload');
+  eq(r.live.epoch, 2, 'and the device takes the new epoch');
+});
+
 it('never writes the entitlement from the client', () => {
   // RLS cannot gate one column, so is_premium is revoked from both client
   // roles (20260912_premium_entitlement_guard.sql) and the admin grant goes

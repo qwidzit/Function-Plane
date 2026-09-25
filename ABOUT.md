@@ -1297,6 +1297,21 @@ of best/bestTime, and a **union** of `history` — newest first, de-duplicated b
 the equation strings and capped at ten. A union rather than a pick: two devices
 holding different answers to the same level should end up holding both.
 
+**Resets.** Because every merge moves toward the better value, clearing the
+server alone never lasted: the first device to sync won every field and
+uploaded it back. `game_state.reset_epoch` (`20260925_reset_epoch.sql`)
+counts resets, every `progress` and `level_scores` write carries the epoch
+its data was earned under, and a trigger refuses anything older. A device
+that meets a newer epoch (`_checkEpoch`, on sign-in, on a guest boot, and
+on any refused upload) deletes the progress it holds for every account and
+the guest, then carries on saving locally as before. The epoch is stamped
+when an upload is scheduled, not when it is sent, so a reset landing in
+between cannot relabel old progress. Premium, purchases and names are not
+progress and are untouched. `select public.reset_all_progress();` from the
+SQL editor is the reset; the API cannot call it. `npm test` runs the real
+`accounts.js` against a stub that enforces the epoch
+(`scripts/reset-epoch-scenario.js`).
+
 ## Achievements
 
 **Every achievement is a data row** — there is no such thing as a hard-coded

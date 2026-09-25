@@ -14,6 +14,7 @@
   const PROFILE_PREFIX  = 'fp-profile-';
   const LAST_USER_KEY   = 'fp-last-user';
   const GUEST_KEY       = 'fp-progress';
+  const EPOCH_KEY       = 'fp-epoch';
 
   // Module-level cache — keeps getActive() / getActiveProgress() synchronous
   let _sb          = null;   // supabase client
@@ -104,8 +105,12 @@
       return;
     }
     if (session) _adoptSession(session.user, true);
-    else if (cached) { _forgetAccount(); }
-    else notify();
+    else {
+      if (cached) _forgetAccount(); else notify();
+      // A guest's progress uploads the moment they register, so it has to
+      // follow a reset too.
+      _checkEpoch();
+    }
 
     // Keep the cache in sync when auth state changes (sign-in / sign-out /
     // token refresh). Deliberately not an async callback: supabase-js runs
@@ -146,9 +151,46 @@
     } catch (e) { _emitSyncError(e.message); }
 
     if (!download) return;
-    try { await _syncProgressDown(user.id); _flushQueue(); }
+    try { await _checkEpoch(); await _syncProgressDown(user.id); _flushQueue(); }
     catch (e) { _emitSyncError(e.message); }
   }
+
+  // ── Reset epoch ───────────────────────────────────────────────────────────
+  // The server counts resets (game_state.reset_epoch, 20260925_reset_epoch.sql)
+  // and refuses progress from an older one. A device that meets a newer epoch
+  // clears the progress it holds from before the reset — every account's and
+  // the guest's — and keeps saving locally from there. Merging it with the
+  // cleared server copy instead would win every field and upload it straight
+  // back, which is why a plain server-side wipe never stuck.
+  const _epoch = () => readJSON(EPOCH_KEY, 0);
+
+  async function _checkEpoch() {
+    if (!_sb) return;
+    let server;
+    try {
+      const { data, error } = await _withTimeout(
+        _sb.from('game_state').select('reset_epoch').single(), 'Reset check');
+      if (error || !data) return;
+      server = data.reset_epoch;
+    } catch { return; }   // offline: the server refuses stale uploads anyway
+    if (server <= _epoch()) return;
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k === GUEST_KEY || k.startsWith(PROGRESS_PREFIX)) localStorage.removeItem(k);
+      }
+      localStorage.removeItem(QUEUE_KEY);
+      localStorage.removeItem(LB_KEY);
+    } catch {}
+    writeJSON(EPOCH_KEY, server);
+    if (_currentUser) {
+      _currentUser.totalStars = 0;
+      writeJSON(profileKey(_currentUser.id), _currentUser);
+    }
+    notify();
+  }
+
+  const _isStale = err => /stale_epoch/.test(err?.message || '');
 
   async function _fetchProfile(user) {
     if (!_sb) return null;
@@ -358,9 +400,12 @@
     if (_sb && _currentUser) _scheduleUpload(_currentUser.id, progress);
   }
 
+  // The epoch is taken when the progress is, not when it is sent: a reset
+  // landing in between must not relabel old progress as new.
   function _scheduleUpload(userId, progress) {
+    const epoch = _epoch();
     clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(() => _uploadProgress(userId, progress), 1500);
+    _syncTimer = setTimeout(() => _uploadProgress(userId, progress, epoch), 1500);
   }
 
   // ── Offline upload queue ──────────────────────────────────────────────────
@@ -371,8 +416,8 @@
 
   const QUEUE_KEY = 'fp-pending-upload';
 
-  function _queue(userId, progress) {
-    writeJSON(QUEUE_KEY, { userId, progress, ts: Date.now() });
+  function _queue(userId, progress, epoch) {
+    writeJSON(QUEUE_KEY, { userId, progress, epoch, ts: Date.now() });
   }
   function _clearQueue() { try { localStorage.removeItem(QUEUE_KEY); } catch {} }
   function _readQueue()  { return readJSON(QUEUE_KEY, null); }
@@ -382,7 +427,7 @@
     if (!q || !_sb || !_currentUser || q.userId !== _currentUser.id) return;
     if (!navigator.onLine) return;
     try {
-      await _uploadProgress(q.userId, q.progress, /*fromQueue*/ true);
+      await _uploadProgress(q.userId, q.progress, q.epoch ?? 0);
       _clearQueue();
     } catch {/* leave queued */}
   }
@@ -393,17 +438,18 @@
     window.addEventListener('online', () => { _flushQueue(); });
   }
 
-  async function _uploadProgress(userId, progress, fromQueue = false) {
-    if (!_sb) { _queue(userId, progress); return; }
-    if (!navigator.onLine) { _queue(userId, progress); return; }
+  async function _uploadProgress(userId, progress, epoch) {
+    if (!_sb) { _queue(userId, progress, epoch); return; }
+    if (!navigator.onLine) { _queue(userId, progress, epoch); return; }
     try {
       const totalStars = _countStars(progress);
 
       // A stall here would leave progress neither saved nor queued; the
       // timeout throws instead, so the catch below queues it for the next try.
       const pRes = await _withTimeout(
-        _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
+        _sb.from('progress').upsert({ user_id: userId, data: progress, epoch, updated_at: new Date().toISOString() }),
         'Progress upload');
+      if (_isStale(pRes.error)) { await _checkEpoch(); return; }
       if (pRes.error) console.warn('FP_AUTH: progress upsert error', pRes.error);
 
       // Upsert individual completed level rows (drives per-level leaderboards).
@@ -423,6 +469,7 @@
               best_score: score, stars,
               best_time: t == null ? null : t,
               equations: Array.isArray(eqs) ? eqs : null,
+              epoch,
             });
           }
         });
@@ -439,6 +486,7 @@
           ({ error: upErr } = await upsert(rows));
           if (!upErr) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
         }
+        if (_isStale(upErr)) { await _checkEpoch(); return; }
         if (upErr) {
           console.warn('FP_AUTH: level_scores upsert error', upErr);
           _emitSyncError('Could not save your score: ' + (upErr.message || 'unknown error'));
@@ -452,7 +500,7 @@
       if (_currentUser) _currentUser.totalStars = totalStars;
     } catch (e) {
       console.warn('FP_AUTH: upload error', e);
-      _queue(userId, progress);  // try again next time we're online
+      _queue(userId, progress, epoch);  // try again next time we're online
     }
   }
 

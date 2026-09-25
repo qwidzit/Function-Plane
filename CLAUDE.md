@@ -233,6 +233,11 @@ believing it.
   `score` included and always. Adding a param to `ACH_KINDS` means applying its
   migration in the same breath — and updating `ACH_SQL` in `admin-screen.jsx`,
   which is the bootstrap someone runs on a fresh project.
+- Every save fails with `stale_epoch` → the server was reset and this
+  device's progress predates it. That refusal is the reset working, not a
+  bug: `_checkEpoch` clears local progress on it. A new write path to
+  `progress` or `level_scores` has to send `epoch`, stamped when the data
+  was taken (see *Resets* in `ABOUT.md`).
 - `profiles` is read-only to the client. Anything that needs to write it wants
   a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
   adding a column and PATCHing it from the app will fail with a permission
