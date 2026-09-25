@@ -5,23 +5,24 @@ Everything still to do, grouped by **where you do it**.
 area, with the history of how each item got to where it is; the numbers below
 point back at it.
 
-> ## Where the release stands — 20 September 2026
+> ## Where the release stands — 25 September 2026
 >
-> **Build 2 is signed, uploaded and live on the closed track.** `versionCode`
-> 2, `versionName` 1.0, Play Billing included and verified present in the
-> bundle. Closed testing is on **day 11 of the 14** Google requires.
+> **Closed testing is finished.** Build 2 (`versionCode` 2, Play Billing
+> included) is live on the closed track. Build 3 is the last upload before
+> production.
 >
-> **Done:** the store product (`premium_lifetime`, one-time, activated), the
-> Google Cloud service account and its key, both Supabase secrets, and licence
-> testing. The test purchase itself is still to run — it is the first thing
-> that exercises `GOOGLE_SERVICE_ACCOUNT` end to end.
+> **Checked and done since the 20th:** the website's legal pages (served
+> byte-identical to `legal/`), Data safety (crash logs, purchase history), the
+> content rating re-take, the keystore backup, the low-end device pass, both
+> refund-sweep secrets and the service-account key, and the store screenshots
+> (re-captured against the authored levels).
 >
-> **Left:** the App content forms (§4) and the website legal resync (§5).
-> Nothing left needs another build.
+> **Blocking production:** the Google Play Android Developer API is switched
+> off in the service account's Cloud project, so no purchase can be confirmed
+> (§4). No test purchase has been made yet — `purchases` is empty.
 >
-> **Deferred to Build 3 (§7):** the Russia relay, whose premise stopped
-> reproducing, and a reset epoch, without which no leaderboard wipe can
-> actually stick.
+> **Deferred past launch (§7):** the Russia relay, whose premise stopped
+> reproducing, and the reset epoch — unless it goes into Build 3.
 
 ## First, the question that decides everything
 
@@ -30,33 +31,23 @@ syncs all three from Supabase on every boot and on every reconnect. The baked
 `overrides-snapshot.js` only serves the first offline boot before a sync lands.
 
 So a level goal, a hint, a pack's rule, an achievement threshold or a pack's
-visibility can be changed from the admin panel at any time and reaches testers
+visibility can be changed from the admin panel at any time and reaches players
 who already installed. Only §1 needs an upload.
 
 ---
 
-## 1. In the build
+## 1. In the build — Build 3
 
-Needs `versionCode` +1 and a new AAB. Nothing else on this page does.
+Needs `versionCode` +1 and a new AAB.
 
 | # | What | Note |
 |---|---|---|
-| 5 | **Install Play Billing** | Decided: it ships. On your machine: `npm install capacitor-plugin-cdv-purchase` then `npx cap sync android`. Then check the merged `android/app/src/main/AndroidManifest.xml` contains `com.android.vending.BILLING` — without it the Console keeps the product page greyed out. Nothing to do in this repo; `billing.js` is already written against it. |
-| ~~29~~ | ~~`FP_STORE_LINKS.android`~~ | **Done.** Set to the appId's listing URL. |
-| ~~17a~~ | ~~The privacy policy had no purchase wording~~ | **Done.** The in-app copy only changes in a build, so it went in this one. The website half is §5. |
-| 23 | **Bump `versionCode` to 2** | The repo half is done — `FP_BUILD` and both screen strings read `build 2`. `versionCode` lives in `android/app/build.gradle`, which is gitignored and local to you: set it to **2** before the upload. `versionName` stays `"1.0"`. It must increase on every upload, forever. |
-| 4 | **`npm run snapshot:data`** | The last content step, after every admin-panel edit is final. Only from a networked machine — the sandbox proxy refuses the Supabase host. More than a new `Generated:` line means the database moved since. |
-| — | Bump `sw.js` | `const CACHE = 'fp-vNN'`. Web players stay on the old app otherwise. |
-
-Anything the phone pass turns up that is a *code* problem also lands here. A
-level that cannot be cleared because of its goals does not — that is §2.
-
-**The order that matters.** Play will not show you the in-app product page
-until it has seen a build that declares the billing permission. So it goes:
-install the plugin → build → upload → *then* create `premium_lifetime`,
-set up the service account, add the secrets, and test as a licence tester.
-The Console work in §4 marked "only if billing ships" all sits after the
-upload, not before it.
+| ~~35~~ | ~~In-app terms behind `legal/terms.html`~~ | **Done in the repo (25 September).** The terms gained "refunded or charged back removes Premium" and "only where Google Play offers in-app purchases". The legal renderer also split every wrapped bullet into a bullet plus a stray paragraph mid-sentence — visible in Build 2 — and now joins them |
+| 37 | **Load these equations drops a curve's domain** | Found 25 September. `loadFromHistory` sets `domain: null` and the run entry never stores one, so a winning run that cut a curve reloads as the whole curve and usually fails. Store `domains` beside `mats` and `shifts` and restore them. Recommended for Build 3 |
+| 34 | Reset epoch — optional | Only if the closed-test records should not carry into production. Decide first; detailed in §7 |
+| 23 | **Bump to build 3** | `FP_BUILD` and both screen strings (`main-screen.jsx`, `settings-screen.jsx`) to 3; `versionCode` **3** in the gitignored `android/app/build.gradle`. `versionName` stays `"1.0"` |
+| 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
+| — | Bump `sw.js` | Already `fp-v86` for the legal change; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -77,82 +68,81 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
+| 2 | Re-tune anything closed testing found. Goals are the common case and they live here |
 | 3 | Raise *Impossible?* (`stars_210`) if a hidden pack is ever released. 210 is 70 levels × 3 — release more and the achievement stops meaning "a perfect game" |
-| 2 | Re-tune anything the phone pass found. Goals are the common case and they live here |
 | 1d | Unhide Trigonometry, Exponential, Inversion and Roman VI–X once they are authored. All are empty today — v2, not a launch blocker |
 
 ## 3. In Supabase
 
 | # | What |
 |---|---|
-| 16 | ~~Wipe progress, scores and times.~~ **Does not work as written — see 34.** A server-side wipe is undone by any device that still holds local progress: `_syncProgressDown` merges remote with local, local wins on every field, and the merge is uploaded straight back (`accounts.js:168`). It clears the board only for players installing fresh, which is true at production rollout and not before. Testers already holding the app keep their records regardless |
-| 5 | `GOOGLE_SERVICE_ACCOUNT` — Edge Function secret, the whole JSON key on one line |
-| 8b | `REFUND_SWEEP_SECRET` in **two** places: the Edge Function secret, and the database vault via `select vault.create_secret('<same value>', 'refund_sweep_secret');`. Until both exist the nightly sweep returns without calling anything |
+| 36 | **Apply `supabase/migrations/20260921_delete_account_completely.sql`.** Not applied as of 25 September — the `profiles_delete_auth_user` trigger does not exist. Until it is, the app's Delete account leaves the email, password hash and `purchases` row behind while the live `delete-account` page says they go. Server-side only, no build: the app already deletes the profile last, `purchases` cascades from `auth.users`, and `profiles_delete` only lets a player delete their own row |
+| — | Delete the `stripe-webhook` edge function. There is no Stripe provider (checklist 10c), and it is deployed with JWT verification off |
+| 16 | ~~Wipe progress, scores and times.~~ **Does not work as written — see 34.** A server-side wipe is undone by any device that still holds local progress: `_syncProgressDown` merges remote with local, local wins on every field, and the merge is uploaded straight back (`accounts.js:168`) |
 | — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
 
-**Checked and clear (20 September):**
+**Checked and clear:**
 
-- **11 — the leaderboard migration is live.** `level_scores_guard` plus the three
-  `level_scores_stars_*` triggers exist, and `sync_total_stars`,
+- **5 / 8b — secrets (25 September).** `GOOGLE_SERVICE_ACCOUNT` and both halves
+  of `REFUND_SWEEP_SECRET` are set: the nightly `play-refund-sweep` passes the
+  function's own check and reaches Google, which is where it fails (§4).
+- **4 — the snapshot (25 September).** Generated 10 s after the last
+  `level_overrides` edit; nothing has changed since.
+- **11 — the leaderboard migration is live (20 September).** `level_scores_guard`
+  plus the three `level_scores_stars_*` triggers exist, and `sync_total_stars`,
   `admin_set_premium` and `void_purchase` are all present.
-- **13 — the RLS sweep passes.** RLS is on for all ten tables. Overrides and
-  `news` are read-all / admin-write; `progress` and `push_subscriptions` are
-  owner-only; `level_scores` inserts and updates only as `auth.uid() = user_id`
-  and deletes own-or-admin; `client_errors` is insert-for-anyone, read-admin,
-  with no update or delete path; `purchases` carries no policy at all, so only
-  the edge functions' service role touches it. `profiles` has SELECT, INSERT and
-  DELETE policies and **no UPDATE** — read-only to clients, as intended. Two
-  things worth knowing: the table holds no email (id, name, avatar,
-  total_stars, is_premium, created_at), so the open read policy leaks nothing;
-  and the whole admin gate rests on `profiles.name = 'Test Account'`, which
-  holds because `profiles_name_lower_key` makes the name unique
-  case-insensitively and no client can UPDATE one. The `profiles_insert` policy
-  is dead — there is no INSERT grant, and rows come from the
-  `on_auth_user_created` trigger.
-- **14 — email confirmation is off.** All six accounts have
-  `email_confirmed_at` within 0 s of `created_at`, which only happens on
-  auto-confirm.
+- **13 — the RLS sweep passes (20 September).** RLS is on for all ten tables.
+  Overrides and `news` are read-all / admin-write; `progress` and
+  `push_subscriptions` are owner-only; `level_scores` inserts and updates only
+  as `auth.uid() = user_id` and deletes own-or-admin; `client_errors` is
+  insert-for-anyone, read-admin, with no update or delete path; `purchases`
+  carries no policy at all, so only the edge functions' service role touches
+  it. `profiles` has SELECT, INSERT and DELETE policies and **no UPDATE** —
+  read-only to clients, as intended. The table holds no email, so the open read
+  policy leaks nothing; and the whole admin gate rests on
+  `profiles.name = 'Test Account'`, which holds because `profiles_name_lower_key`
+  makes the name unique case-insensitively and no client can UPDATE one.
+- **14 — email confirmation is off (20 September).**
 
-## 4. In Play Console
+## 4. In Google Cloud and Play Console
 
 | # | What |
 |---|---|
-| 30 | Data safety ▸ App info and performance ▸ **Crash logs**: collected, not shared, **not** linked to the user |
-| 27b | Data safety ▸ Financial info ▸ **Purchase history**: collected, not shared, **linked** to the user, optional, app functionality. New — the app keeps a purchase row against the account. Exact answers in `store-assets/LISTING.md` |
-| 26 | Re-capture the screenshots against the authored boards. Re-shoot the sandbox with curves on the plane before using it at all |
-| 28 | Re-take the content rating questionnaire. The digital-purchases answer is Yes now and the filed rating was taken on a No |
-| — | The listing's **In-app purchases** answer becomes **Yes** |
-| 5 | Create **`premium_lifetime`** at €4.90 and **activate** it — a draft product cannot be bought, including by you. Play only offers the product page once it has seen a build declaring the billing permission, so **this comes after the upload, not before** |
-| 5 | Google Cloud → service account → JSON key. Play Console ▸ Users and permissions → invite that address, grant *View financial data* and *Manage orders and subscriptions*. **Allow up to 24 h to propagate** — until it does, every verification returns 401 and the app says the purchase could not be confirmed |
-| 5 | Play Console ▸ Setup ▸ **License testing** → add your testers, so their purchases complete for free |
-| — | Once build 1 clears review: copy the opt-in link from the track's Testers tab, get to 12+ opted-in testers, hold 14 continuous days, then apply for production access. Roll out staged, ~20% first |
+| 5 | **Enable the Google Play Android Developer API** in Cloud project 1096366903282 — the one the service account belongs to. Blocks every purchase |
+| 5 | **Make a test purchase** as a licence tester once the API is on. The first end-to-end run of `play-verify`; a row should appear in `purchases` and the account should show Premium |
+| 26 | Replace the uploaded screenshots with `store-assets/screenshots/01`–`08`, in that order |
+| — | Confirm the listing's **In-app purchases** answer reads **Yes**, and that `premium_lifetime` is **active**, not draft |
+| — | Upload Build 3 to the closed track, then apply for production access and roll out staged, ~20% first |
+
+**Done:** 30 and 27b (Data safety), 28 (content rating re-take), the product,
+the service account and its Play permissions, licence testing.
 
 ## 5. On the website
 
 | # | What |
 |---|---|
-| 17 | **Committed in the website repo on 21 September, not yet pushed.** `privacy.html`, `terms.html` and `delete-account.html` copied from `legal/`, and the homepage's "talks only to its own backend" now says Premium goes through Google Play. Push it, then fetch all three pages and compare the served HTML against `legal/` — a previous deploy returned the homepage with a 200, so a status code proves nothing. Only then send the App content changes for review: reviewers read the privacy URL against the Data safety form |
-| 36 | **Account deletion does not delete the sign-in account.** The app deletes `progress`, `level_scores` and `profiles` but cannot touch `auth.users`, so the email, password hash and any `purchases` row (which cascades from `auth.users`) survive — while `delete-account.html` says all of them go. `supabase/migrations/20260921_delete_account_completely.sql` fixes it server-side with no build: a trigger on profile deletion removes the auth user. Written, not yet applied |
+| 38 | **The homepage still describes closed testing.** It says "Not on Google Play yet — it is entering closed testing", shows a "Soon on Google Play" badge, and offers the APK as the way to install. Point it at `https://play.google.com/store/apps/details?id=app.functionplane` the day production goes live |
+
+**Done:** 17 — `privacy`, `terms` and `delete-account` are served byte-identical
+to `legal/` (checked 25 September).
 
 ## 6. On your machine
 
 | # | What |
 |---|---|
-| 21 | **Back the keystore up offline.** Nothing else on this page is irreversible |
-| 31 | Test on a real low-end device: frame rate, touch targets, the custom keyboard, cold-start offline |
-| 11c | **Does not currently reproduce (20 September).** `edge_logs` for `cf.country = 'RU'`, 24 h: 29 POSTs, 28 of them 2xx — `level_scores`, `progress` and `auth/v1/token` all writing. A 16,631-byte GET returned intact, above the 16,384 cap Russian ISPs apply to interfered traffic. Deferred to Build 3; run `fp-probe.bat` across two ISPs for a few days before buying anything. Only one Russian IP has ever appeared in the logs, so this proves the developer's connection works and nothing about anyone else's. Background in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
-| — | Build and upload: `npm test`, `npx cap sync android`, `gradlew bundleRelease`. Steps in [`COMMANDS.md`](./COMMANDS.md) |
+| — | Build and upload Build 3: `npm test`, `npx cap sync android`, `gradlew bundleRelease`. Steps in [`COMMANDS.md`](./COMMANDS.md) |
+| 11c | Deferred. Russian writes arrived normally on 20 September; run `fp-probe.bat` across two ISPs for a few days before buying anything. Background in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
 
-## 7. Build 3
+**Done:** 21 (keystore backed up offline), 31 (low-end device pass).
 
-Each of these needs a client change, so each costs a build. Nothing here
-ships in Build 2.
+## 7. After launch
+
+Each of these needs a client change, so each costs a build.
 
 | # | What |
 |---|---|
-| 34 | **A reset epoch, so records can actually be cleared.** Detailed below |
+| 34 | **A reset epoch, so records can actually be cleared.** Detailed below — or in Build 3, if the decision is made in time |
 | 11c | The Russia relay, if the probe data justifies it. See section 6 |
-| 35 | Bring `legal-screens.jsx` level with `legal/terms.html` and `legal/delete-account.html`. On 21 September the terms gained "a refund or chargeback removes Premium" and "Premium can only be bought where Google Play offers in-app purchases", and the deletion table gained the purchase record. The in-app copy has neither; its privacy text already matches |
 
 ### 34 — reset epoch
 

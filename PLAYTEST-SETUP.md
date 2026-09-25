@@ -543,11 +543,10 @@ search box at the top of the Console finds pages by name.
     |---|---|---|
     | App icon, 512×512 PNG | `store-assets/icon-512.png` | required; already the right size, PNG, and fully opaque |
     | Feature graphic, 1024×500 PNG | `store-assets/feature-graphic-1024x500.png` | required |
-    | Phone screenshots | `store-assets/screenshots/` | minimum 2, upload 4–6 |
+    | Phone screenshots | `store-assets/screenshots/` | minimum 2, maximum 8 |
 
-    Screenshot order, gameplay first: `04-level`, `05-run`, `03-levels`,
-    `06-howtoplay`, `01-main`. Skip `08-sandbox` until it can be re-shot with
-    curves on the plane — an empty plane reading `EQUATIONS 0` sells nothing.
+    Upload `01` to `08` in file order, gameplay first. `09-howtoplay` and
+    `10-achievements` are spares, since Play takes eight.
     **Save** at the bottom.
 
     The descriptions need plain text, so paste them from

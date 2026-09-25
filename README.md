@@ -8,9 +8,9 @@ Fewer and simpler equations score better.
 **Play it at [functionplane.pages.dev](https://functionplane.pages.dev).**
 
 <p align="center">
-  <img src="store-assets/screenshots/04-level.png" alt="A level: stars on a coordinate plane and the equations that reach them" width="30%">
-  <img src="store-assets/screenshots/05-run.png"   alt="The ball running the track" width="30%">
-  <img src="store-assets/screenshots/08-sandbox.png" alt="Sandbox: graphing with no goals" width="30%">
+  <img src="store-assets/screenshots/02-level.png"   alt="A level: stars, fans and zero-gravity zones on a coordinate plane" width="30%">
+  <img src="store-assets/screenshots/01-run.png"     alt="The ball running the track" width="30%">
+  <img src="store-assets/screenshots/05-sandbox.png" alt="Sandbox: graphing with no goals" width="30%">
 </p>
 
 ## Running it

@@ -283,13 +283,12 @@ All copy is in [`LISTING.md`](./LISTING.md); assets are in this folder.
 | Full description (4000) | `LISTING.md` ▸ *Full description* |
 | App icon (512×512, 32-bit PNG) | `icon-512.png` |
 | Feature graphic (1024×500) | `feature-graphic-1024x500.png` |
-| Phone screenshots (min 2) | `screenshots/` — suggested `01-main`, `05-run`, `04-level`, `03-levels`, `06-howtoplay`, `08-sandbox` |
+| Phone screenshots (min 2, max 8) | `screenshots/` — `01` to `08` in file order; `09` and `10` are spares |
 | Tablet screenshots | optional; skipping them limits tablet visibility, nothing else |
 | Video | none |
 
-Do not put a level count in the description until the levels are authored
-(release checklist item 1), and re-capture the screenshots then — the current
-set shows placeholder levels.
+The screenshots were re-captured on 25 September 2026 against the authored
+levels. Re-capture them whenever a pictured board or screen changes.
 
 ---
 

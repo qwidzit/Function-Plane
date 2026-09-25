@@ -7,9 +7,9 @@ literally true of the shipped app — if you change the app, change this.
 Assets that go with it are in this folder:
 
 - `feature-graphic-1024x500.png` — the required feature graphic.
-- `screenshots/` — eight 1080×1920 phone screenshots captured from the running
-  app. Play needs a minimum of 2; 4–6 is the useful number. Suggested pick:
-  `01-main`, `05-run`, `04-level`, `03-levels`, `06-howtoplay`, `08-sandbox`.
+- `screenshots/` — ten 1080×1920 phone screenshots captured from the running
+  app against the authored levels. Play takes 2 to 8: upload `01` to `08` in
+  file order, gameplay first. `09-howtoplay` and `10-achievements` are spares.
 
 - `icon-512.png` — the 512×512 app icon the Console asks for, resized from
   `assets/icon.png`. `@capacitor/assets` only writes mipmaps up to 192px, so
