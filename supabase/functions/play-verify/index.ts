@@ -1,10 +1,12 @@
 // Function Plane — verify a Google Play purchase and grant premium.
 //
 // The app sends a purchaseToken; this asks the Play Developer API whether it
-// is real, records it, flips is_premium with the service-role key, and only
-// then acknowledges it to Google. The client is never believed: is_premium is
-// revoked from both client roles (20260912_premium_entitlement_guard.sql), so
-// this function and the Stripe webhook are the only writers.
+// is real, claims and grants it through grant_play_purchase, and only then
+// acknowledges it to Google. The client is never believed: is_premium is
+// revoked from both client roles (20260912_premium_entitlement_guard.sql).
+// Claiming happens in one database transaction (20260926_purchase_integrity.sql):
+// two accounts verifying the same token at once cannot both win, and a
+// refunded token is never granted again, even to a new account.
 //
 // Env (Supabase dashboard → Edge Functions → Secrets):
 //   GOOGLE_SERVICE_ACCOUNT  the whole service-account JSON, one line
@@ -98,14 +100,6 @@ Deno.serve(async req => {
       return json({ error: 'No purchase token' }, 400);
     }
 
-    // One purchase, one account. Without this the same token, replayed from a
-    // second account, would unlock both.
-    const { data: existing } = await admin
-      .from('purchases').select('user_id').eq('token', purchaseToken).maybeSingle();
-    if (existing && existing.user_id !== user.id) {
-      return json({ error: 'That purchase is already attached to another account' }, 409);
-    }
-
     const token   = await googleAccessToken();
     const url     = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}`
                   + `/purchases/products/${PRODUCT_ID}/tokens/${encodeURIComponent(purchaseToken)}`;
@@ -122,27 +116,22 @@ Deno.serve(async req => {
       return json({ premium: false, pending: receipt.purchaseState === 2 }, 200);
     }
 
-    const { error: recErr } = await admin.from('purchases').upsert({
-      token:      purchaseToken,
-      user_id:    user.id,
-      platform:   'play',
-      product_id: PRODUCT_ID,
-      // Clears an earlier void: Google issued this token again, so whatever
-      // the refund sweep marked is no longer true.
-      voided_at:  null,
-    }, { onConflict: 'token' });
-    if (recErr) return json({ error: recErr.message }, 500);
+    const { data: claim, error: claimErr } = await admin.rpc('grant_play_purchase', {
+      p_token: purchaseToken, p_user: user.id, p_product: PRODUCT_ID, p_order: receipt.orderId ?? null,
+    });
+    if (claimErr) return json({ error: claimErr.message }, 500);
+    if (claim === 'taken')  return json({ error: 'That purchase is already attached to another account' }, 409);
+    if (claim === 'voided') return json({ error: 'That purchase was refunded' }, 403);
 
-    const { error: grantErr } = await admin
-      .from('profiles').update({ is_premium: true }).eq('id', user.id);
-    if (grantErr) return json({ error: grantErr.message }, 500);
-
+    // The client's finish() acknowledges too, so a failure here heals on the
+    // next launch — but it should not pass silently.
     if (receipt.acknowledgementState === 0) {
-      await fetch(`${url}:acknowledge`, {
+      const ack = await fetch(`${url}:acknowledge`, {
         method:  'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body:    '{}',
       });
+      if (!ack.ok) console.error('play-verify: acknowledge failed', ack.status, await ack.text());
     }
 
     return json({ premium: true });

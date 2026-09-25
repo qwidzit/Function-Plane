@@ -16,9 +16,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const PACKAGE_NAME = 'app.functionplane';
-// Google keeps voided purchases for 30 days. A week is a wide enough net for a
-// daily job to survive a few failed runs, and short enough to stay one page.
-const WINDOW_DAYS = 7;
+// Google keeps voided purchases for 30 days; asking for all of them means a
+// sweep that failed for weeks still catches every refund once it works again.
+// void_purchase ignores tokens it has already voided, so re-reading is free.
+const WINDOW_DAYS = 30;
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -90,8 +91,8 @@ Deno.serve(async req => {
     let pageToken = '';
     let seen = 0, revoked = 0;
 
-    // type=1 asks for refunds *and* revocations, not only user-initiated
-    // cancellations — an order Google reverses for fraud counts the same here.
+    // type=1 lists voided in-app products and subscriptions alike; type=0
+    // would leave out anything that is not a one-time product.
     do {
       const url = new URL(
         `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/purchases/voidedpurchases`,
