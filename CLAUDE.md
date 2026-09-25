@@ -121,8 +121,9 @@ believing it.
   shift only takes effect through `parseEquation(expr, shift)`, which wraps
   the compiled function. Anything that builds an equation object — the panel's
   `update`, a loaded run, a studio file — has to pass the shift, and the run
-  entry has to carry it (`shifts`, beside `mats`) or *Load these equations*
-  brings back a curve in the wrong place.
+  entry has to carry every setting (`curveSettings` / `rowsFromRun`) or
+  *Load these equations* brings back a different curve. The domain was
+  missed exactly this way until Build 3.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.

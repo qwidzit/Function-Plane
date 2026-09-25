@@ -3001,30 +3001,11 @@ function LevelScreen({
       } catch {}
     }
   };
-  const loadFromHistory = (exprs, mats = [], shifts = []) => {
+  const loadFromHistory = (exprs, mats, shifts, domains) => {
     setHistoryOpen(false);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
-      let curve = 0;
-      const rows = exprs.map((expr, i) => {
-        // mats and shifts are aligned to the curves, not to the slider rows
-        // ahead of them.
-        const isCurve = !!compileEquation(expr).fn;
-        const shift = isCurve ? shifts[curve] || null : null;
-        const material = isCurve ? mats[curve++] || null : null;
-        return {
-          id: i + 1,
-          expr,
-          ...parseEquation(expr, shift),
-          material,
-          shift,
-          color: EQ_COLORS[(pre.length + i) % EQ_COLORS.length],
-          visible: true,
-          domain: null,
-          preplaced: false
-        };
-      });
-      return [...pre, ...rows];
+      return [...pre, ...rowsFromRun(exprs, mats, shifts, domains, pre.length)];
     });
   };
 
@@ -3138,8 +3119,7 @@ function LevelScreen({
         // still there after a reinstall or on another device.
         const runEntry = {
           exprs,
-          mats: curves.map(e => e.material || null),
-          shifts: curves.map(e => e.shift || null),
+          ...curveSettings(curves),
           score: sc,
           time: finishT,
           stars: starCount(rating),
@@ -3763,6 +3743,39 @@ function HintPopup({
 // ─── History popup ────────────────────────────────────────────────────────
 // Successful runs ride in the progress blob, so they merge and upload with
 // every other score and are still there on the next device.
+
+// Everything a row's ⋯ settings hold, per curve. A setting missing here or in
+// rowsFromRun reloads as the bare curve, and a run that needed it no longer
+// clears.
+function curveSettings(curves) {
+  return {
+    mats: curves.map(e => e.material || null),
+    shifts: curves.map(e => e.shift || null),
+    domains: curves.map(e => e.domain || null)
+  };
+}
+
+// The settings are aligned to the curves, not to the slider rows ahead of
+// them. A run saved before a setting existed has no array for it: null.
+function rowsFromRun(exprs, mats, shifts, domains, colorOffset = 0) {
+  let curve = 0;
+  return exprs.map((expr, i) => {
+    const c = compileEquation(expr).fn ? curve++ : -1;
+    const at = list => c >= 0 && list?.[c] || null;
+    const shift = at(shifts);
+    return {
+      id: i + 1,
+      expr,
+      ...parseEquation(expr, shift),
+      material: at(mats),
+      shift,
+      domain: at(domains),
+      color: EQ_COLORS[(colorOffset + i) % EQ_COLORS.length],
+      visible: true,
+      preplaced: false
+    };
+  });
+}
 function HistoryPopup({
   entries = [],
   onClose,
@@ -3891,7 +3904,7 @@ function HistoryPopup({
   }, /*#__PURE__*/React.createElement(MathExpr, {
     src: expr
   })))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => onLoad(e.exprs, e.mats, e.shifts),
+    onClick: () => onLoad(e.exprs, e.mats, e.shifts, e.domains),
     style: {
       width: '100%',
       height: 36,
@@ -3907,6 +3920,8 @@ window.LevelScreen = LevelScreen;
 window.parseEquation = parseEquation;
 window.computeScore = computeScore;
 window.starRating = starRating;
+window.curveSettings = curveSettings;
+window.rowsFromRun = rowsFromRun;
 // Shared with the sandbox so it runs the same plane, panel and physics as a
 // real level rather than a lookalike that can drift.
 window.PlaneFiller = PlaneFiller;

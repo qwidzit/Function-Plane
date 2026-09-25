@@ -43,11 +43,11 @@ Needs `versionCode` +1 and a new AAB.
 | # | What | Note |
 |---|---|---|
 | ~~35~~ | ~~In-app terms behind `legal/terms.html`~~ | **Done in the repo (25 September).** The terms gained "refunded or charged back removes Premium" and "only where Google Play offers in-app purchases". The legal renderer also split every wrapped bullet into a bullet plus a stray paragraph mid-sentence — visible in Build 2 — and now joins them |
-| 37 | **Load these equations drops a curve's domain** | Found 25 September. `loadFromHistory` sets `domain: null` and the run entry never stores one, so a winning run that cut a curve reloads as the whole curve and usually fails. Store `domains` beside `mats` and `shifts` and restore them. Recommended for Build 3 |
+| ~~37~~ | ~~Load these equations drops a curve's domain~~ | **Done in the repo (25 September).** The run entry stores `domains` beside `mats` and `shifts`, and one function (`rowsFromRun`) turns a run back into rows, so all three restore on the same curve-aligned index. Runs saved before this load unrestricted, as they did; a new win records the domain. `npm test` round-trips a run through JSON and back |
 | 34 | Reset epoch — optional | Only if the closed-test records should not carry into production. Decide first; detailed in §7 |
 | 23 | **Bump to build 3** | `FP_BUILD` and both screen strings (`main-screen.jsx`, `settings-screen.jsx`) to 3; `versionCode` **3** in the gitignored `android/app/build.gradle`. `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| — | Bump `sw.js` | Already `fp-v86` for the legal change; bump again if anything else bundled changes |
+| — | Bump `sw.js` | Now `fp-v87` for item 37; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 

@@ -340,6 +340,30 @@ it('recomputes a forged submission to a different score', () => {
     'three equations against an eq_goal of 1 must not earn the equation star');
 });
 
+it('reloads a winning run with every curve setting it was won with', () => {
+  // Load these equations dropped the domain, so Cut it short came back as the
+  // whole line and no longer cleared. The slider row ahead of the curves takes
+  // no settings, and a run saved before a setting existed still loads.
+  const won = [
+    { expr: 'a=2', ...scoring.parseEquation('a=2') },
+    { expr: 'y=-0.8x+0.2', ...scoring.parseEquation('y=-0.8x+0.2', { x: 1, y: -2 }),
+      domain: [{ xMin: -12, xMax: 0 }], shift: { x: 1, y: -2 }, material: 'rubber' },
+    { expr: 'y=a*x', ...scoring.parseEquation('y=a*x') },
+  ];
+  const curves = won.filter(e => e.fn);
+  const run = JSON.parse(JSON.stringify({ exprs: won.map(e => e.expr), ...scoring.curveSettings(curves) }));
+  const rows = scoring.rowsFromRun(run.exprs, run.mats, run.shifts, run.domains);
+  const pick = r => ({ domain: r.domain, shift: r.shift, material: r.material });
+  eq(JSON.stringify(rows.map(pick)), JSON.stringify(won.map(pick).map(p => ({
+    domain: p.domain || null, shift: p.shift || null, material: p.material || null }))),
+    'every setting comes back on its own curve');
+  near(rows[1].fn(0), won[1].fn(0), 1e-9, 'and the shift moves the reloaded curve');
+
+  const old = scoring.rowsFromRun(run.exprs, run.mats, run.shifts);
+  eq(old[1].domain, null, 'a run saved without domains loads unrestricted');
+  eq(old[1].material, 'rubber', 'and keeps what it did save');
+});
+
 // ── 1b2. The equation field ────────────────────────────────────────────────
 
 describe('Equation field');

@@ -697,11 +697,13 @@ changes what a curve costs:
   segment says. Preplaced curves are plain strings and cannot carry one.
 - **Domain** — the segments of x where the curve exists, as before.
 
-Run history stores each curve's material and shift (`mats`, `shifts`,
-aligned to the curves, not to the slider rows ahead of them) so *Load these
-equations* restores both; a studio level file keeps `shift` per equation.
-Scores depend on neither, so the audit and the leaderboard trigger need
-nothing new.
+Run history stores each curve's material, shift and domain (`mats`,
+`shifts`, `domains`, aligned to the curves, not to the slider rows ahead of
+them) so *Load these equations* restores all three. `curveSettings` writes
+them and `rowsFromRun` reads them back, in `level-screen.jsx`; a new setting
+goes in both. A run saved before an array existed reads it as null. A studio
+level file keeps `shift` and `domain` per equation. Scores depend on none of
+them, so the audit and the leaderboard trigger need nothing new.
 
 **Gravity flip** (`modifier: 'gravityFlip'`) lives in `drainTicks`: after a
 tick's substeps, if `ph.bounces` grew, `ph.gSign` flips — once per *tick*,
@@ -1284,8 +1286,8 @@ the code.
   level with a 100+ pt equation" achievement). Older exports may lack this
   field — handle with `?? null`.
 - `history[i]`: the last ten **winning runs** on that level, newest first, one
-  per distinct set of equations — `{ exprs, mats, score, time, stars, bits,
-  ts }`. This is what *Load these equations* reloads. It lived in a
+  per distinct set of equations — `{ exprs, mats, shifts, domains, score,
+  time, stars, bits, ts }`. This is what *Load these equations* reloads. It lived in a
   `fp-history-<pack>-<level>` localStorage key of its own, which meant it was
   per device and vanished on a reinstall or a cache clear; inside the progress
   blob it rides the same merge and the same upload as every other score.
