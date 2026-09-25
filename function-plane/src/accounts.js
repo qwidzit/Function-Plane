@@ -305,8 +305,8 @@
 
   // Delete the signed-in user's account. Required by Google Play (2024+).
   // Removes: progress, level_scores, profile row. Then signs out so the local
-  // session cache is cleared. The auth.users row is removed by Supabase on
-  // cascade once the profile is deleted (FK is ON DELETE CASCADE).
+  // session cache is cleared. The client cannot reach auth.users; the
+  // profiles_delete_auth_user trigger removes it, and purchases cascade from it.
   async function deleteAccount() {
     if (!_sb || !_currentUser) throw new Error('Not signed in');
     const id = _currentUser.id;

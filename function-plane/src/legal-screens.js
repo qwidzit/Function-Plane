@@ -209,7 +209,10 @@ Function Plane sells one thing: **Premium**, a one-time purchase that unlocks
 every pack and every level. It is not a subscription and never renews.
 
 * Google Play handles billing. Their terms also apply to the purchase.
-* Refunds are governed by Google Play's refund policy.
+* Refunds are governed by Google Play's refund policy. If a purchase is
+  refunded or charged back, Premium is removed from the account.
+* Premium can only be bought where Google Play offers in-app purchases, which
+  is not every country.
 * Premium belongs to your account rather than to a device. Signing in on
   another device and pressing Restore purchases brings it with you.
 * "Lifetime" means for the operational lifetime of the Service; we will give
@@ -455,6 +458,12 @@ function renderMarkdown(src) {
       blocks.push({
         kind: 'hr'
       });
+      continue;
+    }
+    // An indented line continues the bullet above it, not a new paragraph.
+    const last = blocks[blocks.length - 1];
+    if (/^\s/.test(ln) && !para.length && last?.kind === 'li') {
+      last.text += ' ' + ln.trim();
       continue;
     }
     para.push(ln.trim());
