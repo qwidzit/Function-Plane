@@ -84,7 +84,7 @@ function SettingsScreen({ onBack, settings, updateSetting, density = 'comfortabl
           <div style={{
             fontSize: 10.5, color: 'var(--fp-ink-4)',
             letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>v 1.0 · build 2</div>
+          }}>v 1.0 · build 3</div>
           <div style={{
             fontSize: 10.5, color: 'var(--fp-ink-4)',
             letterSpacing: '0.06em', textTransform: 'uppercase',

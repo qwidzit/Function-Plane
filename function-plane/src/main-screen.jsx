@@ -137,7 +137,7 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
         letterSpacing: '0.06em', textTransform: 'uppercase',
         paddingTop: 10, flex: '0 0 auto',
       }}>
-        v 1.0 · build 2
+        v 1.0 · build 3
       </div>
 
       {/* Rate — coming-soon popup */}
