@@ -1,7 +1,7 @@
 -- Function Plane — clear the public copies of winning equations
 --
--- NOT APPLIED YET — it rewrites every level_scores row, so it waits for an
--- explicit go-ahead. Run it in the SQL editor.
+-- Applied 26 September, after an explicit go-ahead: it rewrites every
+-- level_scores row.
 --
 -- 20260926_score_integrity.sql copied every row's equations into
 -- score_equations and made the guard store new ones there only. The copies

@@ -1,7 +1,6 @@
 -- Function Plane — mark existing admin grants as grants
 --
--- NOT APPLIED YET — it updates profiles, so it waits for an explicit go-ahead.
--- Run it in the SQL editor.
+-- Applied 26 September, after an explicit go-ahead: it updates profiles.
 --
 -- 20260926_admin_by_id.sql added profiles.premium_granted so that a refund
 -- does not take away Premium an admin gave (void_purchase). Premium held today
