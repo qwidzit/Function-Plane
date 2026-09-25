@@ -47,7 +47,7 @@ Needs `versionCode` +1 and a new AAB.
 | 34 | Reset epoch — optional | Only if the closed-test records should not carry into production. Decide first; detailed in §7 |
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| — | Bump `sw.js` | Now `fp-v87` for item 37; bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v88` as of the build 3 bump; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
