@@ -21,8 +21,9 @@ point back at it.
 > account for *insufficient permissions*, so no purchase can be confirmed
 > (§4). No test purchase has been made yet — `purchases` is empty.
 >
-> **In Build 3:** a reset of everyone's progress now sticks (item 34, its
-> migration applied). Run it once Build 3 has reached the testers (§3, 16).
+> **In Build 3:** a one-time reset of best times that sticks and keeps offline
+> play (item 34, migration applied). Stars and scores are kept. Run it once
+> Build 3 has reached the testers (§3, 16).
 >
 > **Deferred past launch (§7):** the Russia relay, whose premise stopped
 > reproducing.
@@ -47,10 +48,10 @@ Needs `versionCode` +1 and a new AAB.
 |---|---|---|
 | ~~35~~ | ~~In-app terms behind `legal/terms.html`~~ | **Done in the repo (25 September).** The terms gained "refunded or charged back removes Premium" and "only where Google Play offers in-app purchases". The legal renderer also split every wrapped bullet into a bullet plus a stray paragraph mid-sentence — visible in Build 2 — and now joins them |
 | ~~37~~ | ~~Load these equations drops a curve's domain~~ | **Done in the repo (25 September).** The run entry stores `domains` beside `mats` and `shifts`, and one function (`rowsFromRun`) turns a run back into rows, so all three restore on the same curve-aligned index. Runs saved before this load unrestricted, as they did; a new win records the domain. `npm test` round-trips a run through JSON and back |
-| ~~34~~ | ~~Reset epoch~~ | **Done (25 September), and its migration is applied.** A reset now sticks on every device — see §3 item 16 for how and when to run one |
+| ~~34~~ | ~~Reset of best times~~ | **Done (25 September), and its migration is applied.** Times only — stars and scores stay — and a time set offline after the reset survives. See §3 item 16 for how and when to run it |
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| — | Bump `sw.js` | `fp-v89` as of the reset epoch; bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v90` as of the reset of times; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -79,9 +80,9 @@ player on their next launch. No build, no deploy.
 
 | # | What |
 |---|---|
-| 36 | **Apply `supabase/migrations/20260921_delete_account_completely.sql`.** Not applied as of 25 September — the `profiles_delete_auth_user` trigger does not exist. Until it is, the app's Delete account leaves the email, password hash and `purchases` row behind while the live `delete-account` page says they go. Server-side only, no build: the app already deletes the profile last, `purchases` cascades from `auth.users`, and `profiles_delete` only lets a player delete their own row |
+| ~~36~~ | ~~Delete the sign-in account with the profile~~ | **Applied 25 September.** `profiles_delete_auth_user` removes the auth user, and with it the `purchases` row |
 | — | Delete the `stripe-webhook` edge function. There is no Stripe provider (checklist 10c), and it is deployed with JWT verification off |
-| 16 | **Reset progress, scores and times for everyone, once Build 3 is live.** `select public.reset_all_progress();` in the SQL editor. It bumps `game_state.reset_epoch` and deletes every `level_scores` and `progress` row; each Build 3 device clears its own copy the next time it reaches the server and keeps saving locally from there. Premium, purchases and names are untouched. **Run it only after Build 3 has reached the testers:** Build 2 knows nothing of the epoch, so from the moment of a reset every save it makes is refused with a sync-error toast until it updates. Play made offline after a reset and before the device next connects is cleared with the rest |
+| 16 | **Reset best times for everyone, once Build 3 is live.** `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. Each Build 3 device drops its own pre-reset times the next time it connects and keeps any set after the reset, even offline. Build 2 keeps saving stars and scores but its times, which carry no date, are dropped — so run it after Build 3 has reached the testers, or their times stop counting until they update. Dry-run on 25 September inside a rolled-back transaction: all 65 times cleared, 191 stars unchanged |
 | — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
 
 **Checked and clear:**
@@ -147,19 +148,25 @@ Each of these needs a client change, so each costs a build.
 |---|---|
 | 11c | The Russia relay, if the probe data justifies it. See section 6 |
 
-### 34 — reset epoch (done 25 September)
+### 34 — reset of best times (done 25 September)
 
-A reset could not stick: `level_scores_guard` refuses to lower a record,
-`_mergeProgress` resolves every field toward the better value, and
-`_syncProgressDown` uploads the merge. It is now an epoch — see *Resets* in
-[`ABOUT.md`](./ABOUT.md). The open questions were settled as:
+Times could not be cleared: `level_scores_guard` refuses to lower a record,
+`_mergeProgress` takes the faster time, and `_syncProgressDown` uploads the
+merge. Every best time now carries when it was set, and one cutoff decides
+which survive — see *Resetting times* in [`ABOUT.md`](./ABOUT.md). Settled:
 
-- **Everything is cleared**, stars included, so offline unlocks and
-  `profiles.total_stars` never disagree. Premium is not progress and stays.
-- **Global only.** A per-player "reset my progress" would need its own value.
-- **Offline, a device keeps playing on its old progress** and cannot upload
-  it. When it next reaches the server it clears everything, including play
-  made after the reset, which is the price of never resurrecting an old record.
+- **Times only.** Stars, scores and equations stay, so pack unlocks and
+  `profiles.total_stars` are untouched.
+- **Offline play survives.** A time set after the reset is kept even if it
+  reaches the server days later; only times dated before the cutoff, or with
+  no date, are dropped.
+- **Achievements stay earned.** The two time achievements also read run
+  history, which the reset keeps.
+- **Global and one-time.** A second reset would just move the cutoff.
+
+A first version (an epoch that cleared all progress, and with it anything
+played offline before the device reconnected) was applied and replaced the
+same day; `20260925_times_reset.sql` removes it.
 
 ## Known and accepted
 

@@ -14,7 +14,7 @@
   const PROFILE_PREFIX  = 'fp-profile-';
   const LAST_USER_KEY   = 'fp-last-user';
   const GUEST_KEY       = 'fp-progress';
-  const EPOCH_KEY       = 'fp-epoch';
+  const TIMES_RESET_KEY = 'fp-times-reset';
 
   // Module-level cache — keeps getActive() / getActiveProgress() synchronous
   let _sb          = null;   // supabase client
@@ -109,7 +109,7 @@
       if (cached) _forgetAccount(); else notify();
       // A guest's progress uploads the moment they register, so it has to
       // follow a reset too.
-      _checkEpoch();
+      _checkTimesReset();
     }
 
     // Keep the cache in sync when auth state changes (sign-in / sign-out /
@@ -151,46 +151,58 @@
     } catch (e) { _emitSyncError(e.message); }
 
     if (!download) return;
-    try { await _checkEpoch(); await _syncProgressDown(user.id); _flushQueue(); }
+    try { await _checkTimesReset(); await _syncProgressDown(user.id); _flushQueue(); }
     catch (e) { _emitSyncError(e.message); }
   }
 
-  // ── Reset epoch ───────────────────────────────────────────────────────────
-  // The server counts resets (game_state.reset_epoch, 20260925_reset_epoch.sql)
-  // and refuses progress from an older one. A device that meets a newer epoch
-  // clears the progress it holds from before the reset — every account's and
-  // the guest's — and keeps saving locally from there. Merging it with the
-  // cleared server copy instead would win every field and upload it straight
-  // back, which is why a plain server-side wipe never stuck.
-  const _epoch = () => readJSON(EPOCH_KEY, 0);
+  // ── Times reset ───────────────────────────────────────────────────────────
+  // Best times were reset once (game_state.times_reset_at,
+  // 20260925_times_reset.sql). Every best time carries when it was set
+  // (bestTimeAt), so a time from before the cutoff — or with no date, which is
+  // every time older builds recorded — is dropped, and one set after it is
+  // kept even if it was set offline and has never been uploaded. Stars, scores
+  // and equations are never touched. Merging is not enough on its own: it takes
+  // the faster time, and the old times are the fast ones.
+  const _timesCutoff = () => readJSON(TIMES_RESET_KEY, null);
 
-  async function _checkEpoch() {
+  function _dropStaleTimes(progress, cutoff) {
+    if (!progress || cutoff == null) return progress;
+    const out = {};
+    for (const [k, pd] of Object.entries(progress)) {
+      if (!pd?.bestTime) { out[k] = pd; continue; }
+      const at = pd.bestTimeAt || [];
+      const keep = i => pd.bestTime[i] != null && at[i] != null && at[i] >= cutoff;
+      out[k] = {
+        ...pd,
+        bestTime:   pd.bestTime.map((t, i) => (keep(i) ? t : null)),
+        bestTimeAt: pd.bestTime.map((_, i) => (keep(i) ? at[i] : null)),
+      };
+    }
+    return out;
+  }
+
+  async function _checkTimesReset() {
     if (!_sb) return;
-    let server;
+    let cutoff;
     try {
       const { data, error } = await _withTimeout(
-        _sb.from('game_state').select('reset_epoch').single(), 'Reset check');
-      if (error || !data) return;
-      server = data.reset_epoch;
-    } catch { return; }   // offline: the server refuses stale uploads anyway
-    if (server <= _epoch()) return;
+        _sb.from('game_state').select('times_reset_at').single(), 'Reset check');
+      if (error || !data?.times_reset_at) return;
+      cutoff = Date.parse(data.times_reset_at);
+    } catch { return; }   // offline: the server drops stale times on upload anyway
+    if (cutoff === _timesCutoff()) return;
+    writeJSON(TIMES_RESET_KEY, cutoff);
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
-        if (k === GUEST_KEY || k.startsWith(PROGRESS_PREFIX)) localStorage.removeItem(k);
+        if (k === GUEST_KEY || k.startsWith(PROGRESS_PREFIX)) writeJSON(k, _dropStaleTimes(readJSON(k, null), cutoff));
       }
-      localStorage.removeItem(QUEUE_KEY);
+      const q = _readQueue();
+      if (q) writeJSON(QUEUE_KEY, { ...q, progress: _dropStaleTimes(q.progress, cutoff) });
       localStorage.removeItem(LB_KEY);
     } catch {}
-    writeJSON(EPOCH_KEY, server);
-    if (_currentUser) {
-      _currentUser.totalStars = 0;
-      writeJSON(profileKey(_currentUser.id), _currentUser);
-    }
     notify();
   }
-
-  const _isStale = err => /stale_epoch/.test(err?.message || '');
 
   async function _fetchProfile(user) {
     if (!_sb) return null;
@@ -211,8 +223,9 @@
     if (!_sb) return;
     const { data } = await _withTimeout(
       _sb.from('progress').select('data').eq('user_id', userId).single(), 'Progress');
-    const remote   = data?.data || null;
-    const local    = readJSON(progressKey(userId), null);
+    const cutoff   = _timesCutoff();
+    const remote   = _dropStaleTimes(data?.data || null, cutoff);
+    const local    = _dropStaleTimes(readJSON(progressKey(userId), null), cutoff);
     const merged   = _mergeProgress(remote, local);
     writeJSON(progressKey(userId), merged);
     // Whatever came down is on disk but not on screen: the app reads progress
@@ -261,6 +274,13 @@
           if (ta === null) return tb;
           if (tb === null) return ta;
           return Math.min(ta, tb);
+        }),
+        // Follows whichever side owns the faster time.
+        bestTimeAt: Array.from({ length: 10 }, (_, i) => {
+          const ta = pa.bestTime?.[i] ?? null, tb = pb.bestTime?.[i] ?? null;
+          if (ta === null) return tb === null ? null : pb.bestTimeAt?.[i] ?? null;
+          if (tb === null) return pa.bestTimeAt?.[i] ?? null;
+          return (ta <= tb ? pa.bestTimeAt?.[i] : pb.bestTimeAt?.[i]) ?? null;
         }),
         maxScore: Array.from({ length: 10 }, (_, i) => {
           const ma = pa.maxScore?.[i] ?? null, mb = pb.maxScore?.[i] ?? null;
@@ -400,12 +420,9 @@
     if (_sb && _currentUser) _scheduleUpload(_currentUser.id, progress);
   }
 
-  // The epoch is taken when the progress is, not when it is sent: a reset
-  // landing in between must not relabel old progress as new.
   function _scheduleUpload(userId, progress) {
-    const epoch = _epoch();
     clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(() => _uploadProgress(userId, progress, epoch), 1500);
+    _syncTimer = setTimeout(() => _uploadProgress(userId, progress), 1500);
   }
 
   // ── Offline upload queue ──────────────────────────────────────────────────
@@ -416,8 +433,8 @@
 
   const QUEUE_KEY = 'fp-pending-upload';
 
-  function _queue(userId, progress, epoch) {
-    writeJSON(QUEUE_KEY, { userId, progress, epoch, ts: Date.now() });
+  function _queue(userId, progress) {
+    writeJSON(QUEUE_KEY, { userId, progress, ts: Date.now() });
   }
   function _clearQueue() { try { localStorage.removeItem(QUEUE_KEY); } catch {} }
   function _readQueue()  { return readJSON(QUEUE_KEY, null); }
@@ -427,7 +444,7 @@
     if (!q || !_sb || !_currentUser || q.userId !== _currentUser.id) return;
     if (!navigator.onLine) return;
     try {
-      await _uploadProgress(q.userId, q.progress, q.epoch ?? 0);
+      await _uploadProgress(q.userId, q.progress);
       _clearQueue();
     } catch {/* leave queued */}
   }
@@ -435,21 +452,20 @@
   // Re-try whenever the network comes back, when the user signs in, and at
   // initial load (handled by _init via subscribe).
   if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => { _flushQueue(); });
+    window.addEventListener('online', () => { _checkTimesReset().then(_flushQueue); });
   }
 
-  async function _uploadProgress(userId, progress, epoch) {
-    if (!_sb) { _queue(userId, progress, epoch); return; }
-    if (!navigator.onLine) { _queue(userId, progress, epoch); return; }
+  async function _uploadProgress(userId, progress) {
+    if (!_sb) { _queue(userId, progress); return; }
+    if (!navigator.onLine) { _queue(userId, progress); return; }
     try {
       const totalStars = _countStars(progress);
 
       // A stall here would leave progress neither saved nor queued; the
       // timeout throws instead, so the catch below queues it for the next try.
       const pRes = await _withTimeout(
-        _sb.from('progress').upsert({ user_id: userId, data: progress, epoch, updated_at: new Date().toISOString() }),
+        _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
         'Progress upload');
-      if (_isStale(pRes.error)) { await _checkEpoch(); return; }
       if (pRes.error) console.warn('FP_AUTH: progress upsert error', pRes.error);
 
       // Upsert individual completed level rows (drives per-level leaderboards).
@@ -463,13 +479,14 @@
           const stars = pd?.stars?.[levelIndex] ?? -1;
           if (score != null && stars >= 1) {
             const t   = pd?.bestTime?.[levelIndex];
+            const tAt = pd?.bestTimeAt?.[levelIndex];
             const eqs = pd?.bestEqs?.[levelIndex];
             rowsFull.push({
               user_id: userId, pack_id: packId, level_index: levelIndex,
               best_score: score, stars,
               best_time: t == null ? null : t,
+              best_time_at: t == null || tAt == null ? null : new Date(tAt).toISOString(),
               equations: Array.isArray(eqs) ? eqs : null,
-              epoch,
             });
           }
         });
@@ -486,7 +503,6 @@
           ({ error: upErr } = await upsert(rows));
           if (!upErr) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
         }
-        if (_isStale(upErr)) { await _checkEpoch(); return; }
         if (upErr) {
           console.warn('FP_AUTH: level_scores upsert error', upErr);
           _emitSyncError('Could not save your score: ' + (upErr.message || 'unknown error'));
@@ -500,7 +516,7 @@
       if (_currentUser) _currentUser.totalStars = totalStars;
     } catch (e) {
       console.warn('FP_AUTH: upload error', e);
-      _queue(userId, progress, epoch);  // try again next time we're online
+      _queue(userId, progress);  // try again next time we're online
     }
   }
 

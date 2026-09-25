@@ -13,6 +13,11 @@ const {
 //
 // Param shape: { threshold?, packId?, levelIndex?, score? }. Each kind
 // documents which params it consumes; the rest are ignored.
+
+// Every winning time a pack's progress remembers: the best times, and the runs
+// in history. History matters because best times can be reset
+// (20260925_times_reset.sql) and a reset must not take back an achievement.
+const runTimes = pd => [...(pd.bestTime ?? []), ...(pd.history ?? []).flatMap(runs => (runs ?? []).map(r => r.time))].filter(t => t != null);
 const ACH_KINDS = {
   total_stars: {
     label: 'Earn N stars total',
@@ -125,7 +130,7 @@ const ACH_KINDS = {
     }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds`,
     build: ({
       threshold
-    }) => p => Object.values(p).some(pd => (pd.bestTime ?? []).some(t => t != null && t <= threshold / 1000))
+    }) => p => Object.values(p).some(pd => runTimes(pd).some(t => t <= threshold / 1000))
   },
   time_over: {
     label: 'Finish a level in over N milliseconds',
@@ -136,7 +141,7 @@ const ACH_KINDS = {
     }) => `Beat any level with a time of ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds or more`,
     build: ({
       threshold
-    }) => p => Object.values(p).some(pd => (pd.bestTime ?? []).some((t, i) => t != null && t >= threshold / 1000 && (pd.stars[i] ?? -1) >= 1))
+    }) => p => Object.values(p).some(pd => runTimes(pd).some(t => t >= threshold / 1000))
   },
   // The only kind taking two numbers: how many levels, and how cheaply. It
   // counts levels rather than asking whether any one qualifies, which is what

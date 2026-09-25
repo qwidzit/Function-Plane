@@ -278,6 +278,9 @@ function App() {
           const stars    = [...pd.stars];
           const best     = [...pd.best];
           const bestTime = pd.bestTime  ? [...pd.bestTime]  : Array(10).fill(null);
+          // bestTimeAt: when each best time was set. A reset of times keeps the
+          // ones set after it, including offline ones not yet uploaded.
+          const bestTimeAt = pd.bestTimeAt ? [...pd.bestTimeAt] : Array(10).fill(null);
           // maxScore: highest score ever achieved on a winning run (for achievements
           // like "solve a level with a complex equation worth 100+ pts").
           const maxScore = pd.maxScore  ? [...pd.maxScore]  : Array(10).fill(null);
@@ -302,8 +305,9 @@ function App() {
             best[levelIndex]    = score;
             bestEqs[levelIndex] = exprs ?? null;
           }
-          if (time != null) {
-            bestTime[levelIndex] = bestTime[levelIndex] == null ? time : Math.min(bestTime[levelIndex], time);
+          if (time != null && (bestTime[levelIndex] == null || time < bestTime[levelIndex])) {
+            bestTime[levelIndex]   = time;
+            bestTimeAt[levelIndex] = Date.now();
           }
           maxScore[levelIndex] = maxScore[levelIndex] == null ? score : Math.max(maxScore[levelIndex], score);
           if (levelIndex + 1 < 10 && stars[levelIndex + 1] === null) {
@@ -313,6 +317,7 @@ function App() {
           pd.starBits = starBits;
           pd.best     = best;
           pd.bestTime = bestTime;
+          pd.bestTimeAt = bestTimeAt;
           pd.maxScore = maxScore;
           pd.bestEqs  = bestEqs;
           if (runEntry) {

@@ -1282,6 +1282,8 @@ the code.
   earned.
 - `best[i]`: **lowest** score used to win (lower = better rating).
 - `bestTime[i]`: **fastest** win time in seconds.
+- `bestTimeAt[i]`: when that time was set (ms since epoch, the device clock). Missing
+  on times from before Build 3, which a reset of times treats as old.
 - `maxScore[i]`: **highest** score used in a winning run (drives the "beat a
   level with a 100+ pt equation" achievement). Older exports may lack this
   field — handle with `?? null`.
@@ -1297,20 +1299,20 @@ of best/bestTime, and a **union** of `history` — newest first, de-duplicated b
 the equation strings and capped at ten. A union rather than a pick: two devices
 holding different answers to the same level should end up holding both.
 
-**Resets.** Because every merge moves toward the better value, clearing the
-server alone never lasted: the first device to sync won every field and
-uploaded it back. `game_state.reset_epoch` (`20260925_reset_epoch.sql`)
-counts resets, every `progress` and `level_scores` write carries the epoch
-its data was earned under, and a trigger refuses anything older. A device
-that meets a newer epoch (`_checkEpoch`, on sign-in, on a guest boot, and
-on any refused upload) deletes the progress it holds for every account and
-the guest, then carries on saving locally as before. The epoch is stamped
-when an upload is scheduled, not when it is sent, so a reset landing in
-between cannot relabel old progress. Premium, purchases and names are not
-progress and are untouched. `select public.reset_all_progress();` from the
-SQL editor is the reset; the API cannot call it. `npm test` runs the real
-`accounts.js` against a stub that enforces the epoch
-(`scripts/reset-epoch-scenario.js`).
+**Resetting times.** Best times were meant to be reset once, and a plain
+server-side clear cannot stick: merging takes the faster time, and the old
+times are the fast ones. So every best time carries when it was set
+(`bestTimeAt`, uploaded as `level_scores.best_time_at`), and
+`game_state.times_reset_at` (`20260925_times_reset.sql`) is the cutoff. The
+guard drops any time dated before it, or undated, instead of refusing the row,
+so older builds keep saving stars and scores. A device learns the cutoff on
+sign-in, on a guest boot and on reconnect (`_checkTimesReset`), filters its
+own saves and every download before merging, and keeps any time set after the
+cutoff — including one set offline and never uploaded. Stars, scores,
+equations and run history are untouched, and the time achievements read run
+history as well, so none is taken back. `select public.reset_times();` from
+the SQL editor is the reset; the API cannot call it. `npm test` runs the real
+`accounts.js` against a stub holding a cutoff (`scripts/times-reset-scenario.js`).
 
 ## Achievements
 

@@ -805,6 +805,17 @@ it('hides an achievement when its override says so', () => {
   ok(ach.getAchievementList().some(a => a.id === 'stars_210'), 'and must come back');
 });
 
+it('keeps time achievements through a reset of best times', () => {
+  // A reset clears bestTime but not history, and an achievement is recomputed
+  // from progress every time — so a speed achievement must read both.
+  const under = ach.ACH_KINDS.time_under.build({ threshold: 3000 });
+  const over  = ach.ACH_KINDS.time_over.build({ threshold: 20000 });
+  const reset = packRun({ bestTime: nulls(10), history: [[{ exprs: ['y=x'], time: 2.5 }, { exprs: ['y=1'], time: 21 }], ...nulls(9)] });
+  ok(under(reset), 'a fast run in history still counts');
+  ok(over(reset), 'so does a slow one');
+  ok(!under(packRun({ bestTime: nulls(10) })), 'and nothing is earned without one');
+});
+
 it('exposes every kind the built-ins use', () => {
   for (const row of ach.BUILTIN_ACH_ROWS) {
     ok(ach.ACH_KINDS[row.kind], `${row.id} uses unknown kind ${row.kind}`);
@@ -1317,25 +1328,25 @@ it('bounds every network call with a timeout', () => {
   }
 });
 
-it('makes a reset stick on every device', () => {
-  // A server wipe never lasted: every device merged its local progress with
-  // the cleared copy, won every field and uploaded it back. The scenario runs
-  // the real accounts.js against a stub that refuses stale epochs the way
-  // 20260925_reset_epoch.sql does.
+it('resets best times once, keeping stars and offline play', () => {
+  // Merging takes the faster time and old times are the fast ones, so a
+  // server-side clear alone would come straight back. Times carry when they
+  // were set; the scenario runs the real accounts.js against a stub whose
+  // game_state holds the cutoff (20260925_times_reset.sql).
   const r = JSON.parse(require('child_process').execFileSync(
-    process.execPath, [path.join(__dirname, 'reset-epoch-scenario.js')], { encoding: 'utf8' }));
+    process.execPath, [path.join(__dirname, 'times-reset-scenario.js')], { encoding: 'utf8' }));
   ok(!r.error, r.error);
-  eq(r.boot.account, null, 'a pre-reset account save is cleared on boot');
-  eq(r.boot.guest, null, 'so is the guest save, which uploads on register');
-  eq(r.boot.queue, null, 'and an upload queued before the reset');
-  eq(r.boot.epoch, 1, 'the device adopts the server epoch');
-  eq(r.boot.staleAccepted, 0, 'nothing from before the reset reaches the server');
-  ok(r.boot.settings, 'settings survive a reset');
-  ok(r.after.local, 'progress after the reset is still saved locally');
-  ok(r.after.uploads.length === 2 && r.after.uploads.every(u => u.rows.every(row => row.epoch === 1)),
-    'and uploads under the new epoch');
-  eq(r.live.local, null, 'a reset while the app is open clears it on the next refused upload');
-  eq(r.live.epoch, 2, 'and the device takes the new epoch');
+  const { account, guest } = r.boot;
+  eq(JSON.stringify(account.bestTime), '[null,null,null]', 'pre-reset times, dated or not, are cleared');
+  eq(JSON.stringify(guest.bestTime), '[null,null,null]', 'the guest save too, which uploads on register');
+  eq(JSON.stringify(account.stars), '[3,2,-1]', 'stars are kept');
+  eq(JSON.stringify(account.best), '[20,40,null]', 'scores are kept');
+  eq(account.history[0][0].time, 2.5, 'run history is kept, so time achievements stay earned');
+  eq(r.boot.cutoff, r.cutoff, 'the device remembers the cutoff');
+  ok(r.boot.uploadedTimes.every(t => t == null), 'no pre-reset time is uploaded, queued or not');
+  eq(r.offline.local.bestTime[0], 4.4, 'a time set offline after the reset beats an older, faster one');
+  const row = r.offline.scores.find(x => x.level_index === 0);
+  eq(row.best_time_at, new Date(r.cutoff + 5000).toISOString(), 'and uploads with when it was set');
 });
 
 it('never writes the entitlement from the client', () => {
