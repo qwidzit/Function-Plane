@@ -374,7 +374,9 @@
     email = (email || '').trim().toLowerCase();
     if (!name)                    throw new Error('Display name is required');
     if (!email.includes('@'))     throw new Error('Enter a valid email address');
-    if ((password||'').length < 6) throw new Error('Password must be at least 6 characters');
+    // Matches Auth's minimum password length (8), so the app says so before
+    // the server refuses it.
+    if ((password||'').length < 8) throw new Error('Password must be at least 8 characters');
     if (!_sb)                     throw new Error('Supabase is not configured yet');
 
     // Pre-check name uniqueness so we fail fast with a clear message

@@ -20,9 +20,9 @@ each developer can recreate them locally without bloating the repo.
 | **iOS** | ✅ Yes | **macOS only** (Xcode) | Build `.ipa` from Xcode. Targets iOS 13+. Submitting to the App Store requires a $99/yr Apple Developer account. |
 | Web (PWA) | ✅ Yes | Any | The existing `function-plane/` folder is the PWA; serve it from any static host. |
 
-The admin panel works identically in all three places — sign in as the user
-named exactly **`Test Account`** and the Admin button appears in the account
-screen.
+The admin panel works identically in all three places — sign in as an admin
+(a user id listed in `public.admins`; today that is the account named
+`Test Account`) and the Admin button appears in the account screen.
 
 ---
 
@@ -94,9 +94,10 @@ Xcode opens. Pick a Simulator (iPhone 15 etc.) or a real device, hit the
 
 ## What about the admin panel on mobile?
 
-It's identical to the web version. After installing, sign in to your
-**Test Account** profile from inside the app — the Admin Panel button
-appears in the Account screen. You can edit pack and level data on your
+It's identical to the web version. After installing, sign in to your admin
+account from inside the app — the Admin Panel button appears in the Account
+screen. Admin rights come from `public.admins` on the server, not from the
+name, so a new admin is one `insert into public.admins` in the SQL editor. You can edit pack and level data on your
 phone, and changes hit the same Supabase tables, so they're live for every
 player.
 

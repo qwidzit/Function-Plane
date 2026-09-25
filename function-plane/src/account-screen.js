@@ -828,7 +828,7 @@ function RegisterView({
     return () => clearTimeout(id);
   }, [name]);
   const mismatch = pass2.length > 0 && pass2 !== pass;
-  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 6 && pass2 === pass;
+  const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 8 && pass2 === pass;
   const submit = async () => {
     if (!canSubmit) return;
     setMsg({
@@ -911,7 +911,7 @@ function RegisterView({
     type: "password",
     value: pass,
     onChange: setPass,
-    placeholder: "At least 6 characters"
+    placeholder: "At least 8 characters"
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Confirm password",
     type: "password",

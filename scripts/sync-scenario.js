@@ -144,7 +144,7 @@ const progressUploads = u => u.filter(x => x.table === 'progress').map(x => x.ro
   // save is cleared so it cannot seed the next account.
   {
     const { ctx, read } = await boot({ session: false, seed: { 'fp-progress': played } });
-    await ctx.FP_AUTH.register({ name: 'Newbie', email: 'n@x', password: 'secret1' });
+    await ctx.FP_AUTH.register({ name: 'Newbie', email: 'n@x', password: 'secret12' });
     await tick(150);
     out.register = { account: read('fp-progress-u1')?.['r-I']?.stars ?? null, guest: read('fp-progress') };
   }

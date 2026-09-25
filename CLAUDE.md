@@ -251,6 +251,10 @@ believing it.
   override, or hiding a pack, stops its scores counting.
 - Checking for admin by name → don't. Admin is `public.admins` via
   `is_admin()`; the name `Test Account` is only reserved.
+- Changed the minimum password length → it lives in four places: Auth's
+  *Minimum password length* in the dashboard, `register` in `accounts.js`, the
+  sign-up form in `account-screen.jsx`, and the website's `auth/reset.html`.
+  Any one left behind lets a password through that the server then refuses.
 - `profiles` is read-only to the client. Anything that needs to write it wants
   a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
   adding a column and PATCHing it from the app will fail with a permission

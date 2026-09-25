@@ -1166,6 +1166,9 @@ re-look against real play. Records already stored keep their stars.
   or invisible characters). `isAdmin()` in `accounts.js` only shows the admin
   screens; it reads the same table when the profile is fetched. Add an admin
   with one `insert into public.admins` in the SQL editor.
+- **Passwords**: at least 8 characters — Auth's *Minimum password length*
+  (dashboard setting) and `register` in `accounts.js` say the same number.
+  Leaked-password protection would need the Pro plan.
 - Other tables: `progress` (`user_id` PK, `data` JSONB — the whole progress
   blob, `updated_at`), `level_scores` (`(user_id, pack_id, level_index)`
   composite PK, `best_score`, `stars`, `best_time` — drives per-level

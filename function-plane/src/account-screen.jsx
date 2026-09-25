@@ -341,7 +341,7 @@ function RegisterView({ onBack, padX, onSuccess }) {
 
   const mismatch  = pass2.length > 0 && pass2 !== pass;
   const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@')
-                 && pass.length >= 6 && pass2 === pass;
+                 && pass.length >= 8 && pass2 === pass;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -382,7 +382,7 @@ function RegisterView({ onBack, padX, onSuccess }) {
         </div>
 
         <AuthField label="Email"    type="email"    value={email} onChange={setEmail} placeholder="you@example.com"/>
-        <AuthField label="Password" type="password" value={pass}  onChange={setPass}  placeholder="At least 6 characters"/>
+        <AuthField label="Password" type="password" value={pass}  onChange={setPass}  placeholder="At least 8 characters"/>
         <AuthField label="Confirm password" type="password" value={pass2} onChange={setPass2}
           placeholder="Repeat your password" error={mismatch}/>
         <div style={{ minHeight:16, marginTop:-8, marginBottom:8, fontSize:11.5, color:'#e34' }}>

@@ -2,11 +2,13 @@
 
 What is built, and the steps that need your machine and your accounts.
 
-> **Status — 20 September 2026: configured, not yet proven.** The product
-> exists and is activated, the service account and key are made, and both
-> Supabase secrets are set. The licence-tester purchase has **not** been run,
-> and it is the first thing that exercises `GOOGLE_SERVICE_ACCOUNT` end to
-> end — until it passes, none of this is known to work.
+> **Status — 25 September 2026: configured, permissions propagating, not yet
+> proven.** The product exists and is activated, the service account and key
+> are made, both Supabase secrets are set, the Google Play Android Developer
+> API is enabled, and the service account's Play permissions were granted on
+> the 25th. The licence-tester purchase has **not** been run, and it is the
+> first thing that exercises `GOOGLE_SERVICE_ACCOUNT` end to end — until it
+> passes, none of this is known to work.
 >
 > Two things the Console changed since this was written: in-app products are
 > now called **One-time products**, and a product's **Purchase option ID**
@@ -106,9 +108,14 @@ seen a build that declares the billing permission.
 5. **Service account** so the server can ask Google about a purchase:
    - Google Cloud Console → the project linked to your Play account → IAM →
      Service accounts → create one → Keys → **Add key → JSON**.
-   - Play Console → Users and permissions → **Invite** that service account's
-     email → grant **View financial data** and **Manage orders and
-     subscriptions**, scoped to this app.
+   - In the **same** Cloud project, APIs & Services → Library → **Google Play
+     Android Developer API** → **Enable**. Without it every call answers
+     "…has not been used in project … or it is disabled" — this project's
+     number is 1096366903282.
+   - Play Console (All apps level) → Users and permissions → **Invite** that
+     service account's email → Account permissions: **View app information and
+     download bulk reports**, **View financial data, orders, and cancellation
+     survey responses**, and **Manage orders and subscriptions**.
    - Permissions take up to **24 hours** to propagate. Until they do, every
      verification returns 401 and the app says the purchase could not be
      confirmed. This is the single most common "it's broken" that isn't.
@@ -198,7 +205,14 @@ a different webhook; the Play side and everything downstream is untouched.
    ```
    Within a few seconds the `purchases` row has a `voided_at` and
    `is_premium` is false again. The `play-refunds` logs say how many voided
-   purchases Google reported and how many were new to us.
+   purchases Google reported and how many were new to us. The cron job reports
+   "succeeded" whatever the function answered — `pg_net` does not wait — so
+   read the answer itself:
+   ```sql
+   select status_code, content from net._http_response order by created desc limit 1;
+   ```
+   Then try to verify the refunded token again (Restore purchases on that
+   account): it must answer *That purchase was refunded*, never Premium.
 5. On the web build, sign in as that same account: the premium screen should
    say premium is active. Sign in as a different one and it should say premium
    is sold in the Android app, with no button that cannot complete.
@@ -210,6 +224,11 @@ a different webhook; the Play side and everything downstream is untouched.
 | Symptom | Cause |
 |---|---|
 | "Could not confirm the purchase (401)" | Service-account permissions have not propagated yet, or `GOOGLE_SERVICE_ACCOUNT` is missing/malformed |
+| Sweep answers "The current user has insufficient permissions…" | The service account's Play permissions have not reached Google yet (up to 24 h), or were not saved |
+| Sweep answers "…has not been used in project … or it is disabled" | The Google Play Android Developer API is off in the service account's Cloud project |
+| "That purchase is already attached to another account" (409) | By design: one purchase, one account, claimed first-writer-wins (`grant_play_purchase`) |
+| "That purchase was refunded" (403) | By design: a refunded token is never granted again, even to a new account (`voided_tokens`) |
+| The screen says the payment is pending | A slow payment method. Nothing is granted or acknowledged until it clears; Play re-sends it then |
 | "Google could not find that purchase" (402) | Product ID mismatch, or the purchase was made against a different package |
 | Purchase succeeds, premium never arrives | Look at the `play-verify` logs in the Supabase dashboard — every failure path logs |
 | Money taken, then refunded a few days later | The transaction was never finished. That is the deliberate order: we acknowledge only after granting |

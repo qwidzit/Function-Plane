@@ -46,8 +46,8 @@ for review at all. Filed as:
 | Username / password | a throwaway account made through the app's own sign-up |
 | Other instructions | An account is optional. All 70 levels, the sandbox and settings work signed out — tap the account chip at the top right of the main screen to sign in and see cross-device sync and the leaderboards. |
 
-Never hand over the `Test Account` credentials: that display name is the admin
-gate in both the client and the Supabase policies. Keep the reviewer account
+Never hand over the admin account's credentials: that account is listed in
+`public.admins`, which every admin policy checks. Keep the reviewer account
 alive and its password unchanged — a dead login is a rejection reason on later
 updates, not just this one.
 
@@ -59,8 +59,9 @@ cross-device sync and leaderboard entry. Nothing is behind a paywall either —
 premium skips the star-based pack unlocks, it does not gate content.
 
 The admin panel is the one exception, and it is not user-facing: the button
-only renders for the account whose display name is `Test Account`, display
-names are unique, and the Supabase policies check the same name server-side.
+only renders for an account listed in `public.admins`, and the Supabase
+policies check the same table server-side (the name `Test Account` is only
+reserved).
 Reviewers do not need it to see the whole game. If you would rather declare it
 anyway, add one restricted item named "Admin panel" with those credentials and
 the instruction "Account ▸ Admin".

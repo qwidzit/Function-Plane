@@ -16,10 +16,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const PACKAGE_NAME = 'app.functionplane';
-// Google keeps voided purchases for 30 days; asking for all of them means a
-// sweep that failed for weeks still catches every refund once it works again.
+// Google keeps voided purchases for 30 days and refuses a startTime even a
+// moment older ("must be within [30] days of data"), so ask for 29: a sweep
+// that failed for weeks still catches every refund once it works again.
 // void_purchase ignores tokens it has already voided, so re-reading is free.
-const WINDOW_DAYS = 30;
+const WINDOW_DAYS = 29;
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
