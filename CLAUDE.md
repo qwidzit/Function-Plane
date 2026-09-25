@@ -239,6 +239,18 @@ believing it.
   server has to go through `_dropStaleTimes` before merging — merging alone
   picks the faster time, which is the old one (see *Resetting times* in
   `ABOUT.md`).
+- Progress stops uploading, or a new phone signs in to an empty save → the
+  upload gate. Nothing uploads for an account until `_syncProgressDown` has
+  succeeded for it this session, because every upload replaces the whole
+  server copy. A new path that writes progress to the server has to respect
+  `_synced`, and a download that fails has to throw, never read as "no save".
+  `npm test` plays these out in `scripts/sync-scenario.js`.
+- A score is accepted locally but never reaches a leaderboard → the guard
+  skips (`return null`) rows for a level with no `level_overrides` row under a
+  visible pack, and rows an admin removed (`score_removals`). Deleting a level
+  override, or hiding a pack, stops its scores counting.
+- Checking for admin by name → don't. Admin is `public.admins` via
+  `is_admin()`; the name `Test Account` is only reserved.
 - `profiles` is read-only to the client. Anything that needs to write it wants
   a security-definer function (see `admin_set_premium`, `sync_total_stars`) —
   adding a column and PATCHing it from the app will fail with a permission

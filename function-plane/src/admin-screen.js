@@ -805,8 +805,8 @@ drop policy if exists "ach_read" on achievement_overrides;
 create policy "ach_read" on achievement_overrides for select using (true);
 drop policy if exists "ach_admin_write" on achievement_overrides;
 create policy "ach_admin_write" on achievement_overrides for all
-  using     (exists (select 1 from profiles where id = auth.uid() and name = 'Test Account'))
-  with check(exists (select 1 from profiles where id = auth.uid() and name = 'Test Account'));`;
+  to authenticated
+  using ((select public.is_admin())) with check ((select public.is_admin()));`;
 function AchievementsAdmin({
   padX,
   onBack,

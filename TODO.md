@@ -51,7 +51,8 @@ Needs `versionCode` +1 and a new AAB.
 | ~~34~~ | ~~Reset of best times~~ | **Done (25 September), and its migration is applied.** Times only — stars and scores stay — and a time set offline after the reset survives. See §3 item 16 for how and when to run it |
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| — | Bump `sw.js` | `fp-v90` as of the reset of times; bump again if anything else bundled changes |
+| ~~38~~ | ~~The 25 September audit, app side~~ | **Done in the repo (26 September).** A failed progress download no longer uploads over the cloud save, and nothing uploads for an account until its download has merged (a new phone on a slow network used to overwrite its own save with an empty one). The offline upload queue is gone — reconnecting syncs instead. Registering moves the guest save and clears it. The auth listener is registered before the session check. A failed profile read no longer caches Premium as off. Saves missing a pack no longer crash on completing a level there. Sign-out works offline; delete account is bounded. Tied times keep their date. A full disk keeps progress in memory and says so. Restore verifies Play's transactions itself, and a pending payment says it is pending. Admin is read from the server. `scripts/sync-scenario.js` plays out every save-wiping case, and fails against the old code |
+| — | Bump `sw.js` | `fp-v91` as of the audit fixes; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -81,9 +82,12 @@ player on their next launch. No build, no deploy.
 | # | What |
 |---|---|
 | ~~36~~ | ~~Delete the sign-in account with the profile~~ | **Applied 25 September.** `profiles_delete_auth_user` removes the auth user, and with it the `purchases` row |
-| — | Delete the `stripe-webhook` edge function. There is no Stripe provider (checklist 10c), and it is deployed with JWT verification off |
+| ~~39~~ | ~~The 25 September audit, server side~~ | **Applied 26 September.** Admin is a user id in `public.admins`, not the name — deleting the admin account would have handed the role to whoever registered "Test Account" next; the name is reserved. A refunded purchase can never be granted again, even to a new account, and two accounts racing one token cannot both win (`grant_play_purchase`, `play-verify` v4). The refund sweep reads 30 days (`play-refunds` v3). An admin's score removal sticks. Hidden packs and non-existent levels no longer count, so total stars cap at 210. A future-dated time is clamped. Equations and submission times are private. Client roles lost every privilege the app does not use; progress, avatars and crash reports are bounded. Each verified live, several inside rolled-back transactions |
+| 40 | **Two cleanups wait for your go-ahead** — the permission check refused them because they rewrite live rows. `supabase/migrations/20260926_score_equations_cleanup.sql` clears the public copies of winning equations (already copied to the private table; until it runs, older rows' equations are still readable) and drops the unused `achieved_at` column. `20260926_premium_granted_backfill.sql` marks today's Premium holders as admin grants (all of them are — there are no purchases), so a later refund cannot take a grant away. Run both in the SQL editor, or tell Claude to |
+| 41 | **Turn on leaked-password protection**: Authentication ▸ Sign In / Providers ▸ Email ▸ *Prevent use of leaked passwords*. A dashboard switch only |
+| — | `stripe-webhook` stays: it verifies Stripe signatures and, with no secret set, refuses everything, and PAYMENTS-SETUP.md keeps it on purpose for web sales. Delete it in the dashboard if that plan is dropped |
+| — | Accepted: `pg_net` sits in `public` (advisor 0014); the extension cannot be moved, only dropped and recreated, which would break the refund sweep for a warning. Scores and times can still be forged through the API — only a server-side replay prevents that |
 | 16 | **Reset best times for everyone, once Build 3 is live.** `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. Each Build 3 device drops its own pre-reset times the next time it connects and keeps any set after the reset, even offline. Build 2 keeps saving stars and scores but its times, which carry no date, are dropped — so run it after Build 3 has reached the testers, or their times stop counting until they update. Dry-run on 25 September inside a rolled-back transaction: all 65 times cleared, 191 stars unchanged |
-| — | Optional hardening: `anon` and `authenticated` hold `TRUNCATE` and `REFERENCES` on the public tables, which is a Supabase default. PostgREST cannot issue either, so nothing is reachable — but they buy nothing and could be revoked |
 
 **Checked and clear:**
 
@@ -98,14 +102,14 @@ player on their next launch. No build, no deploy.
 - **13 — the RLS sweep passes (20 September).** RLS is on for all ten tables.
   Overrides and `news` are read-all / admin-write; `progress` and
   `push_subscriptions` are owner-only; `level_scores` inserts and updates only
-  as `auth.uid() = user_id` and deletes own-or-admin; `client_errors` is
+  as `auth.uid() = user_id` and deletes own (admins remove through
+  `admin_remove_score`); `client_errors` is
   insert-for-anyone, read-admin, with no update or delete path; `purchases`
   carries no policy at all, so only the edge functions' service role touches
   it. `profiles` has SELECT, INSERT and DELETE policies and **no UPDATE** —
   read-only to clients, as intended. The table holds no email, so the open read
-  policy leaks nothing; and the whole admin gate rests on
-  `profiles.name = 'Test Account'`, which holds because `profiles_name_lower_key`
-  makes the name unique case-insensitively and no client can UPDATE one.
+  policy leaks nothing. (The admin gate was the name `Test Account` then; it is
+  a user id since 26 September — item 39.)
 - **14 — email confirmation is off (20 September).**
 
 ## 4. In Google Cloud and Play Console

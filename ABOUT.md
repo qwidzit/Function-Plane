@@ -1133,24 +1133,39 @@ re-look against real play. Records already stored keep their stars.
   service-role key, or the admin RPC below.
 - Admins can grant premium manually today via the in-app admin screen
   (Manage users / grant premium) — `FP_AUTH.setPremium()` calls the
-  `admin_set_premium` security-definer RPC, which re-checks that the *caller's
-  own* profile is `Test Account` rather than trusting anything from the client.
-  This is the current interim mechanism.
+  `admin_set_premium` security-definer RPC, which re-checks `is_admin()` for
+  the caller rather than trusting anything from the client. It also sets
+  `profiles.premium_granted`, so a refund of a purchase the same player made
+  later does not take the grant away (`void_purchase`).
 - `purchases` is the ledger: one row per verified purchase, keyed by the
   store's own token (a Play purchaseToken or a Stripe checkout session id),
   with `payment_ref` holding the Stripe payment_intent a later refund arrives
   under, and `voided_at` set when one is refunded. Service-role only — RLS is
   on with no policies, so the client roles are denied by default rather than
-  by policy.
+  by policy. `play-verify` claims a token through `grant_play_purchase`
+  (`20260926_purchase_integrity.sql`), one transaction that inserts it
+  first-writer-wins, refuses it if it was ever refunded and only then grants —
+  two accounts racing the same token cannot both win, and a refund is final.
+  "Ever refunded" is `voided_tokens`, a SHA-256 of each voided token linked to
+  no one, so it outlives the account the purchase was on without keeping
+  personal data. The refund sweep reads Google's full 30-day window.
 - `FP_AUTH.refreshEntitlement()` re-reads the profile and notifies
   subscribers. That is what the premium screen's **Restore purchases** button
   calls: the entitlement is account-based, so re-reading it restores a
-  purchase made on another device, another channel, or before a reinstall.
-- **Admin identity**: there is exactly one admin account — the profile whose
-  `name` is exactly `Test Account` (case-sensitive, no trailing spaces),
-  checked by `isAdmin()` in `accounts.js`. Overrides-table RLS policies key
-  off this same string. Don't hard-code additional admins in application
-  code — expand via the DB/RLS if that's ever needed.
+  purchase made on another device, another channel, or before a reinstall. On
+  Play, `FP_BILLING.restore()` first verifies every transaction Play reports
+  for the product, directly: the plugin re-fires "approved" only for a
+  purchase not yet acknowledged, and skips one it reported in the last minute,
+  so waiting on the handler missed exactly the purchases a restore is for.
+- **Admin identity** is a user id in `public.admins`, checked by the
+  security-definer `is_admin()` in every admin policy and function
+  (`20260926_admin_by_id.sql`). It used to be the display name `Test Account`,
+  which is chosen at signup — and once deleting an account deleted the sign-in
+  too, deleting the admin would have handed the role to whoever registered the
+  name next. The name is now reserved by `handle_new_user` (any case, spacing
+  or invisible characters). `isAdmin()` in `accounts.js` only shows the admin
+  screens; it reads the same table when the profile is fetched. Add an admin
+  with one `insert into public.admins` in the SQL editor.
 - Other tables: `progress` (`user_id` PK, `data` JSONB — the whole progress
   blob, `updated_at`), `level_scores` (`(user_id, pack_id, level_index)`
   composite PK, `best_score`, `stars`, `best_time` — drives per-level
@@ -1163,7 +1178,9 @@ re-look against real play. Records already stored keep their stars.
   `level_index`, `is_hidden`), `push_subscriptions` (`endpoint` PK,
   `user_id`, `keys`). Schemas live in the Supabase dashboard, not this repo.
   RLS: users read/write only their own rows; overrides tables restrict writes
-  to the `Test Account` profile.
+  to admins (`is_admin()`). Client roles hold only the privileges the app uses
+  (`20260926_grants_and_limits.sql`): guests insert crash reports and nothing
+  else, and a progress blob, an avatar and the crash-report table are bounded.
 - A database that hasn't had the latest migration applied is missing newer
   `level_scores` columns (`best_time`, `equations`). An upsert naming a
   missing column fails wholesale, so `_uploadProgress` in `accounts.js` drops
@@ -1188,7 +1205,8 @@ result. It used to *clamp* a 2-star claim whose score missed `score_goal` down
 to 1 star; `20260913_star_slots.sql` drops that (see below). RLS restricts
 writes to
 `auth.uid() = user_id`, keeps reads public (the leaderboard is public by
-design), and lets the `Test Account` delete anyone's row.
+design), and deletes only the owner's own rows — an admin removes a row
+through `admin_remove_score`, below.
 
 `20260911_const_class_and_sliders.sql` replaces that guard function when the
 `const` class shipped. The floor is **20**, not 30 — the cheapest winning run
@@ -1229,12 +1247,28 @@ too. It also gives `profiles` a DELETE policy — RLS was on with none, so
 `deleteAccount()` removed progress and scores, reported success, and left the
 profile behind with its name and its leaderboard place — and makes the name
 constraint case-insensitive, which is what `checkNameAvailable` always assumed
-and what keeps `Test Account`, the admin gate, from being claimed in another
-case.
+and what kept `Test Account`, the admin gate at the time, from being claimed in
+another case.
+
+`20260926_score_integrity.sql` closes four more, all in the guard:
+**removals stick** — `admin_remove_score` records the removal in
+`score_removals` and the guard skips that row from then on (`return null`, so
+the rest of a batch upsert lands), because the owner's device rebuilds every
+row from its progress on each upload and a plain delete came straight back;
+**only real, visible levels count** — a row whose level is not in
+`level_overrides` under a pack that is not hidden is skipped, which caps
+`total_stars` at the real 210 instead of the 450 the allow-list admitted;
+**a future `best_time_at` is clamped** to the server's now, so a clock set
+forward cannot carry a time past a reset; and **equations are private** — the
+guard stores them in `score_equations` and nulls the public column, and
+`submitted_at` is no longer readable, so nobody can copy the top solution or
+track when someone plays. Deleting or un-hiding a level's override row
+therefore changes which scores are accepted.
 
 **The app catches the plausible-but-false.** Scoring runs through the
 classifier, which SQL has no access to, so each row also carries the
-`equations` that produced its best score. *Admin → Audit leaderboard*
+`equations` that produced its best score — kept in `score_equations` and read
+through `admin_score_rows`, admin only. *Admin → Audit leaderboard*
 recomputes every submission with the same `computeScore`/`starRating` the game
 uses and flags rows whose score doesn't match their equations, whose
 equations don't parse, or which use a class the themed pack forbids — with a
@@ -1299,6 +1333,19 @@ of best/bestTime, and a **union** of `history` — newest first, de-duplicated b
 the equation strings and capped at ten. A union rather than a pick: two devices
 holding different answers to the same level should end up holding both.
 
+**Sync order.** Every upload replaces the account's whole server copy, so
+nothing uploads for an account until its cloud save has been downloaded and
+merged in this session (`_synced` in `accounts.js`). A failed download is an
+error, not "no cloud save" — supabase-js reports it as `{ error }` rather than
+throwing, and reading that as empty once merged with nothing and uploaded a
+fresh install over the real save; so did the app's first write, which used to
+go up before a slow download landed. Coming back online syncs rather than
+replaying a stored upload, the auth listener is registered before the session
+check (which can time out offline), registering moves the guest save to the
+new account inside `_adoptSession` and clears it, and progress is mirrored in
+memory so a full disk loses nothing until the app closes.
+`scripts/sync-scenario.js` plays each of these out against a stub.
+
 **Resetting times.** Best times were meant to be reset once, and a plain
 server-side clear cannot stick: merging takes the faster time, and the old
 times are the fast ones. So every best time carries when it was set
@@ -1312,7 +1359,7 @@ cutoff — including one set offline and never uploaded. Stars, scores,
 equations and run history are untouched, and the time achievements read run
 history as well, so none is taken back. `select public.reset_times();` from
 the SQL editor is the reset; the API cannot call it. `npm test` runs the real
-`accounts.js` against a stub holding a cutoff (`scripts/times-reset-scenario.js`).
+`accounts.js` against a stub holding a cutoff (`scripts/sync-scenario.js`).
 
 ## Achievements
 

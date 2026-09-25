@@ -54,12 +54,12 @@ window.FP_BILLING = (function () {
       return;
     }
     FP_AUTH.verifyPlayPurchase(token)
-      .then(premium => {
+      .then(({ premium, pending }) => {
         // Finishing acknowledges the purchase to Google. Do it only once the
         // entitlement is actually granted, so a failure here is a refund
         // rather than a player who paid and got nothing.
         if (premium) tx.finish();
-        _emit({ premium });
+        _emit({ premium, pending });
       })
       .catch(e => _emit({ premium: false, error: e.message || 'Could not confirm the purchase' }));
   }
@@ -90,13 +90,27 @@ window.FP_BILLING = (function () {
     if (err) throw new Error(err.message || 'Google Play refused the order');
   }
 
-  // Asks Play what this Google account owns. Anything it still owns comes back
-  // through the same approved handler, so the restore path and the purchase
-  // path grant the entitlement the same way.
+  // Asks Play what this Google account owns, then verifies it here rather than
+  // waiting on the approved handler: the plugin re-fires "approved" only for a
+  // purchase not yet acknowledged, and skips one it reported in the last
+  // minute, so a restore on a second device — or just after launch — never
+  // reached the server. Resolves to whether the server granted premium.
   async function restore() {
     if (!(await start())) throw new Error('Google Play billing is not available in this build');
     const err = await store().restorePurchases();
     if (err) throw new Error(err.message || 'Google Play could not restore purchases');
+    let granted = false;
+    for (const tx of store().localTransactions || []) {
+      if (!(tx.products || []).some(p => p.id === PRODUCT_ID)) continue;
+      const token = tx?.nativePurchase?.purchaseToken || tx?.purchaseId;
+      if (!token) continue;
+      const { premium } = await FP_AUTH.verifyPlayPurchase(token);
+      if (premium) {
+        granted = true;
+        if (tx.state !== cdv().TransactionState.FINISHED) tx.finish();
+      }
+    }
+    return granted;
   }
 
   // A purchase can complete while the app is closed, so pick up anything Play

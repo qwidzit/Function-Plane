@@ -20,6 +20,15 @@
   let _sb          = null;   // supabase client
   let _currentUser = null;   // { id, email, name, avatar, totalStars } | null
   let _syncTimer   = null;
+  // Accounts whose cloud save has been downloaded and merged this session.
+  // Nothing uploads for an account until it is here: every upload replaces the
+  // whole server copy, so one sent before the download lands — a fresh install
+  // signing in, a slow network, a failed request — overwrites the real save
+  // with whatever this device happened to hold.
+  const _synced = new Set();
+  // A registration in flight: the guest's progress moves to the new account
+  // the moment its session is adopted, before anything can write over it.
+  let _pendingGuest = false;
 
   const subscribers = new Set();
   const notify = () => subscribers.forEach(fn => { try { fn(); } catch {} });
@@ -65,8 +74,25 @@
   }
 
   const readJSON  = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-  const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
   const progressKey = id  => id ? PROGRESS_PREFIX + id : GUEST_KEY;
+  // Progress is read back from here, not only from disk: a write that fails
+  // (storage full, private mode) would otherwise hand the app the older copy
+  // on its next read and undo the level just cleared.
+  const _mem = new Map();
+  const _loadProgress = k => (_mem.has(k) ? _mem.get(k) : readJSON(k, null));
+  let _warnedStorage = false;
+  function _saveProgress(k, p) {
+    _mem.set(k, p);
+    if (!writeJSON(k, p) && !_warnedStorage) {
+      _warnedStorage = true;
+      _emitSyncError('This device is out of storage — progress will not survive closing the app');
+    }
+  }
+  function _dropProgress(k) {
+    _mem.delete(k);
+    try { localStorage.removeItem(k); } catch {}
+  }
   // The profile row and the id of whoever was signed in last, kept on disk for
   // the same reason the level data is: so a boot with no network shows the
   // player their own game instead of a stranger's empty one. Progress was
@@ -94,6 +120,19 @@
     const cached = lastId ? readJSON(profileKey(lastId), null) : null;
     if (cached) { _currentUser = cached; notify(); }
 
+    // Keep the cache in sync when auth state changes (sign-in / sign-out /
+    // token refresh). Deliberately not an async callback: supabase-js runs
+    // these inside its auth lock, and awaiting other Supabase calls in here
+    // deadlocks every later request until the lock times out — which is
+    // exactly what made signing in take minutes and then complete by itself.
+    // Registered before the session check, which can time out offline: a
+    // listener registered after it was never registered at all on such a boot,
+    // so a token refreshed later never synced and sign-out did nothing.
+    _sb.auth.onAuthStateChange((event, session) => {
+      if (!session) { _forgetAccount(); return; }
+      _adoptSession(session.user, event === 'SIGNED_IN' || !_synced.has(session.user.id));
+    });
+
     // Restore the session (returning visitor on the same device). Bounded: an
     // expired token makes this refresh over the network, and unbounded it is a
     // boot that never finishes.
@@ -111,20 +150,12 @@
       // follow a reset too.
       _checkTimesReset();
     }
-
-    // Keep the cache in sync when auth state changes (sign-in / sign-out /
-    // token refresh). Deliberately not an async callback: supabase-js runs
-    // these inside its auth lock, and awaiting other Supabase calls in here
-    // deadlocks every later request until the lock times out — which is
-    // exactly what made signing in take minutes and then complete by itself.
-    _sb.auth.onAuthStateChange((event, session) => {
-      if (!session) { _forgetAccount(); return; }
-      _adoptSession(session.user, event === 'SIGNED_IN');
-    });
   }
 
   function _forgetAccount() {
     _currentUser = null;
+    _synced.clear();
+    clearTimeout(_syncTimer);
     writeJSON(LAST_USER_KEY, null);
     notify();
   }
@@ -133,6 +164,14 @@
   // against the server afterwards. Every await in here used to sit between the
   // player and their own save file.
   async function _adoptSession(user, download) {
+    if (_pendingGuest) {
+      _pendingGuest = false;
+      const guest = _loadProgress(GUEST_KEY);
+      if (guest && !_loadProgress(progressKey(user.id))) _saveProgress(progressKey(user.id), guest);
+      // Cleared, or the same guest save would seed every account registered
+      // from this device.
+      _dropProgress(GUEST_KEY);
+    }
     const cached = readJSON(profileKey(user.id), null);
     _currentUser = {
       id: user.id, email: user.email,
@@ -140,6 +179,7 @@
       avatar:     cached?.avatar || user.user_metadata?.avatar || '🟢',
       totalStars: cached?.totalStars || 0,
       isPremium:  !!cached?.isPremium,
+      isAdmin:    !!cached?.isAdmin,
     };
     writeJSON(LAST_USER_KEY, user.id);
     notify();
@@ -151,7 +191,7 @@
     } catch (e) { _emitSyncError(e.message); }
 
     if (!download) return;
-    try { await _checkTimesReset(); await _syncProgressDown(user.id); _flushQueue(); }
+    try { await _checkTimesReset(); await _syncProgressDown(user.id); }
     catch (e) { _emitSyncError(e.message); }
   }
 
@@ -195,10 +235,8 @@
     try {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i);
-        if (k === GUEST_KEY || k.startsWith(PROGRESS_PREFIX)) writeJSON(k, _dropStaleTimes(readJSON(k, null), cutoff));
+        if (k === GUEST_KEY || k.startsWith(PROGRESS_PREFIX)) _saveProgress(k, _dropStaleTimes(_loadProgress(k), cutoff));
       }
-      const q = _readQueue();
-      if (q) writeJSON(QUEUE_KEY, { ...q, progress: _dropStaleTimes(q.progress, cutoff) });
       localStorage.removeItem(LB_KEY);
     } catch {}
     notify();
@@ -206,8 +244,13 @@
 
   async function _fetchProfile(user) {
     if (!_sb) return null;
-    const { data } = await _withTimeout(_sb.from('profiles')
-      .select('name, avatar, total_stars, is_premium').eq('id', user.id).single(), 'Profile');
+    // A failed read used to come back as a profile with no premium and no
+    // stars, which was then cached and locked a paying player out offline.
+    const [{ data, error }, { data: admin, error: aErr }] = await _withTimeout(Promise.all([
+      _sb.from('profiles').select('name, avatar, total_stars, is_premium').eq('id', user.id).single(),
+      _sb.from('admins').select('user_id').eq('user_id', user.id).maybeSingle(),
+    ]), 'Profile');
+    if (error || aErr) throw new Error('Profile: ' + (error || aErr).message);
     return {
       id:         user.id,
       email:      user.email,
@@ -215,23 +258,30 @@
       avatar:     data?.avatar || user.user_metadata?.avatar || '🟢',
       totalStars: data?.total_stars || 0,
       isPremium:  !!data?.is_premium,
+      isAdmin:    !!admin,
     };
   }
 
-  // Download remote progress, merge with local, push merged back up
-  async function _syncProgressDown(userId, skipUpload = false) {
+  // Download remote progress, merge with local, push merged back up — the only
+  // way an account's uploads are switched on (_synced). supabase-js reports a
+  // failed request as { error }, not a throw, and treating that as "no cloud
+  // save" merged with nothing and uploaded this device's copy over the real one.
+  async function _syncProgressDown(userId) {
     if (!_sb) return;
-    const { data } = await _withTimeout(
-      _sb.from('progress').select('data').eq('user_id', userId).single(), 'Progress');
+    const { data, error } = await _withTimeout(
+      _sb.from('progress').select('data').eq('user_id', userId).maybeSingle(), 'Progress');
+    if (error) throw new Error('Progress: ' + error.message);
+    if (_currentUser?.id !== userId) return;   // signed out or switched meanwhile
     const cutoff   = _timesCutoff();
     const remote   = _dropStaleTimes(data?.data || null, cutoff);
-    const local    = _dropStaleTimes(readJSON(progressKey(userId), null), cutoff);
+    const local    = _dropStaleTimes(_loadProgress(progressKey(userId)), cutoff);
     const merged   = _mergeProgress(remote, local);
-    writeJSON(progressKey(userId), merged);
+    _saveProgress(progressKey(userId), merged);
+    _synced.add(userId);
     // Whatever came down is on disk but not on screen: the app reads progress
     // out of here when it is told to, and nothing else tells it.
     notify();
-    if (!skipUpload && merged) _scheduleUpload(userId, merged);
+    if (merged) _scheduleUpload(userId, merged);
   }
 
   // Merge two progress snapshots, taking the best of each level
@@ -280,7 +330,9 @@
           const ta = pa.bestTime?.[i] ?? null, tb = pb.bestTime?.[i] ?? null;
           if (ta === null) return tb === null ? null : pb.bestTimeAt?.[i] ?? null;
           if (tb === null) return pa.bestTimeAt?.[i] ?? null;
-          return (ta <= tb ? pa.bestTimeAt?.[i] : pb.bestTimeAt?.[i]) ?? null;
+          const da = pa.bestTimeAt?.[i] ?? null, db = pb.bestTimeAt?.[i] ?? null;
+          if (ta === tb) return da ?? db;
+          return ta < tb ? da : db;
         }),
         maxScore: Array.from({ length: 10 }, (_, i) => {
           const ma = pa.maxScore?.[i] ?? null, mb = pb.maxScore?.[i] ?? null;
@@ -330,11 +382,16 @@
     if (!avail.available) throw new Error(avail.reason || 'That name is taken');
 
     const avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
-    const { data, error } = await _sb.auth.signUp({
+    // Set before signUp: with autoconfirm the SIGNED_IN event, and so
+    // _adoptSession, can run before signUp even returns.
+    _pendingGuest = true;
+    const { data, error } = await _withTimeout(_sb.auth.signUp({
       email, password,
       options: { data: { name, avatar } },
-    });
+    }), 'Register');
     if (error) {
+      _pendingGuest = false;
+      if (/reserved/i.test(error.message || '')) throw new Error('That name is reserved');
       const msg = (error.message || '').toLowerCase();
       if (msg.includes('duplicate') || msg.includes('unique') || msg.includes('23505')) {
         throw new Error('That name is taken');
@@ -342,11 +399,6 @@
       throw new Error(error.message);
     }
 
-    // Migrate any guest progress to the new account
-    const guestProgress = readJSON(GUEST_KEY, null);
-    if (guestProgress && data.user) {
-      writeJSON(progressKey(data.user.id), guestProgress);
-    }
     return { id: data.user?.id, name, email, avatar };
   }
 
@@ -361,8 +413,15 @@
     return _currentUser;
   }
 
+  // Offline, a global sign-out fails and keeps the session, so the player
+  // stayed signed in with nothing said. Ending it on this device always works;
+  // the server session simply expires.
   async function signOut() {
-    if (_sb) await _sb.auth.signOut();
+    if (!_sb) return;
+    let error;
+    try { ({ error } = await _withTimeout(_sb.auth.signOut(), 'Sign out')); }
+    catch (e) { error = e; }
+    if (error) await _sb.auth.signOut({ scope: 'local' });
   }
 
   // Delete the signed-in user's account. Required by Google Play (2024+).
@@ -376,19 +435,21 @@
     // 20260912_star_integrity.sql, so this reported success and removed
     // nothing — the account kept its name and its leaderboard place.
     const errs = [];
-    const r1 = await _sb.from('progress').delete().eq('user_id', id);
+    const r1 = await _write(() => _sb.from('progress').delete().eq('user_id', id), 'Delete progress');
     if (r1.error) errs.push(r1.error.message);
-    const r2 = await _sb.from('level_scores').delete().eq('user_id', id);
+    const r2 = await _write(() => _sb.from('level_scores').delete().eq('user_id', id), 'Delete scores');
     if (r2.error) errs.push(r2.error.message);
-    const r3 = await _sb.from('profiles').delete().eq('id', id);
+    const r3 = await _write(() => _sb.from('profiles').delete().eq('id', id), 'Delete profile');
     if (r3.error) errs.push(r3.error.message);
     // Local cleanup
+    clearTimeout(_syncTimer);
+    _dropProgress(progressKey(id));
     try {
-      localStorage.removeItem(progressKey(id));
       localStorage.removeItem(profileKey(id));
       localStorage.removeItem(LAST_USER_KEY);
+      localStorage.removeItem(LB_KEY);
     } catch {}
-    await _sb.auth.signOut();
+    await signOut();
     if (errs.length) {
       throw new Error('Some data could not be removed automatically; please email support: ' + errs.join('; '));
     }
@@ -412,12 +473,12 @@
   // ── Progress (sync interface, async Supabase background sync) ─────────────
 
   function getActiveProgress() {
-    return readJSON(progressKey(_currentUser?.id), null);
+    return _loadProgress(progressKey(_currentUser?.id));
   }
 
   function updateActiveProgress(progress) {
-    writeJSON(progressKey(_currentUser?.id), progress);
-    if (_sb && _currentUser) _scheduleUpload(_currentUser.id, progress);
+    _saveProgress(progressKey(_currentUser?.id), progress);
+    if (_sb && _currentUser && _synced.has(_currentUser.id)) _scheduleUpload(_currentUser.id, progress);
   }
 
   function _scheduleUpload(userId, progress) {
@@ -425,39 +486,21 @@
     _syncTimer = setTimeout(() => _uploadProgress(userId, progress), 1500);
   }
 
-  // ── Offline upload queue ──────────────────────────────────────────────────
-  // If we're offline (or Supabase is briefly unreachable), parking the latest
-  // progress payload in localStorage lets us retry next time the user opens
-  // the app or comes back online. The queue holds a single pending payload
-  // per user (the most recent supersedes older ones).
-
-  const QUEUE_KEY = 'fp-pending-upload';
-
-  function _queue(userId, progress) {
-    writeJSON(QUEUE_KEY, { userId, progress, ts: Date.now() });
-  }
-  function _clearQueue() { try { localStorage.removeItem(QUEUE_KEY); } catch {} }
-  function _readQueue()  { return readJSON(QUEUE_KEY, null); }
-
-  async function _flushQueue() {
-    const q = _readQueue();
-    if (!q || !_sb || !_currentUser || q.userId !== _currentUser.id) return;
-    if (!navigator.onLine) return;
-    try {
-      await _uploadProgress(q.userId, q.progress);
-      _clearQueue();
-    } catch {/* leave queued */}
-  }
-
-  // Re-try whenever the network comes back, when the user signs in, and at
-  // initial load (handled by _init via subscribe).
+  // Coming back online syncs rather than replaying a stored upload: progress
+  // is already on disk, and a download-merge-upload cannot put an old snapshot
+  // over newer progress from another device, which a replayed upload could.
   if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => { _checkTimesReset().then(_flushQueue); });
+    window.addEventListener('online', () => {
+      const id = _currentUser?.id;
+      _checkTimesReset()
+        .then(() => (id ? _syncProgressDown(id) : null))
+        .catch(e => _emitSyncError(e.message));
+    });
   }
 
   async function _uploadProgress(userId, progress) {
-    if (!_sb) { _queue(userId, progress); return; }
-    if (!navigator.onLine) { _queue(userId, progress); return; }
+    if (!_sb || !navigator.onLine) return;   // the next sync carries it
+    if (_currentUser?.id !== userId || !_synced.has(userId)) return;
     try {
       const totalStars = _countStars(progress);
 
@@ -466,7 +509,10 @@
       const pRes = await _withTimeout(
         _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
         'Progress upload');
-      if (pRes.error) console.warn('FP_AUTH: progress upsert error', pRes.error);
+      if (pRes.error) {
+        console.warn('FP_AUTH: progress upsert error', pRes.error);
+        _emitSyncError('Could not save your progress: ' + (pRes.error.message || 'unknown error'));
+      }
 
       // Upsert individual completed level rows (drives per-level leaderboards).
       // A database that hasn't had the latest migration applied is missing
@@ -516,7 +562,7 @@
       if (_currentUser) _currentUser.totalStars = totalStars;
     } catch (e) {
       console.warn('FP_AUTH: upload error', e);
-      _queue(userId, progress);  // try again next time we're online
+      _emitSyncError(e.message);   // the next sync — reconnect, resume, launch — carries it
     }
   }
 
@@ -668,6 +714,9 @@
     if (!name) return { available: false, reason: 'Display name is required' };
     if (name.length < 2)  return { available: false, reason: 'At least 2 characters' };
     if (name.length > 30) return { available: false, reason: 'Up to 30 characters' };
+    if (name.replace(/[\s\u00a0\u200b-\u200d\u2060\ufeff]/g, '').toLowerCase() === 'testaccount') {
+      return { available: false, reason: 'That name is reserved' };
+    }
     if (!_sb) return { available: true };
     const { data, error } = await _sb
       .from('profiles').select('id').ilike('name', name).limit(1);
@@ -783,8 +832,10 @@
     if (error) throw new Error(error.message);
   }
 
+  // The server decides (public.admins, 20260926_admin_by_id.sql); this only
+  // shows or hides the admin screens.
   function isAdmin() {
-    return _currentUser?.name === 'Test Account';
+    return !!_currentUser?.isAdmin;
   }
 
   function isPremium() {
@@ -827,7 +878,7 @@
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || `Could not confirm the purchase (${res.status})`);
     await refreshEntitlement();
-    return !!body.premium;
+    return { premium: !!body.premium, pending: !!body.pending };
   }
 
   // "Restore purchases". The entitlement lives on the profile, not the device,
@@ -850,10 +901,9 @@
   // forgery, and that needs the real classifier, which only the client has.
   async function fetchScoreRows(limit = 400) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { data, error } = await _withTimeout(_sb.from('level_scores')
-      .select('user_id, pack_id, level_index, best_score, stars, best_time, equations, submitted_at')
-      .order('submitted_at', { ascending: false })
-      .limit(limit), 'Audit');
+    // Equations and submission times are not readable from level_scores
+    // (20260926_score_integrity.sql); the admin function joins them back.
+    const { data, error } = await _withTimeout(_sb.rpc('admin_score_rows', { p_limit: limit }), 'Audit');
     if (error) throw new Error(error.message);
     const ids = [...new Set((data || []).map(r => r.user_id))];
     if (!ids.length) return [];
@@ -867,12 +917,13 @@
     }));
   }
 
-  // Admin-only: remove a forged leaderboard entry. RLS lets the Test Account
-  // delete anyone's row; everyone else only their own.
+  // Admin-only: remove a forged leaderboard entry. A plain delete did not
+  // stick — the owner's device re-uploaded the row on its next sync — so the
+  // server records the removal and refuses that row from then on.
   async function deleteScoreRow(userId, packId, levelIndex) {
     if (!_sb) throw new Error('Supabase not configured');
-    const { error } = await _write(() => _sb.from('level_scores').delete()
-      .eq('user_id', userId).eq('pack_id', packId).eq('level_index', levelIndex), 'Score delete');
+    const { error } = await _write(() => _sb.rpc('admin_remove_score',
+      { p_user: userId, p_pack: packId, p_level: levelIndex }), 'Score delete');
     if (error) throw new Error(error.message);
     writeJSON(LB_KEY, {});   // cached boards still list the deleted entry
   }

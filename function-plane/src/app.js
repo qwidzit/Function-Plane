@@ -61,11 +61,20 @@ function App() {
   useEffect(() => {
     reloadOverrides();
   }, []);
-  const [progress, setProgress] = useState(() => {
-    const fromAuth = FP_AUTH.getActiveProgress();
-    if (fromAuth) return fromAuth;
-    return freshProgress();
-  });
+
+  // A save made before a pack existed has no entry for it, and completing a
+  // level there spread undefined and crashed — five of seven cloud saves lack
+  // s-flip, so un-hiding Inversion would have crashed them all.
+  const withAllPacks = p => {
+    const fresh = freshProgress();
+    if (!p) return fresh;
+    const missing = Object.keys(fresh).filter(k => !p[k]);
+    return missing.length ? {
+      ...p,
+      ...Object.fromEntries(missing.map(k => [k, fresh[k]]))
+    } : p;
+  };
+  const [progress, setProgress] = useState(() => withAllPacks(FP_AUTH.getActiveProgress()));
 
   // Progress arriving from FP_AUTH — a sign-in, an account switch, or the
   // background download landing — replaces what is on screen and re-seeds the
@@ -78,7 +87,7 @@ function App() {
   // history toasted at once. And keying the reload on the id alone meant a
   // download that finished later never reached the screen at all.
   const adoptProgress = () => {
-    setProgress(FP_AUTH.getActiveProgress() || freshProgress());
+    setProgress(withAllPacks(FP_AUTH.getActiveProgress()));
     achInitRef.current = false;
     prevUnlockedRef.current = new Set();
   };

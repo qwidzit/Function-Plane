@@ -461,6 +461,8 @@ function PremiumView({ onBack, padX }) {
       if (e.detail?.premium) {
         setIsPremium(true);
         setMsg({ text:'Purchase confirmed — every pack and level is unlocked.', ok:true });
+      } else if (e.detail?.pending) {
+        setMsg({ text:'Payment pending. Premium unlocks as soon as Google Play confirms it — you can close this screen.', ok:false });
       } else if (e.detail?.error) {
         setMsg({ text: e.detail.error, ok:false });
       }
@@ -498,8 +500,11 @@ function PremiumView({ onBack, padX }) {
   const onRestore = () => {
     setBusy(true);
     setMsg({ text:'', ok:false });
+    // Play's restore verifies what the Google account owns before resolving,
+    // so the profile read after it sees the result. Its failure still falls
+    // through to that read, which covers a purchase already on the account.
     const askStore = onPlay && window.FP_BILLING?.available()
-      ? FP_BILLING.restore().catch(() => {})   // fall through to the profile read
+      ? FP_BILLING.restore().catch(e => { setMsg({ text: e.message, ok:false }); })
       : Promise.resolve();
     askStore
       .then(() => FP_AUTH.refreshEntitlement())

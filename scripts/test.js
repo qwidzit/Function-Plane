@@ -1301,7 +1301,7 @@ it('bounds every network call with a timeout', () => {
   ok(/function _withTimeout\(/.test(accountsJs), 'accounts.js must define _withTimeout');
   const guarded = [
     [/_withTimeout\(fetchLive\(\)/,            'leaderboard fetches'],
-    [/_withTimeout\(_sb\.from\('level_scores'\)\s*\n?\s*\.select/, 'the audit query'],
+    [/_withTimeout\(_sb\.rpc\('admin_score_rows'/, 'the audit query'],
     [/_withTimeout\(\n?\s*_sb\.from\('progress'\)\.upsert/, 'the progress upload'],
     [/_withTimeout\(_sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
     [/_withTimeout\(Promise\.all\(\[\n\s*_sb\.from\('pack_overrides'\)/, 'the override fetch'],
@@ -1328,25 +1328,54 @@ it('bounds every network call with a timeout', () => {
   }
 });
 
+// The scenario runs the real accounts.js against a stub Supabase
+// (scripts/sync-scenario.js) through the cases that have destroyed or
+// resurrected saves; it is run once and read by the tests below.
+const syncRun = (() => {
+  try {
+    return JSON.parse(require('child_process').execFileSync(
+      process.execPath, [path.join(__dirname, 'sync-scenario.js')], { encoding: 'utf8' }));
+  } catch (e) { return { error: e.message }; }
+})();
+
+it('never uploads over a cloud save it has not downloaded', () => {
+  // Every upload replaces the whole server copy. A failed download used to
+  // read as "no cloud save", and the app's first write went up before the
+  // download landed — either way a new phone signing in on a bad network
+  // overwrote the real save with an empty one.
+  ok(!syncRun.error, syncRun.error);
+  eq(syncRun.failedDownload.progressUploads, 0, 'a failed download uploads nothing');
+  eq(syncRun.slowDownload.count, 1, 'a slow download is waited for');
+  eq(syncRun.slowDownload.first[0], 7, 'and what goes up is the merge, not the empty install');
+});
+
+it('moves a guest save to a new account once', () => {
+  ok(!syncRun.error, syncRun.error);
+  eq(JSON.stringify(syncRun.register.account), '[3,2,-1]', 'registering keeps what the guest played');
+  eq(syncRun.register.guest, null, 'and clears it, so it cannot seed the next account');
+});
+
+it('listens for sign-in before the session check, and keeps a profile it could not refresh', () => {
+  ok(!syncRun.error, syncRun.error);
+  ok(syncRun.boot.listenFirst, 'the auth listener must be registered before getSession, which can time out');
+  ok(syncRun.boot.premiumKept, 'a failed profile read must not cache premium as off');
+});
+
 it('resets best times once, keeping stars and offline play', () => {
   // Merging takes the faster time and old times are the fast ones, so a
   // server-side clear alone would come straight back. Times carry when they
-  // were set; the scenario runs the real accounts.js against a stub whose
-  // game_state holds the cutoff (20260925_times_reset.sql).
-  const r = JSON.parse(require('child_process').execFileSync(
-    process.execPath, [path.join(__dirname, 'times-reset-scenario.js')], { encoding: 'utf8' }));
-  ok(!r.error, r.error);
-  const { account, guest } = r.boot;
+  // were set, and game_state holds the cutoff (20260925_times_reset.sql).
+  ok(!syncRun.error, syncRun.error);
+  const { account, guest } = syncRun.reset;
   eq(JSON.stringify(account.bestTime), '[null,null,null]', 'pre-reset times, dated or not, are cleared');
   eq(JSON.stringify(guest.bestTime), '[null,null,null]', 'the guest save too, which uploads on register');
   eq(JSON.stringify(account.stars), '[3,2,-1]', 'stars are kept');
   eq(JSON.stringify(account.best), '[20,40,null]', 'scores are kept');
   eq(account.history[0][0].time, 2.5, 'run history is kept, so time achievements stay earned');
-  eq(r.boot.cutoff, r.cutoff, 'the device remembers the cutoff');
-  ok(r.boot.uploadedTimes.every(t => t == null), 'no pre-reset time is uploaded, queued or not');
-  eq(r.offline.local.bestTime[0], 4.4, 'a time set offline after the reset beats an older, faster one');
-  const row = r.offline.scores.find(x => x.level_index === 0);
-  eq(row.best_time_at, new Date(r.cutoff + 5000).toISOString(), 'and uploads with when it was set');
+  eq(syncRun.reset.cutoff, syncRun.cutoff, 'the device remembers the cutoff');
+  eq(syncRun.offline.local.bestTime[0], 4.4, 'a time set offline after the reset beats an older, faster one');
+  const row = syncRun.offline.scores.find(x => x.level_index === 0);
+  eq(row.best_time_at, new Date(syncRun.cutoff + 5000).toISOString(), 'and uploads with when it was set');
 });
 
 it('never writes the entitlement from the client', () => {
@@ -1389,8 +1418,13 @@ it('grants the entitlement only on the server\'s word', () => {
   ok(/admin\.auth\.getUser\(jwt\)/.test(fn),
     'play-verify must take the user from the JWT, never from the request body');
   ok(/purchaseState !== 0/.test(fn), 'play-verify must reject a purchase Google does not call complete');
-  ok(/existing\.user_id !== user\.id/.test(fn),
+  // One purchase, one account — claimed in a single transaction, so two
+  // accounts verifying the same token at once cannot both win.
+  ok(/rpc\('grant_play_purchase'/.test(fn) && /claim === 'taken'/.test(fn),
     'one purchase token must not unlock a second account');
+  const claim = read(path.join(__dirname, '..', 'supabase', 'migrations', '20260926_purchase_integrity.sql'));
+  ok(/on conflict \(token\) do nothing/.test(claim) && /if owner <> p_user then return 'taken'/.test(claim),
+    'the claim must be first-writer-wins');
 
   const hook = read(path.join(__dirname, '..', 'supabase', 'functions', 'stripe-webhook', 'index.ts'));
   ok(/signatureValid\(payload, header, secret\)/.test(hook),
@@ -1427,11 +1461,18 @@ it('takes premium back when a purchase is refunded', () => {
   // checkout session the row is keyed on.
   ok(/payment_ref: session\.payment_intent/.test(FN('stripe-webhook')),
     'the grant must record what a later refund can be matched by');
-  // Buying again after a refund has to clear the void, or the new purchase
-  // grants premium and the next sweep takes it straight back.
-  for (const f of ['stripe-webhook', 'play-verify']) {
-    ok(/voided_at:\s*null/.test(FN(f)), `${f} must clear an earlier void when granting`);
-  }
+  // A refunded Play token is refunded for good: Play never reissues a
+  // one-time-product token, so a token coming back after its refund is a
+  // replay. Clearing the void here was how a refunded purchase got Premium
+  // back — and the hash outlives the account, so a new one cannot claim it.
+  ok(!/voided_at:\s*null/.test(FN('play-verify')), 'play-verify must never clear a void');
+  ok(/claim === 'voided'/.test(FN('play-verify')), 'play-verify must refuse a refunded token');
+  const integrity = read(path.join(__dirname, '..', 'supabase', 'migrations', '20260926_purchase_integrity.sql'));
+  ok(/from public\.voided_tokens/.test(integrity) && /insert into public\.voided_tokens/.test(integrity),
+    'a refund must be remembered apart from the account it was on');
+  // A Stripe refund voids the old session; buying again is a new session with
+  // a new token, which the void never touched.
+  ok(/voided_at:\s*null/.test(FN('stripe-webhook')), 'stripe-webhook records a live purchase');
 });
 
 it('sells one lifetime unlock through Google Play only', () => {
