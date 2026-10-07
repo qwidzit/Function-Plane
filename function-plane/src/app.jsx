@@ -100,10 +100,24 @@ function App() {
     return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
   }, []);
 
-  // Sync-error toast (Supabase upload failures)
+  // Sync-error toast (Supabase upload failures). A request that got no answer
+  // is usually a Russian network filtering the server, and only the player can
+  // fix that, so the first one is said in the middle of the screen and every
+  // later one carries the advice in the toast.
   const [syncError, setSyncError] = useState(null);
+  const [vpnNotice, setVpnNotice] = useState(null);
   useEffect(() => {
-    const onErr = (e) => setSyncError(e.detail || 'Sync error');
+    const onErr = (e) => {
+      const { msg, network } = e.detail;
+      if (!network) { setSyncError(msg); return; }
+      let seen = true;
+      try {
+        seen = !!localStorage.getItem('fp-vpn-notice');
+        localStorage.setItem('fp-vpn-notice', '1');
+      } catch {}
+      if (seen) setSyncError(msg + '. If you are in Russia, turn on a VPN and try again');
+      else setVpnNotice(msg);
+    };
     window.addEventListener('fp-sync-error', onErr);
     return () => window.removeEventListener('fp-sync-error', onErr);
   }, []);
@@ -480,13 +494,47 @@ function App() {
         </div>
       )}
 
+      {/* First request that got no answer (see the sync-error effect) */}
+      {vpnNotice && (
+        <div onClick={() => setVpnNotice(null)} style={{
+          position: 'absolute', inset: 0, zIndex: 10003,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px', backdropFilter: 'blur(2px)',
+        }}>
+          <div className="fp-screen" onClick={e => e.stopPropagation()} style={{
+            border: '1px solid var(--fp-line)',
+            borderRadius: 16, padding: '20px',
+            maxWidth: 340, width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic', fontSize: 22, color: 'var(--fp-ink)',
+              letterSpacing: '-0.02em', marginBottom: 8,
+            }}>No answer from the server</div>
+            <div style={{ fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.55, marginBottom: 10 }}>
+              {vpnNotice}.
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fp-ink)', lineHeight: 1.55, marginBottom: 18 }}>
+              If you are in Russia, turn on a VPN and try again.
+            </div>
+            <button onClick={() => setVpnNotice(null)} style={{
+              width: '100%', height: 44, borderRadius: 12,
+              background: 'var(--fp-ink)', color: 'var(--fp-bg)',
+              fontSize: 13.5, fontWeight: 500,
+            }}>OK</button>
+          </div>
+        </div>
+      )}
+
       {/* Sync-error toast */}
-      {syncError && (
+      {syncError && !vpnNotice && (
         <div style={{
           position: 'absolute', top: 'env(safe-area-inset-top, 0px)', left: 0, right: 0,
           display: 'flex', justifyContent: 'center', zIndex: 10000, pointerEvents: 'none',
         }}>
-          <div style={{
+          <div className="fp-screen" style={{
             background: '#e34', color: '#fff',
             padding: '10px 14px', margin: '6px 12px',
             borderRadius: 12, fontSize: 12.5, fontWeight: 500,

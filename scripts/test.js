@@ -1302,8 +1302,8 @@ it('bounds every network call with a timeout', () => {
   const guarded = [
     [/_withTimeout\(fetchLive\(\)/,            'leaderboard fetches'],
     [/_withTimeout\(_sb\.rpc\('admin_score_rows'/, 'the audit query'],
-    [/_withTimeout\(\n?\s*_sb\.from\('progress'\)\.upsert/, 'the progress upload'],
-    [/_withTimeout\(_sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
+    [/_send\(s => _sb\.from\('progress'\)\n?\s*\.upsert/, 'the progress upload'],
+    [/_send\(s => _sb\.from\('level_scores'\)\.upsert/, 'the score upload'],
     [/_withTimeout\(Promise\.all\(\[\n\s*_sb\.from\('pack_overrides'\)/, 'the override fetch'],
   ];
   // Admin writes hang the panel's "Saving…" forever when a middlebox drops the
@@ -1326,6 +1326,8 @@ it('bounds every network call with a timeout', () => {
   for (const [re, what] of guarded) {
     ok(re.test(accountsJs), `${what} must go through _withTimeout`);
   }
+  ok(/return _withTimeout\(build\(ac\.signal\), what\)/.test(accountsJs),
+    '_send must bound what it sends with _withTimeout');
 });
 
 // The scenario runs the real accounts.js against a stub Supabase
@@ -1347,6 +1349,20 @@ it('never uploads over a cloud save it has not downloaded', () => {
   eq(syncRun.failedDownload.progressUploads, 0, 'a failed download uploads nothing');
   eq(syncRun.slowDownload.count, 1, 'a slow download is waited for');
   eq(syncRun.slowDownload.first[0], 7, 'and what goes up is the merge, not the empty install');
+});
+
+it('sends the score when the progress upload stalls, and tries again by itself', () => {
+  // Measured on a Russian mobile network: the progress upload got no answer
+  // for 81 s, the timeout threw past the score rows, and nothing retried until
+  // the next launch — so the level never reached a leaderboard.
+  ok(!syncRun.error, syncRun.error);
+  const { sent, events } = syncRun.stalled;
+  eq(sent[0], 'upsert:level_scores', 'the score rows go up while the progress upload has no answer');
+  eq(sent[1], 'abort:progress', 'the stalled request is cancelled, so it cannot land later over a newer save');
+  eq(sent.slice(2).sort().join(), 'upsert:level_scores,upsert:progress', 'and both are sent again without the player doing anything');
+  eq(events.length, 1, 'and the player is told once, not once per retry');
+  ok(events[0].network, 'as a network failure, which is what carries the VPN advice');
+  ok(/saved on this device/.test(events[0].msg), 'saying nothing was lost');
 });
 
 it('moves a guest save to a new account once', () => {

@@ -1,39 +1,85 @@
-# Network access — when writes never arrive
+# Network access — when the server cannot be reached
 
-Some networks let the app read and silently swallow everything it writes. This
-is what that looks like, how it was proved, and what fixing it costs.
+Some Russian networks hold the app's connection to Supabase for a minute or
+more. This is what that looks like, how it was measured, what the app does
+about it, and what a real fix would cost.
 
 It is filed separately from `ABOUT.md` because it is not about how the game
-works: nothing here is a bug in the app, and no amount of code changes the
-answer. `TODO.md` item **11c** tracks it.
+works: nothing here is a bug in the app. `TODO.md` item **11c** tracks it.
 
-> ## Superseded — 20 September 2026
->
-> **The fault below does not currently reproduce, and no relay was bought.**
-> Re-measured the same way: `edge_logs` for `cf.country = 'RU'` over 24 h
-> showed **29 POSTs, 28 of them 2xx** — `level_scores`, `progress` and
-> `auth/v1/token` all writing — and a 16,631-byte GET returned intact, above
-> the 16,384-byte cap Russian ISPs apply to interfered traffic.
->
-> Three explanations fit and cannot be told apart: the interference is
-> intermittent, the route changed, or the original measurement was wrong.
-> Supabase caps log retention at 24 hours, so the window below cannot be
-> re-examined.
->
-> Two things worth knowing before trusting either measurement:
-> - **The verification command in the old plan could never pass.** It posted
->   `"kind":"proxy-test"`, which violates `client_errors_kind_ck`
->   (`'error' | 'unhandledrejection' | 'react'`). It returns 400 on every
->   network, relay or no relay.
-> - **Every Russian request in the logs comes from one IP, one city.** That is
->   the developer. It says nothing about other Russian ISPs.
->
-> `fp-probe.bat` re-measures this across two ISPs. Decision deferred to
-> Build 3. If a relay is ever built: **not Hetzner** — it is one of the four
-> networks Russia interferes with (Cloudflare, Hetzner, DigitalOcean, OVH) and
-> it no longer serves Russian customers.
+## Status — 7 October 2026: real on mobile data, relay not bought
 
-## What was measured
+**Measured on 6 October**, one account, VPN off:
+
+- **Home fibre (KOMTEHCENTR):** two levels cleared, both scores saved, the
+  leaderboards loaded. Same as 18–21 September — about 55 writes from that
+  ISP in 30 days and none lost.
+- **MTS mobile, Moscow:** one level cleared. The progress upload was built at
+  15:37:38 UTC and reached Supabase at 15:38:59 — **81 seconds later**, in one
+  burst with the leaderboard reads that had been waiting beside it. The app
+  had given up at 10 s, the leaderboard showed a timeout, and the score row
+  was never sent at all (that part was a bug, now fixed — see below).
+- The same phone did the same on 17 September: it synced through a VPN, and
+  26 seconds later with the VPN off its preflights arrived and the uploads
+  behind them did not.
+
+So it is not "reads arrive and writes never do", which is what the September
+measurement below concluded. The connection is held — reads included — and
+sometimes let go. Two attempts on one SIM in one city is the whole sample.
+
+**Decision: no relay for now.**
+
+- Nearly every Russian player runs a VPN. In 30 days of logs every tester
+  with an account came in through a VPN exit on every session, and the only
+  tester device seen on a Russian network never signed in.
+- The game works without the server. Levels and progress are local; what a
+  player on a held connection loses is the leaderboard for that session, and
+  the score goes up later.
+- A relay is €3–5 a month, a box to keep patched, a domain to renew, and a
+  single point of failure for every player in the world — for a game that may
+  not earn that back.
+- It can be added in an evening if that changes (*The fix*, below).
+
+Revisit if players without a VPN turn out to be a real share of the audience.
+
+**What the app does instead:**
+
+- The save and the score rows upload independently (`_uploadSave`,
+  `_uploadScores`), so a stalled progress upload no longer skips the scores.
+- An upload that got no answer is retried on its own after 15 s, 30 s, 1, 2
+  and 5 minutes, and at once when the app returns to the foreground. The
+  stalled request is cancelled first (`_send`), because every upload replaces
+  the whole server copy and one delivered a minute late would land over a
+  newer one.
+- The first request that gets no answer on a device opens a notice in the
+  middle of the screen: nothing is lost, and if you are in Russia, turn on a
+  VPN. After that the same advice rides in the red toast. The retries are
+  silent. The flag is `fp-vpn-notice` in localStorage.
+
+**Before trusting any measurement here:**
+
+- **The logs go back 30 days, not 24 hours.** Each query is capped at a
+  24-hour window, but the store answers for older days; walk it one day at a
+  time. The September note that the window "cannot be re-examined" was wrong.
+- **A signed-out player sends no writes.** A country with GETs and no POSTs
+  proves nothing unless those requests carry `auth_user`. Every Russian
+  request in the logs before 17 September was signed out.
+- **The edge log is not complete.** On 6 October it had no entry for an
+  upload the database proves arrived. The database is the witness:
+  `level_scores.submitted_at` is the server's clock, `progress.updated_at` is
+  the phone's, and the gap between that and the edge log's timestamp is how
+  long the request was held.
+- **The old verification command could never pass.** It posted
+  `"kind":"proxy-test"`, which violates `client_errors_kind_ck`
+  (`'error' | 'unhandledrejection' | 'react'`) and returns 400 on any network.
+- **On 20 September the fault was declared gone** on the strength of 29 POSTs
+  from Russia, 28 of them 2xx. All of them were from the home ISP above.
+
+## The September measurement
+
+Kept as it was written. Read it with the caveats above: these Russian
+requests were most likely signed out, and a held connection that is later let
+go fits the same table.
 
 24 hours of the project's `edge_logs`, grouped by country and HTTP method:
 
@@ -107,6 +153,10 @@ recognise, which forwards every request on unchanged.
    ```js
    window.SUPABASE_URL = 'https://api.example.com';
    ```
+4. Pin the session's storage key in `createClient` (`accounts.js`):
+   `auth: { storageKey: 'sb-<ref>-auth-token', … }`. supabase-js names the
+   saved session after the first label of the hostname, so without this the
+   new address signs every player out once.
 
 Auth, RLS, realtime and storage all ride the same origin, so nothing else in
 the app changes. The proxy holds no data and no keys — it forwards bytes.
@@ -115,12 +165,14 @@ The same box can serve the PWA itself, which is worth doing: `pages.dev` is
 Cloudflare, the most filtered name in the chain. Installed Android builds
 bundle their assets and only need the API.
 
-## Until then
+**Not Hetzner** — it is one of the four networks Russia interferes with
+(Cloudflare, Hetzner, DigitalOcean, OVH) and it no longer serves Russian
+customers. Whatever the host, it becomes the only door for every player, so
+keep the direct Supabase address as a fallback.
 
-The app no longer *hides* the failure. Every mutation goes through `_write` in
-`accounts.js`: bounded by `_withTimeout` and retried once, which is safe
-because they are all upserts or deletes. A save that cannot get through now
-says so instead of spinning "Saving…" forever, and the retry sometimes slips
-through, since the filtering is intermittent. That is honesty, not a fix.
+## Admin work
 
-Admin work from an affected network needs a VPN. That demonstrably works.
+Admin saves go through `_write` in `accounts.js`: bounded by `_withTimeout`
+and retried once, which is safe because they are all upserts or deletes. A
+save that cannot get through says so instead of spinning "Saving…" forever.
+From an affected network, use a VPN. That demonstrably works.

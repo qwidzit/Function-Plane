@@ -35,9 +35,13 @@
 
   // Sync errors are surfaced via a CustomEvent that the App listens for and
   // shows in a toast — silent failures are exactly what made the last round
-  // of "saves don't work" bugs hard to track down.
-  function _emitSyncError(msg) {
-    try { window.dispatchEvent(new CustomEvent('fp-sync-error', { detail: msg })); }
+  // of "saves don't work" bugs hard to track down. `network` marks a request
+  // that never got an answer on a device that believes it is online, which is
+  // what a filtered network looks like; the App adds the VPN advice to those.
+  const _isNetErr = e => /timed out|failed to fetch|networkerror|load failed/i.test(e?.message || '');
+  function _emitSyncError(msg, network = _isNetErr({ message: msg })) {
+    const detail = { msg, network: network && navigator.onLine };
+    try { window.dispatchEvent(new CustomEvent('fp-sync-error', { detail })); }
     catch {}
   }
 
@@ -71,6 +75,15 @@
       if (!/timed out/.test(e?.message || '')) throw e;
       return _withTimeout(call(), what);
     });
+  }
+
+  // A save upload is retried for minutes, not once, so it is cancelled when
+  // its bound passes. Left running, a request given up on can still be
+  // delivered — measured at 81 s on a Russian mobile network — and it replaces
+  // the whole server copy with whatever was current when it was sent.
+  function _send(build, what) {
+    const ac = new AbortController();
+    return _withTimeout(build(ac.signal), what).catch(e => { ac.abort(); throw e; });
   }
 
   const readJSON  = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
@@ -281,7 +294,7 @@
     // Whatever came down is on disk but not on screen: the app reads progress
     // out of here when it is told to, and nothing else tells it.
     notify();
-    if (merged) _scheduleUpload(userId, merged);
+    if (merged) _scheduleUpload(userId);
   }
 
   // Merge two progress snapshots, taking the best of each level
@@ -480,12 +493,26 @@
 
   function updateActiveProgress(progress) {
     _saveProgress(progressKey(_currentUser?.id), progress);
-    if (_sb && _currentUser && _synced.has(_currentUser.id)) _scheduleUpload(_currentUser.id, progress);
+    if (_sb && _currentUser && _synced.has(_currentUser.id)) _scheduleUpload(_currentUser.id);
   }
 
-  function _scheduleUpload(userId, progress) {
+  // An upload that got no answer is tried again on its own, at these gaps,
+  // rather than left for the next launch. What goes up is always the save on
+  // disk at that moment, so a retry cannot carry an old snapshot.
+  const RETRY_MS  = [15000, 30000, 60000, 120000, 300000];
+  const UPLOAD_LOST = 'Could not reach the server — your progress is saved on this device and will upload on its own';
+  let _retries   = 0;
+  let _uploadSeq = 0;
+
+  function _scheduleUpload(userId) {
+    _retries = 0;
+    _uploadAfter(1500, userId);
+  }
+
+  function _uploadAfter(ms, userId) {
+    _uploadSeq++;
     clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(() => _uploadProgress(userId, progress), 1500);
+    _syncTimer = setTimeout(() => _uploadProgress(userId), ms);
   }
 
   // Coming back online syncs rather than replaying a stored upload: progress
@@ -499,73 +526,90 @@
         .catch(e => _emitSyncError(e.message));
     });
   }
+  // Back in the foreground with an upload still owed: try now, not at the end
+  // of whatever gap was running.
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && _retries && _currentUser) _uploadAfter(0, _currentUser.id);
+    });
+  }
 
-  async function _uploadProgress(userId, progress) {
+  async function _uploadProgress(userId) {
     if (!_sb || !navigator.onLine) return;   // the next sync carries it
     if (_currentUser?.id !== userId || !_synced.has(userId)) return;
-    try {
-      const totalStars = _countStars(progress);
+    const progress = _loadProgress(progressKey(userId));
+    if (!progress) return;
+    const seq = _uploadSeq;
 
-      // A stall here would leave progress neither saved nor queued; the
-      // timeout throws instead, so the catch below queues it for the next try.
-      const pRes = await _withTimeout(
-        _sb.from('progress').upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() }),
-        'Progress upload');
-      if (pRes.error) {
-        console.warn('FP_AUTH: progress upsert error', pRes.error);
-        _emitSyncError('Could not save your progress: ' + (pRes.error.message || 'unknown error'));
-      }
+    // The save and the score rows go up independently. A progress upload that
+    // stalled used to throw past the rows, so a level cleared on a bad network
+    // never reached a leaderboard.
+    const sent = await Promise.allSettled([_uploadSave(userId, progress), _uploadScores(userId, progress)]);
 
-      // Upsert individual completed level rows (drives per-level leaderboards).
-      // A database that hasn't had the latest migration applied is missing
-      // some of these columns, so an upsert naming one fails wholesale — drop
-      // whichever column the error names and retry, rather than losing the
-      // player's scores until the migration is run.
-      const rowsFull = [];
-      for (const [packId, pd] of Object.entries(progress)) {
-        (pd?.best || []).forEach((score, levelIndex) => {
-          const stars = pd?.stars?.[levelIndex] ?? -1;
-          if (score != null && stars >= 1) {
-            const t   = pd?.bestTime?.[levelIndex];
-            const tAt = pd?.bestTimeAt?.[levelIndex];
-            const eqs = pd?.bestEqs?.[levelIndex];
-            rowsFull.push({
-              user_id: userId, pack_id: packId, level_index: levelIndex,
-              best_score: score, stars,
-              best_time: t == null ? null : t,
-              best_time_at: t == null || tAt == null ? null : new Date(tAt).toISOString(),
-              equations: Array.isArray(eqs) ? eqs : null,
-            });
-          }
-        });
-      }
-      if (rowsFull.length) {
-        const upsert = rows => _withTimeout(_sb.from('level_scores').upsert(rows, {
-          onConflict: 'user_id,pack_id,level_index', ignoreDuplicates: false,
-        }), 'Score upload');
-        let rows = rowsFull;
-        let { error: upErr } = await upsert(rows);
-        for (const col of ['equations', 'best_time']) {
-          if (!upErr || !new RegExp(col, 'i').test(upErr.message || '')) continue;
-          rows = rows.map(({ [col]: _drop, ...rest }) => rest);
-          ({ error: upErr } = await upsert(rows));
-          if (!upErr) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
-        }
-        if (upErr) {
-          console.warn('FP_AUTH: level_scores upsert error', upErr);
-          _emitSyncError('Could not save your score: ' + (upErr.message || 'unknown error'));
-        }
-      }
+    // The stored total is derived by the database from the level_scores rows
+    // — the client has no write on that column (20260912_star_integrity.sql).
+    // This is the same number, kept locally so the header updates without
+    // waiting for a round trip.
+    if (_currentUser?.id === userId) _currentUser.totalStars = _countStars(progress);
 
-      // The stored total is derived by the database from the level_scores rows
-      // upserted above — the client has no write on that column
-      // (20260912_star_integrity.sql). This is the same number, kept locally so
-      // the header updates without waiting for a round trip.
-      if (_currentUser) _currentUser.totalStars = totalStars;
-    } catch (e) {
-      console.warn('FP_AUTH: upload error', e);
-      _emitSyncError(e.message);   // the next sync — reconnect, resume, launch — carries it
+    let lost = false;
+    for (const r of sent) {
+      if (r.status !== 'rejected') continue;
+      console.warn('FP_AUTH: upload error', r.reason);
+      if (_isNetErr(r.reason)) lost = true;
+      else _emitSyncError(r.reason.message);   // refused, and would be again
     }
+    if (seq !== _uploadSeq) return;   // a newer upload is queued and answers for itself
+    if (!lost) { _retries = 0; return; }
+    // Said once per upload the player caused; the retries behind it are quiet.
+    if (_retries === 0) _emitSyncError(UPLOAD_LOST, true);
+    if (_retries < RETRY_MS.length) _uploadAfter(RETRY_MS[_retries++], userId);
+  }
+
+  async function _uploadSave(userId, progress) {
+    const { error } = await _send(s => _sb.from('progress')
+      .upsert({ user_id: userId, data: progress, updated_at: new Date().toISOString() })
+      .abortSignal(s), 'Progress upload');
+    if (error) throw new Error('Could not save your progress: ' + (error.message || 'unknown error'));
+  }
+
+  // Upsert individual completed level rows (drives per-level leaderboards).
+  // A database that hasn't had the latest migration applied is missing some of
+  // these columns, so an upsert naming one fails wholesale — drop whichever
+  // column the error names and retry, rather than losing the player's scores
+  // until the migration is run.
+  async function _uploadScores(userId, progress) {
+    const rowsFull = [];
+    for (const [packId, pd] of Object.entries(progress)) {
+      (pd?.best || []).forEach((score, levelIndex) => {
+        const stars = pd?.stars?.[levelIndex] ?? -1;
+        if (score != null && stars >= 1) {
+          const t   = pd?.bestTime?.[levelIndex];
+          const tAt = pd?.bestTimeAt?.[levelIndex];
+          const eqs = pd?.bestEqs?.[levelIndex];
+          rowsFull.push({
+            user_id: userId, pack_id: packId, level_index: levelIndex,
+            best_score: score, stars,
+            best_time: t == null ? null : t,
+            best_time_at: t == null || tAt == null ? null : new Date(tAt).toISOString(),
+            equations: Array.isArray(eqs) ? eqs : null,
+          });
+        }
+      });
+    }
+    if (!rowsFull.length) return;
+    const upsert = rows => _send(s => _sb.from('level_scores').upsert(rows, {
+      onConflict: 'user_id,pack_id,level_index', ignoreDuplicates: false,
+    }).abortSignal(s), 'Score upload');
+    let rows = rowsFull;
+    let { error } = await upsert(rows);
+    for (const col of ['equations', 'best_time']) {
+      if (!error || !new RegExp(col, 'i').test(error.message || '')) continue;
+      rows = rows.map(({ [col]: _drop, ...rest }) => rest);
+      ({ error } = await upsert(rows));
+      if (!error) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
+    }
+    if (error) throw new Error('Could not save your score: ' + (error.message || 'unknown error'));
   }
 
   function _countStars(progress) {

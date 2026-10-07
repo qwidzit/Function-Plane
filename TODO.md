@@ -30,8 +30,10 @@ point back at it.
 > play (item 34, migration applied). Stars and scores are kept. Run it once
 > Build 3 has reached the testers (§3, 16).
 >
-> **Deferred past launch (§7):** the Russia relay, whose premise stopped
-> reproducing.
+> **Decided 7 October:** no Russia relay. The fault is real on mobile data
+> (reproduced on MTS on 6 October) but nearly every Russian player has a VPN.
+> The app now retries stalled uploads and tells the player to turn one on.
+> That is in the repo, not in Build 3 — it needs a build (§7).
 
 ## First, the question that decides everything
 
@@ -57,7 +59,7 @@ Needs `versionCode` +1 and a new AAB.
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 20 September (the last admin edit). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
 | ~~38~~ | ~~The 25 September audit, app side~~ | **Done in the repo (26 September).** A failed progress download no longer uploads over the cloud save, and nothing uploads for an account until its download has merged (a new phone on a slow network used to overwrite its own save with an empty one). The offline upload queue is gone — reconnecting syncs instead. Registering moves the guest save and clears it. The auth listener is registered before the session check. A failed profile read no longer caches Premium as off. Saves missing a pack no longer crash on completing a level there. Sign-out works offline; delete account is bounded. Tied times keep their date. A full disk keeps progress in memory and says so. Restore verifies Play's transactions itself, and a pending payment says it is pending. Admin is read from the server. `scripts/sync-scenario.js` plays out every save-wiping case, and fails against the old code |
-| — | Bump `sw.js` | `fp-v92` as of the 8-character password; bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v93` as of the upload retry and the VPN notice; bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -146,7 +148,6 @@ to `legal/` (checked 25 September).
 | # | What |
 |---|---|
 | — | Build and upload Build 3: `npm test`, `npx cap sync android`, `gradlew bundleRelease`. Steps in [`COMMANDS.md`](./COMMANDS.md) |
-| 11c | Deferred. Russian writes arrived normally on 20 September; run `fp-probe.bat` across two ISPs for a few days before buying anything. Background in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
 
 **Done:** 21 (keystore backed up offline), 31 (low-end device pass).
 
@@ -156,7 +157,7 @@ Each of these needs a client change, so each costs a build.
 
 | # | What |
 |---|---|
-| 11c | The Russia relay, if the probe data justifies it. See section 6 |
+| 11c | **Ship the upload retry and the VPN notice** — done in the repo on 7 October, after Build 3 was cut. Stalled uploads retry on their own, a stalled progress upload no longer skips the score, and the first unanswered request tells a Russian player to turn on a VPN. The relay itself is decided against for now; the measurement and the reasons are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
 
 ### 34 — reset of best times (done 25 September)
 

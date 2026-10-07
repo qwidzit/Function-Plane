@@ -126,10 +126,29 @@ function App() {
     };
   }, []);
 
-  // Sync-error toast (Supabase upload failures)
+  // Sync-error toast (Supabase upload failures). A request that got no answer
+  // is usually a Russian network filtering the server, and only the player can
+  // fix that, so the first one is said in the middle of the screen and every
+  // later one carries the advice in the toast.
   const [syncError, setSyncError] = useState(null);
+  const [vpnNotice, setVpnNotice] = useState(null);
   useEffect(() => {
-    const onErr = e => setSyncError(e.detail || 'Sync error');
+    const onErr = e => {
+      const {
+        msg,
+        network
+      } = e.detail;
+      if (!network) {
+        setSyncError(msg);
+        return;
+      }
+      let seen = true;
+      try {
+        seen = !!localStorage.getItem('fp-vpn-notice');
+        localStorage.setItem('fp-vpn-notice', '1');
+      } catch {}
+      if (seen) setSyncError(msg + '. If you are in Russia, turn on a VPN and try again');else setVpnNotice(msg);
+    };
     window.addEventListener('fp-sync-error', onErr);
     return () => window.removeEventListener('fp-sync-error', onErr);
   }, []);
@@ -619,7 +638,65 @@ function App() {
       fontSize: 13.5,
       fontWeight: 500
     }
-  }, confirmReq.confirmLabel)))), syncError && /*#__PURE__*/React.createElement("div", {
+  }, confirmReq.confirmLabel)))), vpnNotice && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setVpnNotice(null),
+    style: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 10003,
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      backdropFilter: 'blur(2px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fp-screen",
+    onClick: e => e.stopPropagation(),
+    style: {
+      border: '1px solid var(--fp-line)',
+      borderRadius: 16,
+      padding: '20px',
+      maxWidth: 340,
+      width: '100%',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Instrument Serif', Georgia, serif",
+      fontStyle: 'italic',
+      fontSize: 22,
+      color: 'var(--fp-ink)',
+      letterSpacing: '-0.02em',
+      marginBottom: 8
+    }
+  }, "No answer from the server"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink-3)',
+      lineHeight: 1.55,
+      marginBottom: 10
+    }
+  }, vpnNotice, "."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: 'var(--fp-ink)',
+      lineHeight: 1.55,
+      marginBottom: 18
+    }
+  }, "If you are in Russia, turn on a VPN and try again."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setVpnNotice(null),
+    style: {
+      width: '100%',
+      height: 44,
+      borderRadius: 12,
+      background: 'var(--fp-ink)',
+      color: 'var(--fp-bg)',
+      fontSize: 13.5,
+      fontWeight: 500
+    }
+  }, "OK"))), syncError && !vpnNotice && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       top: 'env(safe-area-inset-top, 0px)',
@@ -631,6 +708,7 @@ function App() {
       pointerEvents: 'none'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fp-screen",
     style: {
       background: '#e34',
       color: '#fff',

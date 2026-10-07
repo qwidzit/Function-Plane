@@ -116,7 +116,7 @@ capacitor.config.json      # native shell config (appId app.functionplane)
 README.md                  # the public front door
 TODO.md                    # what is left, by where you do it
 MOBILE-BUILD.md            # how to build the Android/iOS apps
-NETWORK-ACCESS.md          # where writes never arrive, and the ~€3/mo fix
+NETWORK-ACCESS.md          # networks that hold the connection, and why no relay
 ```
 
 `android/` and `ios/` are gitignored — recreated locally with `npx cap add
@@ -1281,18 +1281,32 @@ personal best, and a 3-star run using more equations can score worse than a
 run that earned the stars. That is detection, not prevention; prevention needs
 a deterministic server-side replay, which the fixed-tick sim clock now makes
 possible.
-**Writes can vanish on some networks.** Measured from Russia over 24 h: every
-`GET` and `OPTIONS` answered 200 and **not one `POST` or `PATCH` ever reached
-the project**. The CORS preflight gets through and the write behind it, with a
-body and a bearer token, is dropped in transit; players lose scores silently,
-since the progress upload is a `POST` too. It is not a bug in the app and a
-different database would not fix it — the full measurement, the mechanism and
-the ~€3/month fix are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md). What the
-app does about it: every mutation goes through `_write` (bounded by
-`_withTimeout`, retried once, idempotent because they are all upserts or
-deletes), so a save that cannot get through says so instead of spinning
-forever. Check `edge_logs` grouped by `cf_ipcountry` and method before blaming
-the code.
+**Some Russian networks hold the connection.** Measured on MTS mobile data
+with the VPN off: a progress upload reached the project 81 seconds after it
+was sent, in one burst with the leaderboard reads waiting beside it; home
+broadband in the same city is fine. It is not a bug in the app and a different
+database would not fix it — the measurement, the decision not to buy a relay
+and the recipe for one are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md). What
+the app does about it:
+
+- The save and the score rows upload independently (`_uploadSave`,
+  `_uploadScores`), each bounded by `_send`, which also cancels the request
+  when its 10 s pass — an upload replaces the whole server copy, so one that
+  is given up on and delivered a minute later would land over a newer one.
+- An upload that got no answer is retried after 15 s, 30 s, 1, 2 and 5
+  minutes and when the app returns to the foreground. It always sends the save
+  on disk at that moment. The player is told once per upload they caused; the
+  retries are silent. A refusal from the server is not retried.
+- `fp-sync-error` carries `{ msg, network }`. `network` means no answer on a
+  device that believes it is online. The first one on a device opens a notice
+  in the middle of the screen advising a VPN (`fp-vpn-notice` in
+  localStorage); later ones add the same advice to the toast.
+- Admin mutations go through `_write` (bounded, retried once, idempotent
+  because they are all upserts or deletes), so a save that cannot get through
+  says so instead of spinning forever.
+
+The edge logs answer for 30 days, one 24-hour window per query; check them,
+and the database, before blaming the code.
 
 - If the app is unreachable after inactivity, check the Supabase dashboard —
   a free-tier project **auto-pauses after ~7 days** and needs a manual

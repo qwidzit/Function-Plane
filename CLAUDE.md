@@ -8,9 +8,10 @@ what's left to ship — is in [`ABOUT.md`](./ABOUT.md).** Read it before
 changing anything you don't already understand; this file assumes it.
 
 Two things live outside it: [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) (why
-writes from some countries never arrive — not a code problem, don't try to
-solve it in the app; its premise stopped reproducing on 20 September 2026 and
-the fix is on hold, so read its header before acting on it) and
+the server cannot be reached from Russian mobile networks without a VPN — not
+a code problem; reproduced on 6 October 2026, and a relay was decided against,
+so the app retries and tells the player instead; read its status section
+before acting on it) and
 [`TODO.md`](./TODO.md) (what is left, and where the release stands).
 [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) keeps the same work by area
 with the history behind each item.

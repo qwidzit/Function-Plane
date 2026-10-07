@@ -15,7 +15,9 @@ const CUTOFF = Date.parse('2026-10-01T12:00:00Z');
 const tick   = ms => new Promise(r => setTimeout(r, ms));
 
 // opts: seed (localStorage), remote (server progress blob), cutoff (ms|null),
-// session (bool), progressDelay (ms), progressError (bool), profileError (bool)
+// session (bool), progressDelay (ms), progressError (bool), profileError (bool),
+// stallUploads (how many progress uploads get no answer), fast (run the 10 s
+// timeout and the retry gaps 250 times faster)
 async function boot(opts) {
   const store = new Map(Object.entries(opts.seed || {}).map(([k, v]) => [k, JSON.stringify(v)]));
   const localStorage = {
@@ -27,6 +29,8 @@ async function boot(opts) {
   };
   const log = [];
   const uploads = [];
+  const events = [];
+  let stalls = opts.stallUploads || 0;
   let listener = null;
   const query = table => {
     const b = {
@@ -34,7 +38,17 @@ async function boot(opts) {
       limit: async () => ({ data: [], error: null }),
       single: async () => answer(table),
       maybeSingle: async () => answer(table),
-      upsert: async rows => { log.push('upsert:' + table); uploads.push({ table, rows: [].concat(rows) }); return { error: null }; },
+      upsert: rows => ({
+        abortSignal(signal) {
+          if (table === 'progress' && stalls-- > 0) {
+            signal.addEventListener('abort', () => log.push('abort:' + table));
+            return new Promise(() => {});
+          }
+          log.push('upsert:' + table);
+          uploads.push({ table, rows: [].concat(rows) });
+          return Promise.resolve({ error: null });
+        },
+      }),
     };
     return b;
   };
@@ -70,13 +84,15 @@ async function boot(opts) {
     },
   };
   const ctx = {
-    localStorage, console, Promise, Date, clearTimeout,
+    localStorage, Promise, Date, clearTimeout, AbortController,
+    // The stalled upload is expected to warn; keep it out of the test output.
+    console: opts.stallUploads ? { ...console, warn() {} } : console,
     // The upload debounce is 1.5 s; run it at 60 ms so a slow download can
     // still be slower than it.
-    setTimeout: (fn, ms) => setTimeout(fn, ms === 1500 ? 60 : ms),
+    setTimeout: (fn, ms) => setTimeout(fn, ms === 1500 ? 60 : opts.fast && ms >= 10000 ? ms / 250 : ms),
     navigator: { onLine: true },
     CustomEvent: class { constructor(type, o) { this.type = type; this.detail = o?.detail; } },
-    addEventListener() {}, dispatchEvent() {},
+    addEventListener() {}, dispatchEvent(e) { events.push(e.detail); },
     SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'anon',
     supabase: { createClient: () => sb },
     starBitsOf: (n, bits) => bits ?? 0, starCount: bits => bits,
@@ -86,7 +102,7 @@ async function boot(opts) {
   vm.runInContext(fs.readFileSync(path.join(SRC, 'accounts.js'), 'utf8'), ctx);
   await tick(20);
   const read = k => (store.has(k) ? JSON.parse(store.get(k)) : null);
-  return { ctx, uploads, log, read };
+  return { ctx, uploads, log, read, events };
 }
 
 const played = {
@@ -155,6 +171,17 @@ const progressUploads = u => u.filter(x => x.table === 'progress').map(x => x.ro
     const { log, read } = await boot({ profileError: true, seed: { 'fp-profile-u1': { id: 'u1', isPremium: true }, 'fp-last-user': 'u1' } });
     await tick(120);
     out.boot = { listenFirst: log.indexOf('listen') < log.indexOf('getSession'), premiumKept: read('fp-profile-u1')?.isPremium === true };
+  }
+
+  // A progress upload that gets no answer: the score rows go up anyway, the
+  // stalled request is cancelled, the player is told once, and the upload is
+  // tried again without being asked.
+  {
+    const { log, events } = await boot({
+      fast: true, stallUploads: 1, remote: played, seed: { 'fp-progress-u1': played, 'fp-last-user': 'u1' },
+    });
+    await tick(500);
+    out.stalled = { events, sent: log.filter(x => /^(upsert|abort):/.test(x)) };
   }
 
   process.stdout.write(JSON.stringify(out));
