@@ -23,11 +23,23 @@ window.FP_BILLING = (function () {
     return !!store();
   }
 
-  // The plugin attaches its global through the Capacitor bridge, which can land
-  // after our scripts. Give it a moment rather than deciding "no billing here"
-  // on a race.
+  // The Capacitor bridge injects only the plugin's native half. Its JavaScript
+  // ships for bundlers (`import … from`), and this app has none, so the script
+  // build is vendored (vendor/cdv-purchase.js, checked against node_modules by
+  // `npm test`) and loaded here, in the Play build only. Builds 2 and 3 loaded
+  // nothing, so available() was never true and the premium card never showed.
+  function _loadPlugin() {
+    window.CdvPurchaseCapacitor = { installed: true };   // store.js: talk to Capacitor.Plugins, not cordova.exec
+    const s = document.createElement('script');
+    s.src = 'vendor/cdv-purchase.js';
+    document.head.appendChild(s);
+  }
+
+  // The script creates its store a tick after it runs. Give it a moment rather
+  // than deciding "no billing here" on a race.
   function _waitForPlugin(ms = 3000) {
     if (available()) return Promise.resolve(true);
+    if ((window.FP_PAY_CHANNEL || 'web') === 'play') _loadPlugin();
     return new Promise(resolve => {
       const started = Date.now();
       const id = setInterval(() => {

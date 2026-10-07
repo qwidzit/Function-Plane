@@ -30,10 +30,15 @@ point back at it.
 > play (item 34, migration applied). Stars and scores are kept. Run it once
 > Build 3 has reached the testers (§3, 16).
 >
+> **Found 7 October: no build so far can sell.** Builds 2 and 3 never loaded
+> the billing plugin's JavaScript, so the premium card stayed hidden in the
+> Play build. Fixed in the repo; the test purchase needs a build made from
+> today's `main` or later.
+>
 > **Decided 7 October:** no Russia relay. The fault is real on mobile data
 > (reproduced on MTS on 6 October) but nearly every Russian player has a VPN.
 > The app now retries stalled uploads and tells the player to turn one on.
-> That is in the repo, not in Build 3 — it needs a build (§7).
+> Build 3 has not been built yet, so it goes out with it.
 
 ## First, the question that decides everything
 
@@ -59,7 +64,7 @@ Needs `versionCode` +1 and a new AAB.
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 7 October: it picked up the 1 October retune of *Space Exploration* (`r-III-9`, goals 120/4 to 60/3). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
 | ~~38~~ | ~~The 25 September audit, app side~~ | **Done in the repo (26 September).** A failed progress download no longer uploads over the cloud save, and nothing uploads for an account until its download has merged (a new phone on a slow network used to overwrite its own save with an empty one). The offline upload queue is gone — reconnecting syncs instead. Registering moves the guest save and clears it. The auth listener is registered before the session check. A failed profile read no longer caches Premium as off. Saves missing a pack no longer crash on completing a level there. Sign-out works offline; delete account is bounded. Tied times keep their date. A full disk keeps progress in memory and says so. Restore verifies Play's transactions itself, and a pending payment says it is pending. Admin is read from the server. `scripts/sync-scenario.js` plays out every save-wiping case, and fails against the old code |
-| — | Bump `sw.js` | `fp-v94` as of the 7 October snapshot; bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v95` as of the billing plugin being loaded (7 October); bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -125,7 +130,7 @@ player on their next launch. No build, no deploy.
 |---|---|
 | ~~5~~ | ~~Enable the Google Play Android Developer API~~ | **Done (25 September).** Google now answers — with *insufficient permissions* (next row) |
 | 5 | **Service account permissions: granted 25 September, still propagating.** Right after, the sweep still got "insufficient permissions" (Google checks parameters first, which is how a too-wide 30-day window showed up — fixed, `play-refunds` v4 asks for 29). Confirm with `select public.sweep_play_refunds();` and then `select status_code, content from net._http_response order by created desc limit 1;` — 200 and `{"seen":0,"revoked":0}` means done. The nightly run at 03:40 UTC does the same; cron marks it "succeeded" either way, so read the response |
-| 5 | **Make a test purchase** as a licence tester once the sweep answers 200. The first end-to-end run of `play-verify`; a row should appear in `purchases` and the account should show Premium |
+| 5 | **Make a test purchase** as a licence tester, from a build made on or after 7 October (earlier ones cannot show the premium screen). The sweep has answered 200 since 7 October. The first end-to-end run of `play-verify`; a row should appear in `purchases` and the account should show Premium |
 | 26 | Replace the uploaded screenshots with `store-assets/screenshots/01`–`08`, in that order |
 | — | Confirm the listing's **In-app purchases** answer reads **Yes**, and that `premium_lifetime` is **active**, not draft |
 | — | Upload Build 3 to the closed track, then apply for production access and roll out staged, ~20% first |
@@ -157,7 +162,7 @@ Each of these needs a client change, so each costs a build.
 
 | # | What |
 |---|---|
-| 11c | **Ship the upload retry and the VPN notice** — done in the repo on 7 October, after Build 3 was cut. Stalled uploads retry on their own, a stalled progress upload no longer skips the score, and the first unanswered request tells a Russian player to turn on a VPN. The relay itself is decided against for now; the measurement and the reasons are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
+| 11c | **Ship the upload retry and the VPN notice** — done in the repo on 7 October and part of Build 3, which had not been built yet. Stalled uploads retry on their own, a stalled progress upload no longer skips the score, and the first unanswered request tells a Russian player to turn on a VPN. The relay itself is decided against for now; the measurement and the reasons are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
 
 ### 34 — reset of best times (done 25 September)
 

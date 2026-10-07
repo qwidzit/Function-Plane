@@ -125,6 +125,12 @@ believing it.
   entry has to carry every setting (`curveSettings` / `rowsFromRun`) or
   *Load these equations* brings back a different curve. The domain was
   missed exactly this way until Build 3.
+- The premium card is missing in the Android build, or nothing can be bought
+  → `window.CdvPurchase` does not exist. Capacitor injects only a plugin's
+  native half; the JavaScript of `capacitor-plugin-cdv-purchase` is vendored
+  as `vendor/cdv-purchase.js` and `billing.js` adds the `<script>` in the
+  Play build. After updating the plugin, copy its `www/store.js` over the
+  vendored file — `npm test` fails until you do.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.

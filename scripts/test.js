@@ -1447,6 +1447,49 @@ it('grants the entitlement only on the server\'s word', () => {
     'the Stripe webhook runs without a JWT, so the signature check is the authentication');
 });
 
+// billing.js and the plugin's own JavaScript, run against a fake of the native
+// half only (scripts/billing-scenario.js).
+const billRun = (() => {
+  try {
+    return JSON.parse(require('child_process').execFileSync(
+      process.execPath, [path.join(__dirname, 'billing-scenario.js')], { encoding: 'utf8' }));
+  } catch (e) { return { error: e.message }; }
+})();
+
+it('loads the Play Billing plugin in the Play build, and only there', () => {
+  // Builds 2 and 3 shipped the plugin's native half and never loaded its
+  // JavaScript: Capacitor injects none, and the package expects a bundler.
+  // available() was false forever, so the premium card hid itself and nothing
+  // could be bought.
+  ok(!billRun.error, billRun.error);
+  ok(!billRun.boot.before && billRun.boot.loaded && billRun.boot.after,
+    'the Play build must load vendor/cdv-purchase.js and end up with a store');
+  ok(billRun.boot.ready, 'and say so, or the premium card never appears');
+  eq(billRun.boot.price, '€4.90', 'the product and its price come back from Play');
+  ok(!billRun.web.loaded && !billRun.web.available, 'the web build sells nothing and loads nothing');
+
+  // The copy in vendor/ talks to the native code in node_modules; the two are
+  // one plugin and must be one version.
+  const theirs = path.join(__dirname, '..', 'node_modules', 'capacitor-plugin-cdv-purchase', 'www', 'store.js');
+  if (fs.existsSync(theirs)) {
+    ok(read(theirs) === read(path.join(__dirname, '..', 'function-plane', 'vendor', 'cdv-purchase.js')),
+      'vendor/cdv-purchase.js differs from the installed plugin — copy www/store.js over it');
+  }
+});
+
+it('buys, refuses and restores through the real plugin', () => {
+  ok(!billRun.error, billRun.error);
+  eq(billRun.buy.calls.join(), 'buy:premium_lifetime,verify:tok-new,ack:tok-new',
+    'a purchase is verified by the server and only then acknowledged to Google');
+  ok(billRun.buy.events[0]?.premium, 'and the screen is told premium is on');
+  ok(!billRun.refused.acked && /refunded/.test(billRun.refused.events[0]?.error),
+    'a purchase the server refuses is left unacknowledged, so Google refunds it');
+  ok(!billRun.pending.acked && billRun.pending.events[0]?.pending, 'a pending payment is neither granted nor acknowledged');
+  ok(billRun.restore.granted && billRun.restore.verified.join() === 'verify:tok-old',
+    'restore verifies a purchase Play already holds, acknowledged or not');
+  ok(!billRun.restoreNone.granted && billRun.restoreNone.verified === 0, 'and grants nothing when there is none');
+});
+
 it('takes premium back when a purchase is refunded', () => {
   const FN = f => read(path.join(__dirname, '..', 'supabase', 'functions', f, 'index.ts'));
   const mig = read(path.join(__dirname, '..', 'supabase', 'migrations',

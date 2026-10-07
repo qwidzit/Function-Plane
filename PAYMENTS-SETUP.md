@@ -85,6 +85,16 @@ seen a build that declares the billing permission.
    npm install capacitor-plugin-cdv-purchase
    npx cap sync android
    ```
+   Then copy the plugin's script into the app, and do it again whenever the
+   plugin is updated:
+   ```
+   cp node_modules/capacitor-plugin-cdv-purchase/www/store.js function-plane/vendor/cdv-purchase.js
+   ```
+   The package assumes a bundler and Capacitor injects no JavaScript for it,
+   so `billing.js` loads this copy itself. `npm test` fails when the copy and
+   the installed plugin differ. Without it the premium card never appears in
+   the Play build — which is how Builds 2 and 3 shipped.
+
    It is MIT-licensed and builds against Play Billing Library 9. That matters:
    since **31 August 2026** Google rejects uploads using anything below
    Billing Library 8, so a plugin pinned to 7 would fail at upload, not at run

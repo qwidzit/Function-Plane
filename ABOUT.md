@@ -1495,6 +1495,15 @@ checkout.
       app talks to, so the privacy policy and the Data safety answers stand
       unchanged. The plugin install and the Play Console product are the
       remaining manual steps — see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
+      Capacitor injects only the plugin's native half; its JavaScript is
+      written for a bundler, which this app does not have. So the script build
+      is vendored as `vendor/cdv-purchase.js` and `billing.js` adds the
+      `<script>` itself, in the Play build only. Builds 2 and 3 shipped
+      without it: `window.CdvPurchase` never existed, the premium card stayed
+      hidden and nothing could be bought. `scripts/billing-scenario.js` now
+      runs `billing.js` and the plugin's real JavaScript against a fake of the
+      native half, and `npm test` fails if the vendored copy and the installed
+      plugin differ.
 - [ ] **The web channel does not sell** — `FP_PAY_CHANNEL` is `web` there and
       the premium screen says premium is sold through Google Play, with a link
       to the listing once `FP_STORE_LINKS.android` is set. Restore still works,
@@ -1511,7 +1520,7 @@ checkout.
       route inside a Play build is the one that gets the app taken down.
       `PremiumCard` renders only where the build can actually take money: on
       web always, on Play once `FP_BILLING.available()` is true, which happens
-      when the plugin's bridge lands (`fp-billing-ready`). So the entry point
+      when the plugin's script has loaded (`fp-billing-ready`). So the entry point
       turns itself on with the plugin rather than on a flag someone has to
       remember. `PremiumView` keeps its own channel check on the purchase
       button. Both paths converge on the same `is_premium` write, so screen
