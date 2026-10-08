@@ -65,7 +65,7 @@ function AdminScreen({ onBack, density = 'comfortable', onChanged, settings }) {
           borderRadius: 12, background: 'var(--fp-ink)', color: 'var(--fp-bg)',
           textAlign: 'left', fontSize: 14, fontWeight: 500,
         }}>
-          <span style={{ flex: 1 }}>Manage users / grant premium</span>
+          <span style={{ flex: 1 }}>Manage users / premium, OG badge</span>
           <Icon.Chevron dir="right" size={14} c="currentColor"/>
         </button>
 
@@ -245,7 +245,7 @@ function LeaderboardAudit({ padX, onBack }) {
   );
 }
 
-// ─── Users / premium grant ─────────────────────────────────────────────────
+// ─── Users / premium and OG grants ─────────────────────────────────────────
 
 function UsersAdmin({ padX, onBack }) {
   const [q, setQ] = useAS('');
@@ -280,6 +280,22 @@ function UsersAdmin({ padX, onBack }) {
     } catch (e) { window.fpToast?.(e.message, { kind: 'error' }); }
   };
 
+  // No confirm: the badge unlocks nothing and the same button takes it back.
+  const toggleOg = async (row) => {
+    const next = !row.is_og;
+    try {
+      await FP_AUTH.setOg(row.id, next);
+      setResults(rs => rs.map(r => r.id === row.id ? { ...r, is_og: next } : r));
+    } catch (e) { window.fpToast?.(e.message, { kind: 'error' }); }
+  };
+
+  const grantBtn = on => ({
+    padding: '8px 10px', borderRadius: 8, fontSize: 11.5, fontWeight: 500, flex: 1,
+    background: on ? 'transparent' : 'var(--fp-ink)',
+    color:      on ? 'var(--fp-ink)' : 'var(--fp-bg)',
+    border: '1px solid var(--fp-line)',
+  });
+
   return (
     <ScreenFrameAS title="Admin · Users" onBack={onBack} padX={padX}>
       <div style={{ padding: '18px 0 24px' }}>
@@ -305,7 +321,7 @@ function UsersAdmin({ padX, onBack }) {
 
         {results.map(r => (
           <div key={r.id} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
+            display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px 12px',
             padding: '12px', marginBottom: 6,
             borderRadius: 12, background: 'var(--fp-surface)', border: '1px solid var(--fp-line)',
           }}>
@@ -315,15 +331,19 @@ function UsersAdmin({ padX, onBack }) {
               {r.avatar || '🟢'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fp-ink)' }}>{r.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--fp-ink-4)' }}>{r.total_stars}★ {r.is_premium && '· Premium'}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fp-ink)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--fp-ink-4)' }}>{r.total_stars}★ {r.is_premium && '· Premium'} {r.is_og && '· OG'}</div>
             </div>
-            <button onClick={() => togglePremium(r)} style={{
-              padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 500,
-              background: r.is_premium ? 'transparent' : 'var(--fp-ink)',
-              color:      r.is_premium ? 'var(--fp-ink)' : 'var(--fp-bg)',
-              border: '1px solid var(--fp-line)',
-            }}>{r.is_premium ? 'Revoke' : 'Grant premium'}</button>
+            {/* Their own line: two buttons beside the name left a phone four letters of it. */}
+            <div style={{ flex: '1 0 100%', display: 'flex', gap: 6 }}>
+              <button onClick={() => togglePremium(r)} style={grantBtn(r.is_premium)}>
+                {r.is_premium ? 'Revoke premium' : 'Grant premium'}
+              </button>
+              <button onClick={() => toggleOg(r)} style={grantBtn(r.is_og)}>
+                {r.is_og ? 'Remove OG' : 'Grant OG'}
+              </button>
+            </div>
           </div>
         ))}
       </div>

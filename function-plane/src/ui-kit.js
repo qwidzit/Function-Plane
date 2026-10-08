@@ -430,6 +430,34 @@ function PremiumBadge({
   })));
 }
 
+// OG, beside a name on a leaderboard: the account predates launch
+// (profiles.is_og, set once by date in 20261008_og_badge.sql). Ink rather
+// than the accent, so it cannot be read as the premium star's twin.
+function OgBadge({
+  size = 13
+}) {
+  return /*#__PURE__*/React.createElement("span", {
+    title: "OG \u2014 played before launch",
+    "aria-label": "OG",
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: size + 7,
+      padding: `0 ${Math.round(size * 0.45)}px`,
+      borderRadius: (size + 7) / 2,
+      flex: '0 0 auto',
+      background: 'color-mix(in srgb, var(--fp-ink) 10%, transparent)',
+      fontFamily: "'Geist Mono', ui-monospace, monospace",
+      fontSize: Math.round(size * 0.72),
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      lineHeight: 1,
+      color: 'var(--fp-ink)'
+    }
+  }, "OG");
+}
+
 // Ghost button — square icon tile w/ label below
 function IconTile({
   icon,
@@ -492,5 +520,6 @@ Object.assign(window, {
   Stars,
   MiniGraph,
   PremiumBadge,
+  OgBadge,
   IconTile
 });

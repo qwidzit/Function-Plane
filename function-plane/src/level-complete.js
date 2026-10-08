@@ -427,6 +427,8 @@ function LevelCompletePopup({
     }
   }, row.self ? `${row.name} (you)` : row.name), row.premium && /*#__PURE__*/React.createElement(PremiumBadge, {
     size: 11
+  }), row.og && /*#__PURE__*/React.createElement(OgBadge, {
+    size: 11
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 60,

@@ -1119,6 +1119,14 @@ re-look against real play. Records already stored keep their stars.
   in both profile selects in `accounts.js` as `row.premium`, and `PremiumBadge`
   in `ui-kit.jsx` draws it in the accent colour rather than `--lv-star`,
   because a gold star beside a name already means stars earned.
+- They also mark **OG** players — accounts made before launch, the closed
+  testers. `profiles.is_og` was set once, by date, in
+  `20261008_og_badge.sql`; it rides in the same selects as `row.og` and
+  `OgBadge` draws it. It unlocks nothing. After that one backfill only the
+  admin changes it — *Admin ▸ Manage users* calls `admin_set_og()`, the same
+  shape as the premium grant; players have no write path to the column. A
+  column added to `profiles` needs its own `grant select (…)`: SELECT there is
+  per column, and a select naming an ungranted one fails whole.
 - Premium is **account-based, not device-based** — buying on any channel and
   logging in anywhere grants access everywhere. Whatever payment path is
   used, the job is always the same: flip `is_premium` on the user's profile

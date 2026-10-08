@@ -295,6 +295,7 @@ function LevelCompletePopup({
                       {row.self ? `${row.name} (you)` : row.name}
                     </span>
                     {row.premium && <PremiumBadge size={11}/>}
+                    {row.og && <OgBadge size={11}/>}
                   </div>
                   <div style={{ width: 60, textAlign: 'right' }}>
                     <span className="fp-mono" style={{ fontSize: 13, fontWeight: row.self ? 700 : 600, color: 'var(--fp-ink)' }}>

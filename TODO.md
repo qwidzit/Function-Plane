@@ -64,7 +64,7 @@ Needs `versionCode` +1 and a new AAB.
 | ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
 | 4 | `npm run snapshot:data` | Current as of 7 October: it picked up the 1 October retune of *Space Exploration* (`r-III-9`, goals 120/4 to 60/3). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
 | ~~38~~ | ~~The 25 September audit, app side~~ | **Done in the repo (26 September).** A failed progress download no longer uploads over the cloud save, and nothing uploads for an account until its download has merged (a new phone on a slow network used to overwrite its own save with an empty one). The offline upload queue is gone — reconnecting syncs instead. Registering moves the guest save and clears it. The auth listener is registered before the session check. A failed profile read no longer caches Premium as off. Saves missing a pack no longer crash on completing a level there. Sign-out works offline; delete account is bounded. Tied times keep their date. A full disk keeps progress in memory and says so. Restore verifies Play's transactions itself, and a pending payment says it is pending. Admin is read from the server. `scripts/sync-scenario.js` plays out every save-wiping case, and fails against the old code |
-| — | Bump `sw.js` | `fp-v95` as of the billing plugin being loaded (7 October); bump again if anything else bundled changes |
+| — | Bump `sw.js` | `fp-v96` as of the OG badge (8 October); bump again if anything else bundled changes |
 
 ## 2. In the admin panel
 
@@ -78,7 +78,7 @@ player on their next launch. No build, no deploy.
 | Pack ▸ *(any pack)* | Name, allowed equation class, pack rule (gravity flip), hide from all users |
 | Pack ▸ *(any level)* | Opens the studio: name, score goal, equation goal, hint, the explainer popup, whether players may set bounce, the spawn, the stars, every object, pre-placed equations. Export and import a level as JSON |
 | Manage achievements | Every achievement — kind, thresholds, name, description, hide. Add new ones |
-| Manage users | Grant premium |
+| Manage users | Grant or revoke premium and the OG badge |
 | Audit leaderboard | Review submitted runs |
 
 **Outstanding**

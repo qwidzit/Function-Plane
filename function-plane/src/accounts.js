@@ -192,6 +192,7 @@
       avatar:     cached?.avatar || user.user_metadata?.avatar || '🟢',
       totalStars: cached?.totalStars || 0,
       isPremium:  !!cached?.isPremium,
+      isOg:       !!cached?.isOg,
       isAdmin:    !!cached?.isAdmin,
     };
     writeJSON(LAST_USER_KEY, user.id);
@@ -260,7 +261,7 @@
     // A failed read used to come back as a profile with no premium and no
     // stars, which was then cached and locked a paying player out offline.
     const [{ data, error }, { data: admin, error: aErr }] = await _withTimeout(Promise.all([
-      _sb.from('profiles').select('name, avatar, total_stars, is_premium').eq('id', user.id).single(),
+      _sb.from('profiles').select('name, avatar, total_stars, is_premium, is_og').eq('id', user.id).single(),
       _sb.from('admins').select('user_id').eq('user_id', user.id).maybeSingle(),
     ]), 'Profile');
     if (error || aErr) throw new Error('Profile: ' + (error || aErr).message);
@@ -271,6 +272,7 @@
       avatar:     data?.avatar || user.user_metadata?.avatar || '🟢',
       totalStars: data?.total_stars || 0,
       isPremium:  !!data?.is_premium,
+      isOg:       !!data?.is_og,
       isAdmin:    !!admin,
     };
   }
@@ -663,12 +665,12 @@
   async function _lbFetchStarsRaw() {
     const { data, error } = await _sb
       .from('profiles')
-      .select('id, name, avatar, total_stars, is_premium')
+      .select('id, name, avatar, total_stars, is_premium, is_og')
       .order('total_stars', { ascending: false })
       .limit(25);
     if (error) throw new Error(error.message || 'stars leaderboard failed');
     return (data || []).map((r, i) => ({
-      id: r.id, name: r.name, avatar: r.avatar, premium: !!r.is_premium,
+      id: r.id, name: r.name, avatar: r.avatar, premium: !!r.is_premium, og: !!r.is_og,
       stars: r.total_stars, rank: i + 1,
     }));
   }
@@ -690,7 +692,7 @@
     // Two-query join: fetch profiles separately so we don't depend on FK embed
     const ids = [...new Set(scores.map(s => s.user_id))];
     const { data: profs, error: pErr } = await _sb
-      .from('profiles').select('id, name, avatar, is_premium').in('id', ids);
+      .from('profiles').select('id, name, avatar, is_premium, is_og').in('id', ids);
     if (pErr) throw new Error(pErr.message || 'leaderboard profiles failed');
     const pmap = new Map((profs || []).map(p => [p.id, p]));
 
@@ -701,6 +703,7 @@
         name:   p.name   || 'Player',
         avatar: p.avatar || '🟢',
         premium: !!p.is_premium,
+        og: !!p.is_og,
         score: isTime ? null : s.best_score,
         time:  isTime ? s.best_time  : null,
         rank: i + 1,
@@ -717,7 +720,7 @@
       if (_currentUser && !rows.find(r => r.self)) {
         rows.push({
           id: _currentUser.id, name: _currentUser.name, avatar: _currentUser.avatar,
-          premium: !!_currentUser.isPremium,
+          premium: !!_currentUser.isPremium, og: !!_currentUser.isOg,
           stars: _countStars(getActiveProgress()), rank: null, self: true,
         });
       }
@@ -747,7 +750,7 @@
     if (v == null) return [];
     return [{
       id: _currentUser.id, name: _currentUser.name, avatar: _currentUser.avatar,
-      premium: !!_currentUser.isPremium,
+      premium: !!_currentUser.isPremium, og: !!_currentUser.isOg,
       score: isTime ? null : v, time: isTime ? v : null,
       rank: null, self: true,
     }];
@@ -899,6 +902,14 @@
     if (error) throw new Error(error.message);
   }
 
+  // Admin-only: the OG badge, which is otherwise given once by date
+  // (20261008_og_badge.sql).
+  async function setOg(userId, value) {
+    if (!_sb) throw new Error('Supabase not configured');
+    const { error } = await _write(() => _sb.rpc('admin_set_og', { target: userId, value: !!value }), 'OG badge');
+    if (error) throw new Error(error.message);
+  }
+
   // Hands a Play purchase token to the edge function, which asks Google
   // whether it is real and flips is_premium with the service-role key. The
   // answer is never taken from the client: the client roles have no write
@@ -1019,7 +1030,7 @@
     if (!_sb) return { data: [], error: null };
     const term = `%${(q || '').trim()}%`;
     return _sb.from('profiles')
-      .select('id, name, avatar, total_stars, is_premium')
+      .select('id, name, avatar, total_stars, is_premium, is_og')
       .ilike('name', term)
       .limit(20);
   }
@@ -1037,7 +1048,7 @@
   // ── Export ────────────────────────────────────────────────────────────────
 
   window.FP_AUTH = {
-    getActive, signOut, isAdmin, isPremium, setPremium, deleteAccount,
+    getActive, signOut, isAdmin, isPremium, setPremium, setOg, deleteAccount,
     refreshEntitlement, verifyPlayPurchase,
     enablePushNotifications,
     register, signIn, resetPassword,

@@ -1319,6 +1319,8 @@ it('bounds every network call with a timeout', () => {
   ];
   ok(/_write\(\(\) => _sb\.rpc\('admin_set_premium'/.test(accountsJs),
     'the premium grant must go through _write');
+  ok(/_write\(\(\) => _sb\.rpc\('admin_set_og', \{ target: userId, value: !!value \}\)/.test(accountsJs),
+    'the OG grant must go through _write, with the arguments the migration declares');
   for (const [frag, what] of written) {
     ok(new RegExp(`_write\\(\\(\\) => _sb\\.from\\('${frag}`).test(accountsJs),
       `${what} must go through _write`);

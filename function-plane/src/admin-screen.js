@@ -117,7 +117,7 @@ function AdminScreen({
     style: {
       flex: 1
     }
-  }, "Manage users / grant premium"), /*#__PURE__*/React.createElement(Icon.Chevron, {
+  }, "Manage users / premium, OG badge"), /*#__PURE__*/React.createElement(Icon.Chevron, {
     dir: "right",
     size: 14,
     c: "currentColor"
@@ -410,7 +410,7 @@ function LeaderboardAudit({
   })));
 }
 
-// ─── Users / premium grant ─────────────────────────────────────────────────
+// ─── Users / premium and OG grants ─────────────────────────────────────────
 
 function UsersAdmin({
   padX,
@@ -459,6 +459,32 @@ function UsersAdmin({
       });
     }
   };
+
+  // No confirm: the badge unlocks nothing and the same button takes it back.
+  const toggleOg = async row => {
+    const next = !row.is_og;
+    try {
+      await FP_AUTH.setOg(row.id, next);
+      setResults(rs => rs.map(r => r.id === row.id ? {
+        ...r,
+        is_og: next
+      } : r));
+    } catch (e) {
+      window.fpToast?.(e.message, {
+        kind: 'error'
+      });
+    }
+  };
+  const grantBtn = on => ({
+    padding: '8px 10px',
+    borderRadius: 8,
+    fontSize: 11.5,
+    fontWeight: 500,
+    flex: 1,
+    background: on ? 'transparent' : 'var(--fp-ink)',
+    color: on ? 'var(--fp-ink)' : 'var(--fp-bg)',
+    border: '1px solid var(--fp-line)'
+  });
   return /*#__PURE__*/React.createElement(ScreenFrameAS, {
     title: "Admin \xB7 Users",
     onBack: onBack,
@@ -520,7 +546,8 @@ function UsersAdmin({
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
+      flexWrap: 'wrap',
+      gap: '10px 12px',
       padding: '12px',
       marginBottom: 6,
       borderRadius: 12,
@@ -549,25 +576,29 @@ function UsersAdmin({
     style: {
       fontSize: 13.5,
       fontWeight: 600,
-      color: 'var(--fp-ink)'
+      color: 'var(--fp-ink)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }, r.name), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: 'var(--fp-ink-4)'
     }
-  }, r.total_stars, "\u2605 ", r.is_premium && '· Premium')), /*#__PURE__*/React.createElement("button", {
-    onClick: () => togglePremium(r),
+  }, r.total_stars, "\u2605 ", r.is_premium && '· Premium', " ", r.is_og && '· OG')), /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: '6px 10px',
-      borderRadius: 8,
-      fontSize: 11,
-      fontWeight: 500,
-      background: r.is_premium ? 'transparent' : 'var(--fp-ink)',
-      color: r.is_premium ? 'var(--fp-ink)' : 'var(--fp-bg)',
-      border: '1px solid var(--fp-line)'
+      flex: '1 0 100%',
+      display: 'flex',
+      gap: 6
     }
-  }, r.is_premium ? 'Revoke' : 'Grant premium')))));
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => togglePremium(r),
+    style: grantBtn(r.is_premium)
+  }, r.is_premium ? 'Revoke premium' : 'Grant premium'), /*#__PURE__*/React.createElement("button", {
+    onClick: () => toggleOg(r),
+    style: grantBtn(r.is_og)
+  }, r.is_og ? 'Remove OG' : 'Grant OG'))))));
 }
 function AdminPackRow({
   pack,
