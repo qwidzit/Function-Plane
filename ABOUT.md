@@ -1300,10 +1300,10 @@ personal best, and a 3-star run using more equations can score worse than a
 run that earned the stars. That is detection, not prevention; prevention needs
 a deterministic server-side replay, which the fixed-tick sim clock now makes
 possible.
-**Some Russian networks hold the connection.** Measured on MTS mobile data
+**Some Russian networks hold the connection.** Measured on a mobile network
 with the VPN off: a progress upload reached the project 81 seconds after it
 was sent, in one burst with the leaderboard reads waiting beside it; home
-broadband in the same city is fine. It is not a bug in the app and a different
+broadband is fine. It is not a bug in the app and a different
 database would not fix it — the measurement, the decision not to buy a relay
 and the recipe for one are in *Networks that hold the connection* below. What
 the app does about it:
@@ -1613,7 +1613,7 @@ seen a build that declares the billing permission.
    only, so it cannot be the same string. €4.90 for the euro zone, let Play
    convert the rest, and **activate** it: a draft cannot be bought, even by you.
 4. **Service account**, so the server can ask Google about a purchase. In the
-   Cloud project linked to the Play account (number 1096366903282): IAM →
+   Cloud project linked to the Play account: IAM →
    Service accounts → create one → Keys → Add key → JSON, and enable the
    **Google Play Android Developer API** in that same project. Then Play
    Console (all-apps level) → Users and permissions → invite the service
@@ -1804,10 +1804,10 @@ not bought.
 
 **Measured on 6 October 2026**, one account, VPN off:
 
-- **Home fibre (KOMTEHCENTR):** two levels cleared, both scores saved, the
+- **Home broadband:** two levels cleared, both scores saved, the
   leaderboards loaded. Same as 18–21 September — about 55 writes from that
-  ISP in 30 days and none lost.
-- **MTS mobile, Moscow:** one level cleared. The progress upload was built at
+  connection in 30 days and none lost.
+- **Mobile data:** one level cleared. The progress upload was built at
   15:37:38 UTC and reached Supabase at 15:38:59 — **81 seconds later**, in one
   burst with the leaderboard reads that had been waiting beside it. The app
   had given up at 10 s and the leaderboard showed a timeout.
@@ -1816,7 +1816,7 @@ not bought.
   behind them did not.
 
 So the connection is held — reads included — and sometimes let go. Two
-attempts on one SIM in one city is the whole sample.
+attempts on one SIM is the whole sample.
 
 **Decision (7 October): no relay.**
 
@@ -1855,8 +1855,8 @@ forwards every request on unchanged.
 1. Rent the smallest VPS that answers from the affected network, by the hour.
    **Not Hetzner** — it is one of the four networks Russia interferes with
    (Cloudflare, Hetzner, DigitalOcean, OVH) and no longer serves Russian
-   customers. Verify it answers a signed-in upload from an MTS SIM with the
-   VPN off before paying for a month.
+   customers. Verify it answers a signed-in upload from an affected mobile
+   network with the VPN off before paying for a month.
 2. Point `api.<domain>` at it and install Caddy. The whole config:
 
    ```
@@ -1938,9 +1938,8 @@ itself. From the project root:
 ```
 
 It prints the certificate; the SHA256 must match the keystore's
-(`keytool -list -v -keystore "%USERPROFILE%\function-plane-upload.jks" -alias function-plane`,
-which asks for the keystore password). The upload key's SHA256 starts
-`A9:28:DA:F5`. If `-printcert` says the file is unsigned,
+(`keytool -list -v -keystore <keystore file> -alias <alias>`, which asks for
+the keystore password). If `-printcert` says the file is unsigned,
 `android\keystore.properties` is missing or wrong.
 
 ### Put it on a phone
@@ -1967,11 +1966,10 @@ to a Play-installed one.
 
 **The one irreversible thing in the project.** It proves an update comes from
 you; lose it and `app.functionplane` can never be updated again. It lives
-outside the repo at `%USERPROFILE%\function-plane-upload.jks` (alias
-`function-plane`, PKCS12, valid to 2054), and `android\keystore.properties`
-holds its path and passwords in plain text — gitignored, and it must stay that
-way. Keep a copy on a drive away from this machine, a copy in cloud storage,
-and the file plus its password in a password manager. Play App Signing is on,
+outside the repo, and `android\keystore.properties` holds its path, alias and
+passwords in plain text — gitignored, and it must stay that way. Keep a copy
+on a drive away from this machine, a copy in cloud storage, and the file plus
+its password in a password manager. Play App Signing is on,
 which lets Google re-issue the upload key if it is lost; it does not replace
 the backups.
 
@@ -2028,9 +2026,9 @@ app changes, the declarations change with it.
 
 - **App access: Yes, with a reviewer login.** Sign-in is optional, but
   answering No fails the pre-review check with *Missing sign in details*. The
-  login is a throwaway account made through the app's own sign-up (`Base
-  Account`). Keep it alive and its password unchanged — a dead login is a
-  rejection reason on every later update. Never hand over the admin account.
+  login is a throwaway account made through the app's own sign-up. Keep it
+  working — a dead login is a rejection reason on every later update. Never
+  hand over the admin account.
 - **Ads: none.** Advertising ID: not used. There is no ad SDK in the bundle.
 - **Content rating:** category Game, No to every substantive question, except
   **Purchases of digital goods: Yes** since billing shipped. Users see each

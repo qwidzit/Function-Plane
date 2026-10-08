@@ -64,9 +64,8 @@ a draft there.
   floor, so the score goal cannot be met at the full equation budget; the
   stars are independent, so a four-equation run still takes the clear star and
   the equation star.
-- **Scores and times can still be forged through the API.** The database guard
-  and the admin's leaderboard audit cover v1; only a server-side replay
-  prevents it.
+- **Leaderboard scores are not replay-verified.** The database guard and the
+  admin's leaderboard audit cover v1; a server-side replay is the full answer.
 - **`pg_net` sits in `public`** (advisor 0014). It cannot be moved, only
   dropped and recreated, which would break the refund sweep for a warning.
 - **`stripe-webhook` stays deployed and dormant**, for the day the web sells.
