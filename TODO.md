@@ -12,13 +12,23 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   the account. Builds before 3 could not sell at all — they never loaded the
   billing plugin's script, so the premium card stayed hidden.
 - **Build 4 is in the repo and not yet built or uploaded.** It adds the OG
-  badge on the leaderboards and the admin's grant for it, and the fixes from
-  the 8 October audit: an offline boot after an hour no longer signs the
-  player out, π no longer prices every curve as unknown, the locked-pack
-  popup's Premium button opens the premium screen, the in-app legal text
-  matches the website again, and the service worker stays out of the native
-  shell. `versionCode` is 4 on the build machine, `sw.js` is at `fp-v98`,
-  and the level snapshot is current as of 7 October.
+  badge on the leaderboards and the admin's grant for it, and everything the
+  8 October audit found and fixed across five commits (`8dc2c38` to
+  `e9ea7fd`): an offline boot after an hour no longer signs the player out,
+  foreground returns no longer re-sync, π and zero-folded terms price
+  correctly and uppercase names read as the runtime reads them, the
+  locked-pack popup's Premium button opens the premium screen, the auth forms
+  are real forms, the legal text matches the website, the service worker
+  stays out of the native shell, a boot or render failure shows a reload
+  button, and pre-placed curves keep their settings. `versionCode` is 4 on
+  the build machine, `sw.js` is at `fp-v101`, and the level snapshot is
+  current as of 7 October. The web build at functionplane-game.pages.dev
+  already serves all of it.
+- **Database and website are already current.** Every migration through
+  `20261009_stripe_purchase_integrity.sql` is applied, the dormant Stripe
+  webhook is redeployed against its grant RPC, and the May APK is gone from
+  the website. `best_time_at` was tested and has to stay readable (see
+  *Leaderboard integrity* in `ABOUT.md`).
 - **No Russia relay** (decided 7 October). Russian mobile networks hold the
   connection without a VPN; the app retries stalled uploads and tells the
   player to turn one on. See *Networks that hold the connection* in `ABOUT.md`.
@@ -27,14 +37,15 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Your machine | **Build and upload Build 4** to the closed track: `npm test`, `npx cap sync android`, `cd android && gradlew bundleRelease`. Steps and the signing check are in *Building and releasing the Android app* in `ABOUT.md` |
-| 2 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
-| 3 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
-| 4 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
-| 5 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
-| 6 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
-| 7 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is entering closed testing", shows a "Soon on Google Play" badge and offers the APK. Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
-| 8 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8 |
+| 1 | Your machine | **Build and upload Build 4** to the closed track: `git pull`, `npm test`, `npx cap sync android` (the Android assets are still at `fp-v95` — the sync is the step that matters), `cd android && gradlew bundleRelease`. Steps and the signing check are in *Building and releasing the Android app* in `ABOUT.md` |
+| 2 | Phone | **Two taps the audit could not confirm from code**, on the installed Build 4: the Rate button and the premium screen's *Get it on Google Play* (both `window.open`), and one Export from the studio (a blob download). If either does nothing in the WebView, say so — the fix is routing them through Capacitor's Browser and Filesystem plugins |
+| 3 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
+| 4 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
+| 5 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
+| 6 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
+| 7 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 8 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
+| 9 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
 
 ## Any time, in the admin panel
 
@@ -73,7 +84,14 @@ a draft there.
 - **`pg_net` sits in `public`** (advisor 0014). It cannot be moved, only
   dropped and recreated, which would break the refund sweep for a warning.
 - **`stripe-webhook` stays deployed and dormant**, for the day the web sells.
-  Delete it in the dashboard if that plan is dropped.
+  It claims a session through `grant_stripe_purchase` now, the same shape as
+  Play. Delete it in the dashboard if that plan is dropped.
+- **Email confirmation is off** (decided 8 October). Anyone can register an
+  address they do not own; the register flow assumes autoconfirm. If it is
+  ever switched on, `account-screen.jsx`'s `onSuccess` needs a "check your
+  inbox" state.
+- **`allowBackup` is on** in the Android manifest, so the session token and
+  local progress travel in device backups. Convenient; known.
 
 ## Later — not required for launch
 
@@ -93,7 +111,11 @@ a draft there.
   web-push scaffolding was removed on 8 October; start fresh.
 - **Daily levels.**
 - **Server-side replay** of leaderboard scores; the fixed-tick sim clock makes
-  it possible.
+  it possible. The same move — an RPC that does the upsert — is also the only
+  way to hide `best_time_at`, if that ever matters.
+- **Star occlusion**: a star just behind a thin curve is collected without
+  crossing it. By design today; a level that wants a detour would need a
+  segment test in the collection loop and a verify-levels pass.
 - **A relay for Russian networks**, if players without a VPN turn out to be a
   real share of the audience. The recipe is in `ABOUT.md`.
 - **Selling on the web**, which is a VAT decision before it is a code one.
