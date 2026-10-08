@@ -59,7 +59,10 @@
   }
 
   function preprocess(raw) {
-    return raw.toLowerCase().replace(/\s+/g, '')
+    // Case is kept: the runtime knows only lowercase names, so SIN(x) or X
+    // is a product of undeclared letters that draws nothing, and reading it
+    // as trig or linear here showed a green check over an empty plane.
+    return raw.replace(/\s+/g, '')
       .replace(/arcsin/g, 'asin').replace(/arccos/g, 'acos').replace(/arctan/g, 'atan')
       .replace(/\*\*/g, '^');
   }
@@ -81,11 +84,12 @@
       // letters "pi" it glued to the next letter run, so πx² read as p·i·x²
       // — unknown, priced 10 — while the game drew a parabola.
       if (c === 'π') { toks.push({ t: 'name', v: 'pi' }); i++; continue; }
-      if ((c >= 'a' && c <= 'z') || c === '_') {
+      const isLetter = ch => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+      if (isLetter(c) || c === '_') {
         let j = i;
-        while (j < s.length && (((s[j] >= 'a' && s[j] <= 'z')) || (s[j] >= '0' && s[j] <= '9') || s[j] === '_')) j++;
+        while (j < s.length && (isLetter(s[j]) || (s[j] >= '0' && s[j] <= '9') || s[j] === '_')) j++;
         const run = s.slice(i, j);
-        if (run.length === 1 || KNOWN_NAMES[run] || !/^[a-z]+$/.test(run)) toks.push({ t: 'name', v: run });
+        if (run.length === 1 || KNOWN_NAMES[run] || !/^[a-zA-Z]+$/.test(run)) toks.push({ t: 'name', v: run });
         else for (const ch of run) toks.push({ t: 'name', v: ch });
         i = j; continue;
       }
@@ -150,19 +154,35 @@
     }
 
     function parseTerm() {
+      // A term that folds to 0 contributed nothing, whatever its factors
+      // recorded on the way: x^2*0 is 0, not a quadratic, and sin(x)*0 is
+      // not trig. ctx is flat, so a copy is a snapshot.
+      const snap = { ...ctx };
+      const a = parseFactors();
+      if (a.val === 0) Object.assign(ctx, snap);
+      return a;
+    }
+
+    function parseFactors() {
       let a = parseUnary();
       while (peek() && (peek().t === '*' || peek().t === '/')) {
         const op = toks[pos++].t;
         const b = parseUnary();
         if (op === '*') {
-          if (a.deg != null && b.deg != null) {
+          if (a.val === 0 || b.val === 0) {
+            // A factor that folds to 0 kills the term: 0*x^5 is the constant
+            // 0, not a quintic, which is what the game draws.
+            a = { deg: 0, val: 0, frac: false };
+          } else if (a.deg != null && b.deg != null) {
             const deg = a.deg + b.deg;
             bumpDeg(deg);
             const val = (a.val != null && b.val != null) ? a.val * b.val : undefined;
             a = { deg, val: deg === 0 ? val : undefined, frac: a.frac || b.frac };
           } else a = NONPOLY();
         } else { // '/'
-          if (b.deg === 0) {
+          if (a.val === 0 && b.deg != null) {
+            a = { deg: 0, val: 0, frac: false };   // 0/x draws the x-axis
+          } else if (b.deg === 0) {
             const val = (a.val != null && b.val != null && b.val !== 0) ? a.val / b.val : undefined;
             a = { deg: a.deg, val: a.deg === 0 ? val : undefined, frac: a.frac };
           } else {

@@ -191,13 +191,15 @@ function LevelStudio({
     window.FP_PARAMS = {};
     // The admin edits the pre-placed curves as ordinary rows; they lock for
     // players when the level is played.
-    return admin ? level.preplaced.map((expr, i) => ({
+    return admin ? level.preplaced.map((p, i) => ({
       id: i + 1,
-      expr,
-      ...parseEquation(expr),
+      expr: p.expr,
+      ...parseEquation(p.expr, p.shift),
       color: SIM.EQ_COLORS[i % SIM.EQ_COLORS.length],
       visible: true,
-      domain: null,
+      domain: p.domain,
+      material: p.material,
+      shift: p.shift,
       preplaced: false
     })) : [];
   });
@@ -428,7 +430,14 @@ function LevelStudio({
         })),
         score_goal: parseInt(scoreGoal, 10),
         eq_goal: parseInt(eqGoal, 10),
-        preplaced: equations.map(e => e.expr.trim()).filter(Boolean),
+        // Every setting the row carries goes with it; a row the author hid
+        // is not part of the level.
+        preplaced: equations.filter(e => e.expr.trim() && e.visible !== false).map(e => ({
+          expr: e.expr.trim(),
+          domain: Array.isArray(e.domain) && e.domain.length ? e.domain : null,
+          material: e.material || null,
+          shift: e.shift || null
+        })),
         objects,
         materials,
         explain: explain || null,

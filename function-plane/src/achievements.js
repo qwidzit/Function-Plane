@@ -123,12 +123,12 @@ const ACH_KINDS = {
     }) => p => Object.values(p).some(pd => (pd.maxScore ?? pd.best ?? []).some((s, i) => s != null && s > threshold && (pd.stars[i] ?? -1) >= 1))
   },
   time_under: {
-    label: 'Finish a level in under N milliseconds',
+    label: 'Finish a level in N milliseconds or less',
     needs: ['threshold'],
     thresholdLabel: 'Milliseconds',
     desc: ({
       threshold
-    }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'}`,
+    }) => `Beat any level in ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'} or less`,
     build: ({
       threshold
     }) => p => Object.values(p).some(pd => runTimes(pd).some(t => t <= threshold / 1000))
@@ -267,6 +267,13 @@ const BUILTIN_ACH_ROWS = [{
   name: 'Magnetic',
   description: 'Complete all Pack IV levels'
 }, {
+  id: 'pack_v_done',
+  kind: 'pack_complete',
+  threshold: 10,
+  pack_id: 'r-V',
+  name: 'Virtuoso',
+  description: 'Complete all Pack V levels'
+}, {
   id: 'all_roman',
   kind: 'all_roman_packs',
   name: 'Completionist',
@@ -294,7 +301,7 @@ const BUILTIN_ACH_ROWS = [{
   kind: 'time_under',
   threshold: 1000,
   name: 'Flash',
-  description: 'Complete any level in under 1 second'
+  description: 'Complete any level in 1 second or less'
 }, {
   id: 'sunday_stroll',
   kind: 'time_over',

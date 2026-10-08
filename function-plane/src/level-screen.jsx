@@ -1759,13 +1759,15 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
   // shown first, can't be removed, and are excluded from score / eqsUsed.
   const [equations, setEquations] = useSL(() => {
     window.FP_PARAMS = {};   // sliders belong to the level being played
-    const pre = (levelData.preplaced || []).map((expr, i) => {
-      const parsed = parseEquation(expr);
+    const pre = (levelData.preplaced || []).map((p, i) => {
+      const parsed = parseEquation(p.expr, p.shift);
       return {
         id: -(i + 1),  // negative id so user-added rows (positive) never clash
-        expr, ...parsed,
+        expr: p.expr, ...parsed,
         color: EQ_COLORS[i % EQ_COLORS.length],
-        visible: true, domain: null,
+        // The author's cut, bounce and shift travel with the curve; the row is
+        // locked, so they are simply what the curve is.
+        visible: true, domain: p.domain, material: p.material, shift: p.shift,
         preplaced: true,
       };
     });

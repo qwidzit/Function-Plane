@@ -57,13 +57,15 @@ function runLevel(level, modifier, which = 0) {
 
   const row = (expr, i, preplaced) => {
     const spec   = typeof expr === 'string' ? { expr } : expr;
-    const parsed = G.parseEquation(spec.expr);
+    const shift  = spec.shift || null;
+    const parsed = G.parseEquation(spec.expr, shift);
     return {
       id: preplaced ? -(i + 1) : i + 1,
       expr: spec.expr, ...parsed,
       visible: true,
       domain: spec.domain || null,
       material: spec.material || null,
+      shift,
       preplaced,
     };
   };

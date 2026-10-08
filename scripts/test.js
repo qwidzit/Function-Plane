@@ -293,6 +293,14 @@ it('charges for a curve the way the classifier reads it, brackets and all', () =
   eq(detectClass('y=2πx'), 'linear', '2πx is a line');
   eq(detectClass('y=πsin(x)'), 'trig', 'πsin(x) is trig');
   eq(detectClass('y=pix'), 'unknown', 'but the letters glued to another letter are still parameters, as the runtime reads them');
+  // A factor that folds to zero is zero, not a power: the game draws y=1.
+  eq(detectClass('y=0*x^5+1'), 'const', 'a term multiplied by 0 is gone');
+  eq(detectClass('y=x^2*0+x'), 'linear', 'however it is written');
+  eq(classifyEquation('y=0*x^5+1'), 0, 'and costs what a constant costs');
+  // The runtime knows only lowercase names: SIN(x) is s·i·n·(x), undeclared.
+  eq(detectClass('y=SIN(x)'), 'unknown', 'uppercase is not a function');
+  eq(detectClass('Y=X'), 'unknown', 'nor a variable');
+  eq(detectClass('y=sin(x)'), 'trig', 'lowercase still is');
 });
 
 it('leaves a hidden curve out of the score and the equation count', () => {
@@ -757,6 +765,7 @@ it('keeps every built-in firing on its own fixture', () => {
     ['pack_ii_done',   progressWith({ 'r-II': done(10) })],
     ['pack_iii_done',  progressWith({ 'r-III': done(10) })],
     ['pack_iv_done',   progressWith({ 'r-IV': done(10) })],
+    ['pack_v_done',    progressWith({ 'r-V': done(10) })],
     ['all_roman',      progressWith(packs(ROMAN, () => done(10)))],
     ['themed_10',      progressWith({ 's-lin': { stars: [...Array(5).fill(2), ...Array(5).fill(-1)], best: [...Array(5).fill(60), ...nulls(5)] } })],
     ['themed_30',      progressWith({ 's-lin': gold(), 's-qua': gold() })],

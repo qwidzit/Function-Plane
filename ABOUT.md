@@ -542,7 +542,7 @@ The rest of a level's fields are complete or deliberately empty:
 |---|---|
 | `explain` | 4 levels, one per explainer deck (`how-to-play`, `domain`, `rubber`, `steel`). Every deck that exists is introduced by a level, and objects teach themselves through `FP_OBJECT_TUTORIALS` by kind, so nothing here is waiting to be filled. |
 | `outline` | 9 of Geometry's 10 — level 1 is a single star and has no shape to draw. Nowhere else wants one. |
-| `preplaced` | Unused by every shipped level. The feature works and the studio can set it; no level has needed a locked starting curve. |
+| `preplaced` | Unused by every shipped level. The feature works and the studio can set it; no level has needed a locked starting curve. Since 8 October each entry is `{ expr, domain, material, shift }` — the studio saves every setting a row carries — and a bare string still reads as an expression with none. |
 | `materials` | On for 37 levels (pack III from *Elastic* onward, all of IV, V and Linear), off where bounce is not part of the puzzle. |
 
 Beyond the 70 there are **eight hidden packs holding no levels at all** —
@@ -1420,7 +1420,7 @@ the SQL editor is the reset; the API cannot call it. `npm test` runs the real
 **Every achievement is a data row** — there is no such thing as a hard-coded
 one any more, so the admin panel edits all of them through a single editor.
 
-- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships **23 rows** in exactly the
+- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships **24 rows** in exactly the
   shape the `achievement_overrides` table uses.
 - `getAchievementRows()` merges a matching override row over each built-in,
   taking **only the fields the override actually sets** — a row stores `null`
@@ -1457,7 +1457,7 @@ included and always, and PostgREST refuses an upsert naming a column the table
 does not have — so a missing column fails *every* achievement save, not just
 one using the new kind.
 
-The shipped set is the author's list of 23: first level, 15 levels, any 3★,
+The shipped set is the author's list of 24: first level, 15 levels, any 3★,
 two Minimalist tiers (5 and 15 levels at a score of 30 or less), 5 packs, a
 golden pack, one per main pack plus all of them, two Themed-star tiers and two
 Themed packs, a sub-second clear and a 25-second one, and six star totals from
@@ -1788,11 +1788,9 @@ contained change and gives ice, mud and rubber. Two constraints:
   very hard. A material is a deliberate exception to that advice, per level,
   not a new default. Keep the shipped `PHYSICS_CONFIG` pinned by the tests.
 
-This also wants `preplaced` to stop being `text[]`. As `jsonb` holding
-`[{ expr, material, domain }]` the same migration that adds materials gives
-pre-placed curves their own domain restrictions, which they cannot express
-today. Twenty authored levels makes that migration cheap now and expensive
-later.
+`preplaced` is `jsonb` holding `[{ expr, domain, material, shift }]` (done
+8 October; `normPreplaced` in `data.jsx` reads both that and the old bare
+strings), so a pre-placed curve carries its own cut, bounce and shift.
 
 **Gravity-flips-on-bounce pack.** Works, and the engine already has the hard
 part: `resolve` distinguishes a *real bounce* (`-vn > bounceThreshold`) from

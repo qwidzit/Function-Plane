@@ -195,13 +195,45 @@ function App() {
   // Navigation history so the Android hardware back button can step back
   // through screens instead of closing the app.
   const navStackRef = useRef([]);
+  // On the web the browser's own back button walks the same stack: every push
+  // here is a history entry carrying its depth, and popstate pops to that
+  // depth. A back button in the UI pops the stack and then steps history
+  // back silently, so the two never disagree. The native shell has the
+  // hardware button below and no history to keep.
+  const silentPopRef = useRef(0);
   const navigate = (route, extra = {}) => {
     setNav(curr => {
       // Don't push the same route twice in a row
-      if (curr.route !== route) navStackRef.current.push(curr);
+      if (curr.route !== route) {
+        navStackRef.current.push(curr);
+        if (!window.FP_NATIVE) try { history.pushState({ fp: navStackRef.current.length }, ''); } catch {}
+      }
       return { route, pack: null, levelIndex: 0, legalKind: null, ...extra };
     });
   };
+  useEffect(() => {
+    if (window.FP_NATIVE) return;
+    try { history.replaceState({ fp: 0 }, ''); } catch {}
+    const onPop = e => {
+      if (silentPopRef.current > 0) { silentPopRef.current--; return; }
+      const depth = navStackRef.current.length;
+      const target = Number(e.state?.fp ?? 0);
+      if (target < depth) {
+        setNav(curr => {
+          let prev = curr;
+          while (navStackRef.current.length > Math.max(target, 0)) prev = navStackRef.current.pop();
+          return prev;
+        });
+      } else if (target > depth) {
+        // Forward, which nothing here can replay: step history back to where
+        // the screen actually is.
+        silentPopRef.current++;
+        history.go(depth - target);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   // Every backward affordance goes through here, never through navigate() —
   // navigate() pushes the screen it leaves, so a back button routed through it
   // pushes a *forward* entry and the Android back button then walks the player
@@ -210,6 +242,10 @@ function App() {
   const navigateBack = (fallback = 'main', extra = {}) => {
     setNav(curr => {
       const prev = navStackRef.current.pop();
+      if (prev && !window.FP_NATIVE && Number(history.state?.fp ?? 0) > navStackRef.current.length) {
+        silentPopRef.current++;
+        try { history.back(); } catch { silentPopRef.current--; }
+      }
       return prev || { route: fallback, pack: null, levelIndex: 0, legalKind: null, ...extra };
     });
   };
@@ -341,7 +377,10 @@ function App() {
           }
           if (time != null && (bestTime[levelIndex] == null || time < bestTime[levelIndex])) {
             bestTime[levelIndex]   = time;
-            bestTimeAt[levelIndex] = Date.now();
+            // Never earlier than the times reset: a device clock set in the
+            // past would otherwise date every new time before the cutoff and
+            // lose it. A time set now is after the reset by definition.
+            bestTimeAt[levelIndex] = Math.max(Date.now(), FP_AUTH.timesCutoff?.() ?? 0);
           }
           maxScore[levelIndex] = maxScore[levelIndex] == null ? score : Math.max(maxScore[levelIndex], score);
           if (levelIndex + 1 < 10 && stars[levelIndex + 1] === null) {

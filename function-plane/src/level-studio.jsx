@@ -142,9 +142,10 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
     window.FP_PARAMS = {};
     // The admin edits the pre-placed curves as ordinary rows; they lock for
     // players when the level is played.
-    return admin ? level.preplaced.map((expr, i) => ({
-      id: i + 1, expr, ...parseEquation(expr),
-      color: SIM.EQ_COLORS[i % SIM.EQ_COLORS.length], visible: true, domain: null, preplaced: false,
+    return admin ? level.preplaced.map((p, i) => ({
+      id: i + 1, expr: p.expr, ...parseEquation(p.expr, p.shift),
+      color: SIM.EQ_COLORS[i % SIM.EQ_COLORS.length], visible: true,
+      domain: p.domain, material: p.material, shift: p.shift, preplaced: false,
     })) : [];
   });
   const [running,   setRunning]   = useLS(false);
@@ -333,7 +334,14 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
         stars: stars.map(s => ({ x: s.x, y: s.y })),
         score_goal: parseInt(scoreGoal, 10),
         eq_goal:    parseInt(eqGoal, 10),
-        preplaced:  equations.map(e => e.expr.trim()).filter(Boolean),
+        // Every setting the row carries goes with it; a row the author hid
+        // is not part of the level.
+        preplaced:  equations.filter(e => e.expr.trim() && e.visible !== false).map(e => ({
+          expr: e.expr.trim(),
+          domain: Array.isArray(e.domain) && e.domain.length ? e.domain : null,
+          material: e.material || null,
+          shift: e.shift || null,
+        })),
         objects, materials,
         explain: explain || null,
         hint: hint.trim() || null,

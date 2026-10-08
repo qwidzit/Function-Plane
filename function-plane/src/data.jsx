@@ -113,6 +113,24 @@ function getHint(packId, levelIndex) {
   return (ov && ov.hint) || LEVEL_HINTS[`${packId}-${levelIndex}`] || null;
 }
 
+// A pre-placed row as the studio saves it, from either form the column has
+// held: a bare expression, or { expr, domain, material, shift }. Anything
+// malformed in a setting reads as the setting unset, never as a dropped curve.
+function normPreplaced(p) {
+  const src = typeof p === 'string' ? { expr: p } : p;
+  if (!src || typeof src.expr !== 'string' || !src.expr.trim()) return null;
+  const segs = (Array.isArray(src.domain) ? src.domain : [])
+    .filter(d => Number.isFinite(d?.xMin) && Number.isFinite(d?.xMax))
+    .map(d => ({ xMin: d.xMin, xMax: d.xMax }));
+  const sx = Number(src.shift?.x), sy = Number(src.shift?.y);
+  return {
+    expr: src.expr.trim(),
+    domain: segs.length ? segs : null,
+    material: src.material === 'dead' || src.material === 'rubber' ? src.material : null,
+    shift: Number.isFinite(sx) && Number.isFinite(sy) && (sx || sy) ? { x: sx, y: sy } : null,
+  };
+}
+
 function getLevelData(packId, levelIndex) {
   const base = LEVELS[`${packId}-${levelIndex}`] || LEVELS._default;
   const hint = getHint(packId, levelIndex);
@@ -124,8 +142,10 @@ function getLevelData(packId, levelIndex) {
     scoreGoal: ov.score_goal != null ? ov.score_goal : base.scoreGoal,
     eqGoal:    ov.eq_goal    != null ? ov.eq_goal    : base.eqGoal,
     // Pre-placed equations: visible to the player but locked. They don't
-    // count toward eqsUsed or score. Stored as a JSON array of strings.
-    preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.filter(s => typeof s === 'string' && s.trim()) : [],
+    // count toward eqsUsed or score. Each is { expr, domain, material, shift };
+    // a bare string, which is what every row before the studio kept settings
+    // held, reads as an expression with none.
+    preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.map(normPreplaced).filter(Boolean) : [],
     // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
     // Own keys only: a kind named "constructor" passed a truthiness test.
     objects:   Array.isArray(ov.objects) ? ov.objects.filter(o => o && Object.prototype.hasOwnProperty.call(window.FP_OBJECTS?.KINDS || {}, o.kind)) : [],

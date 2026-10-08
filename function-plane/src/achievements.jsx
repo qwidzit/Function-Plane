@@ -109,10 +109,10 @@ const ACH_KINDS = {
     ),
   },
   time_under: {
-    label: 'Finish a level in under N milliseconds',
+    label: 'Finish a level in N milliseconds or less',
     needs: ['threshold'],
     thresholdLabel: 'Milliseconds',
-    desc: ({ threshold }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'}`,
+    desc: ({ threshold }) => `Beat any level in ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'} or less`,
     build: ({ threshold }) => p => Object.values(p).some(pd =>
       runTimes(pd).some(t => t <= threshold / 1000)
     ),
@@ -176,11 +176,12 @@ const BUILTIN_ACH_ROWS = [
   { id: 'pack_ii_done',  kind: 'pack_complete',     threshold: 10, pack_id: 'r-II',  name: 'Windswept',     description: 'Complete all Pack II levels' },
   { id: 'pack_iii_done', kind: 'pack_complete',     threshold: 10, pack_id: 'r-III', name: 'Astronaut',     description: 'Complete all Pack III levels' },
   { id: 'pack_iv_done',  kind: 'pack_complete',     threshold: 10, pack_id: 'r-IV',  name: 'Magnetic',      description: 'Complete all Pack IV levels' },
+  { id: 'pack_v_done',   kind: 'pack_complete',     threshold: 10, pack_id: 'r-V',   name: 'Virtuoso',      description: 'Complete all Pack V levels' },
   { id: 'all_roman',     kind: 'all_roman_packs',                   name: 'Completionist',   description: 'Complete all main packs' },
   { id: 'themed_10',     kind: 'themed_stars',      threshold: 10,  name: 'Extra Credit',    description: 'Earn 10 stars in Themed packs' },
   { id: 'themed_30',     kind: 'themed_stars',      threshold: 30,  name: 'Honour Roll',     description: 'Earn 30 stars in Themed packs' },
   { id: 'themed_packs_2', kind: 'themed_packs_complete', threshold: 2, name: 'Double Major', description: 'Complete 2 Themed packs' },
-  { id: 'flash',         kind: 'time_under',        threshold: 1000, name: 'Flash',          description: 'Complete any level in under 1 second' },
+  { id: 'flash',         kind: 'time_under',        threshold: 1000, name: 'Flash',          description: 'Complete any level in 1 second or less' },
   { id: 'sunday_stroll', kind: 'time_over',         threshold: 25000, name: 'Sunday Stroll', description: 'Complete any level with a time of over 25 seconds' },
   { id: 'stars_15',      kind: 'total_stars',       threshold: 15,  name: 'Rising Star',     description: 'Earn 15 stars in total' },
   { id: 'stars_30',      kind: 'total_stars',       threshold: 30,  name: 'Stargazer',       description: 'Earn 30 stars in total' },

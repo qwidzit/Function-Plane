@@ -600,6 +600,22 @@
         .catch(e => _emitSyncError(e.message));
     });
   }
+  // Another tab of the web build writing the same save: merge it in rather
+  // than overwrite it on the next write. Memory only — the other tab has just
+  // written the disk, and writing back an identical value fires no event, so
+  // the two settle after one exchange instead of ping-ponging.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', e => {
+      const key = progressKey(_currentUser?.id);
+      if (e.key !== key || e.newValue == null) return;
+      let other;
+      try { other = JSON.parse(e.newValue); } catch { return; }
+      const merged = _mergeProgress(_loadProgress(key), other);
+      if (JSON.stringify(merged) === JSON.stringify(_loadProgress(key))) return;
+      _mem.set(key, merged);
+      notify();
+    });
+  }
   // Back in the foreground with an upload still owed: try now, not at the end
   // of whatever gap was running.
   if (typeof document !== 'undefined') {
@@ -1093,6 +1109,7 @@
     getActive, signOut, isAdmin, isPremium, setPremium, setOg, deleteAccount,
     refreshEntitlement, verifyPlayPurchase,
     hasPendingUpload: () => _owed,
+    timesCutoff: _timesCutoff,
     register, signIn, resetPassword,
     checkNameAvailable,
     getActiveProgress, updateActiveProgress,
