@@ -766,6 +766,9 @@ it('keeps every built-in firing on its own fixture', () => {
     ['pack_iii_done',  progressWith({ 'r-III': done(10) })],
     ['pack_iv_done',   progressWith({ 'r-IV': done(10) })],
     ['pack_v_done',    progressWith({ 'r-V': done(10) })],
+    // Leading a time board is the server's answer, kept by FP_AUTH; the
+    // progress blob plays no part.
+    ['pacesetter',     (ach.FP_AUTH = { getStanding: () => ({ timeFirsts: 1, bestTimeFirsts: 1 }) }, packRun())],
     ['all_roman',      progressWith(packs(ROMAN, () => done(10)))],
     ['themed_10',      progressWith({ 's-lin': { stars: [...Array(5).fill(2), ...Array(5).fill(-1)], best: [...Array(5).fill(60), ...nulls(5)] } })],
     ['themed_30',      progressWith({ 's-lin': gold(), 's-qua': gold() })],
@@ -797,6 +800,11 @@ it('keeps every built-in firing on its own fixture', () => {
   ok(!at('stars_210').check(progressWith(packs(ROMAN, gold))), 'stars_210 needs the Themed packs too');
   ok(!at('all_roman').check(progressWith(packs(['r-I', 'r-II', 'r-III', 'r-IV'], () => done(10)))),
     'all_roman must not fire with a released pack unfinished');
+  ach.FP_AUTH = { getStanding: () => ({ timeFirsts: 0, bestTimeFirsts: 1 }) };
+  ok(at('pacesetter').check(packRun()), 'pacesetter stays earned after being overtaken');
+  ach.FP_AUTH = { getStanding: () => null };
+  ok(!at('pacesetter').check(packRun()), 'and a guest, with no standing, never earns it');
+  delete ach.FP_AUTH;
   ach.FP_PACK_OVERRIDES = {};
 });
 

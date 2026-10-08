@@ -236,6 +236,7 @@
     if (!download) return;
     try { await _checkTimesReset(); await _syncProgressDown(user.id); }
     catch (e) { _emitSyncError(e.message); }
+    _refreshStanding(user.id);
   }
 
   // ── Times reset ───────────────────────────────────────────────────────────
@@ -703,6 +704,29 @@
       if (!error) console.warn(`FP_AUTH: level_scores upserted without ${col} — run the latest migration`);
     }
     if (error) throw new Error('Could not save your score: ' + (error.message || 'unknown error'));
+    // A new time may have taken a board's top spot.
+    _refreshStanding(userId);
+  }
+
+  // ── Leaderboard standing ──────────────────────────────────────────────────
+  // How many time boards this account leads, from my_time_firsts(). The best
+  // count ever seen is kept beside the current one, so the achievement that
+  // reads it is not taken back by being overtaken, or by a reset of times.
+  const standingKey = id => 'fp-standing-' + id;
+  function getStanding() {
+    return _currentUser ? readJSON(standingKey(_currentUser.id), null) : null;
+  }
+  async function _refreshStanding(userId) {
+    if (!_sb) return;
+    try {
+      const { data, error } = await _withTimeout(_sb.rpc('my_time_firsts'), 'Standing');
+      if (error || typeof data !== 'number' || _currentUser?.id !== userId) return;
+      const prev = readJSON(standingKey(userId), null) || { timeFirsts: 0, bestTimeFirsts: 0 };
+      const next = { timeFirsts: data, bestTimeFirsts: Math.max(prev.bestTimeFirsts || 0, data) };
+      if (next.timeFirsts === prev.timeFirsts && next.bestTimeFirsts === prev.bestTimeFirsts) return;
+      writeJSON(standingKey(userId), next);
+      notify();   // the achievement effect re-checks on the next progress adoption
+    } catch {}    // standing is a nicety; the next upload asks again
   }
 
   function _countStars(progress) {
@@ -1110,6 +1134,7 @@
     refreshEntitlement, verifyPlayPurchase,
     hasPendingUpload: () => _owed,
     timesCutoff: _timesCutoff,
+    getStanding,
     register, signIn, resetPassword,
     checkNameAvailable,
     getActiveProgress, updateActiveProgress,

@@ -20,6 +20,20 @@ const {
 // (20260925_times_reset.sql) and a reset must not take back an achievement.
 const runTimes = pd => [...(pd.bestTime ?? []), ...(pd.history ?? []).flatMap(runs => (runs ?? []).map(r => r.time))].filter(t => t != null);
 const ACH_KINDS = {
+  // The one kind a save cannot answer alone: whether anyone is faster. The
+  // count comes from the server through FP_AUTH (my_time_firsts), and the
+  // best count ever seen is what is kept, so being overtaken later does not
+  // take the achievement back. A guest has no standing and never unlocks it.
+  time_leader: {
+    label: 'Hold the fastest time on N levels',
+    needs: ['threshold'],
+    desc: ({
+      threshold
+    }) => threshold === 1 ? 'Hold the fastest time on any level\'s leaderboard' : `Hold the fastest time on ${threshold} levels at once`,
+    build: ({
+      threshold
+    }) => () => (window.FP_AUTH?.getStanding?.()?.bestTimeFirsts ?? 0) >= threshold
+  },
   total_stars: {
     label: 'Earn N stars total',
     needs: ['threshold'],
@@ -308,6 +322,12 @@ const BUILTIN_ACH_ROWS = [{
   threshold: 25000,
   name: 'Sunday Stroll',
   description: 'Complete any level with a time of over 25 seconds'
+}, {
+  id: 'pacesetter',
+  kind: 'time_leader',
+  threshold: 1,
+  name: 'Pacesetter',
+  description: 'Hold the fastest time on any level\'s leaderboard'
 }, {
   id: 'stars_15',
   kind: 'total_stars',

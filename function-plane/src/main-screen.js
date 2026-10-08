@@ -244,7 +244,7 @@ function MainScreen({
       paddingTop: 10,
       flex: '0 0 auto'
     }
-  }, "v 1.0 \xB7 build 4"));
+  }, "v 1.0 \xB7 build 5"));
 }
 function PlaneBackdrop() {
   return /*#__PURE__*/React.createElement("svg", {

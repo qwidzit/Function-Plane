@@ -142,7 +142,7 @@ function SettingsScreen({
       letterSpacing: '0.06em',
       textTransform: 'uppercase'
     }
-  }, "v 1.0 \xB7 build 4"), /*#__PURE__*/React.createElement("div", {
+  }, "v 1.0 \xB7 build 5"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: 'var(--fp-ink-4)',

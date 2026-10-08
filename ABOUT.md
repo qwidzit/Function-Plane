@@ -1424,7 +1424,7 @@ the SQL editor is the reset; the API cannot call it. `npm test` runs the real
 **Every achievement is a data row** — there is no such thing as a hard-coded
 one any more, so the admin panel edits all of them through a single editor.
 
-- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships **24 rows** in exactly the
+- `BUILTIN_ACH_ROWS` in `achievements.jsx` ships **25 rows** in exactly the
   shape the `achievement_overrides` table uses.
 - `getAchievementRows()` merges a matching override row over each built-in,
   taking **only the fields the override actually sets** — a row stores `null`
@@ -1446,9 +1446,15 @@ anyone's history.
 `total_stars`, `total_levels`, `pack_complete`, `pack_full_gold`,
 `any_pack_complete`, `packs_complete`, `any_pack_gold`, `all_roman_packs`,
 `themed_level`, `themed_stars`, `themed_packs_complete`, `any_3stars`,
-`min_score`, `levels_min_score`, `score_over`, `time_under`, `time_over`. Time
-thresholds are stored in **milliseconds** because the column is an integer; a
-kind can set `thresholdLabel` and the editor labels its input accordingly.
+`min_score`, `levels_min_score`, `score_over`, `time_under`, `time_over`,
+`time_leader`. Time thresholds are stored in **milliseconds** because the
+column is an integer; a kind can set `thresholdLabel` and the editor labels
+its input accordingly. `time_leader` is the one kind a save cannot answer
+alone: it reads `FP_AUTH.getStanding()`, which `accounts.js` fills from the
+`my_time_firsts()` RPC (`20261009_time_leader.sql`) after every sync-down and
+score upload — how many time boards the account leads now, and the best count
+ever seen, so being overtaken or a reset of times never takes *Pacesetter*
+back. A guest has no standing and cannot earn it.
 
 A kind names the params it consumes in `needs`, and the editor renders exactly
 those fields. Three of them are one number, a pack id or a level index;
@@ -1461,7 +1467,7 @@ included and always, and PostgREST refuses an upsert naming a column the table
 does not have — so a missing column fails *every* achievement save, not just
 one using the new kind.
 
-The shipped set is the author's list of 24: first level, 15 levels, any 3★,
+The shipped set is the author's list of 25: first level, 15 levels, any 3★,
 two Minimalist tiers (5 and 15 levels at a score of 30 or less), 5 packs, a
 golden pack, one per main pack plus all of them, two Themed-star tiers and two
 Themed packs, a sub-second clear and a 25-second one, and six star totals from

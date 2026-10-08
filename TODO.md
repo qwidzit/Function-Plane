@@ -24,6 +24,12 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   the build machine, `sw.js` is at `fp-v101`, and the level snapshot is
   current as of 7 October. The web build at functionplane-game.pages.dev
   already serves all of it.
+- **Build 4 was uploaded on 8 October** with the audit's fixes. **Build 5 is
+  in the repo**: it adds *Pacesetter*, the achievement for holding the
+  fastest time on any level's board (`my_time_firsts()`, asked after every
+  score upload), bounds the Play restore query so "Checking…" always ends,
+  and lets a level name wrap beside its badge instead of truncating, which
+  Build 4 got wrong. `versionCode` is 5, `sw.js` is at `fp-v104`.
 - **Database and website are already current.** Every migration through
   `20261009_stripe_purchase_integrity.sql` is applied, the dormant Stripe
   webhook is redeployed against its grant RPC, and the May APK is gone from

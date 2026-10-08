@@ -21,6 +21,19 @@ const runTimes = pd => [
 ].filter(t => t != null);
 
 const ACH_KINDS = {
+  // The one kind a save cannot answer alone: whether anyone is faster. The
+  // count comes from the server through FP_AUTH (my_time_firsts), and the
+  // best count ever seen is what is kept, so being overtaken later does not
+  // take the achievement back. A guest has no standing and never unlocks it.
+  time_leader: {
+    label: 'Hold the fastest time on N levels',
+    needs: ['threshold'],
+    desc: ({ threshold }) => threshold === 1
+      ? 'Hold the fastest time on any level\'s leaderboard'
+      : `Hold the fastest time on ${threshold} levels at once`,
+    build: ({ threshold }) => () =>
+      (window.FP_AUTH?.getStanding?.()?.bestTimeFirsts ?? 0) >= threshold,
+  },
   total_stars: {
     label: 'Earn N stars total',
     needs: ['threshold'],
@@ -183,6 +196,7 @@ const BUILTIN_ACH_ROWS = [
   { id: 'themed_packs_2', kind: 'themed_packs_complete', threshold: 2, name: 'Double Major', description: 'Complete 2 Themed packs' },
   { id: 'flash',         kind: 'time_under',        threshold: 1000, name: 'Flash',          description: 'Complete any level in 1 second or less' },
   { id: 'sunday_stroll', kind: 'time_over',         threshold: 25000, name: 'Sunday Stroll', description: 'Complete any level with a time of over 25 seconds' },
+  { id: 'pacesetter',    kind: 'time_leader',       threshold: 1,   name: 'Pacesetter',      description: 'Hold the fastest time on any level\'s leaderboard' },
   { id: 'stars_15',      kind: 'total_stars',       threshold: 15,  name: 'Rising Star',     description: 'Earn 15 stars in total' },
   { id: 'stars_30',      kind: 'total_stars',       threshold: 30,  name: 'Stargazer',       description: 'Earn 30 stars in total' },
   { id: 'stars_50',      kind: 'total_stars',       threshold: 50,  name: 'Star Collector',  description: 'Earn 50 stars in total' },
