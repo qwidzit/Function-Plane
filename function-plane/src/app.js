@@ -202,7 +202,11 @@ function App() {
 
   // Persist settings
   useEffect(() => {
-    localStorage.setItem('fp-settings', JSON.stringify(settings));
+    // Storage can throw (site data blocked, private mode); there is no error
+    // boundary, so an exception here unmounts the whole app.
+    try {
+      localStorage.setItem('fp-settings', JSON.stringify(settings));
+    } catch {}
   }, [settings]);
 
   // Persist progress (routes to active account, or guest fp-progress)
@@ -318,6 +322,9 @@ function App() {
         onBack: () => navigateBack('main'),
         onPickPack: pack => navigate('levels', {
           pack
+        }),
+        onPremium: () => navigate('account', {
+          view: 'premium'
         })
       });
     }
@@ -472,7 +479,8 @@ function App() {
         density: settings.density,
         account: account,
         progress: progress,
-        onAdmin: () => navigate('admin')
+        onAdmin: () => navigate('admin'),
+        initialView: nav.view
       });
     }
     if (route === 'admin') {

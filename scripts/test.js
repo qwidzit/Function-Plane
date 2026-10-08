@@ -285,6 +285,14 @@ it('charges for a curve the way the classifier reads it, brackets and all', () =
   eq(detectClass('y=x(x+1)(x-1)'), 'cubic', 'three factors are a cubic');
   eq(detectClass('y=sin(x)'), 'trig', 'a real call is still a call');
   eq(scoring.computeScore(parse(['y=x(x+1)'])), 40, 'the run agrees with the audit');
+  // The keyboard types the glyph. Rewritten to the letters "pi" it glued to
+  // the next letter run and read as p·i·x: every curve behind a π priced 10
+  // as unknown, and 2πx was refused in the Linear pack as the wrong type.
+  eq(detectClass('y=πx^2'), 'quadratic', 'π in front of a parabola is still a parabola');
+  eq(classifyEquation('y=πx^3'), 30, 'and a cubic behind it costs what a cubic costs');
+  eq(detectClass('y=2πx'), 'linear', '2πx is a line');
+  eq(detectClass('y=πsin(x)'), 'trig', 'πsin(x) is trig');
+  eq(detectClass('y=pix'), 'unknown', 'but the letters glued to another letter are still parameters, as the runtime reads them');
 });
 
 it('leaves a hidden curve out of the score and the equation count', () => {
@@ -1377,6 +1385,19 @@ it('listens for sign-in before the session check, and keeps a profile it could n
   ok(!syncRun.error, syncRun.error);
   ok(syncRun.boot.listenFirst, 'the auth listener must be registered before getSession, which can time out');
   ok(syncRun.boot.premiumKept, 'a failed profile read must not cache premium as off');
+});
+
+it('keeps the account through an offline boot, and forgets it only on sign-out', () => {
+  // An expired token that cannot be refreshed arrives as a null session with
+  // an error, and then as INITIAL_SESSION null. Forgetting the account there
+  // dropped an offline player to guest after a minute and orphaned whatever
+  // they played next. And SIGNED_IN fires on every return to the foreground,
+  // which is not a reason to download and upload the whole save again.
+  ok(!syncRun.error, syncRun.error);
+  eq(syncRun.offlineBoot.afterCheck, 'u1', 'a failed refresh keeps the cached account');
+  eq(syncRun.offlineBoot.afterNull, 'u1', 'and so does INITIAL_SESSION with no session');
+  eq(syncRun.offlineBoot.afterSignOut, null, 'an explicit sign-out still forgets it');
+  eq(syncRun.foreground.downloads, 1, 'a foreground SIGNED_IN does not download the save again');
 });
 
 it('resets best times once, keeping stars and offline play', () => {

@@ -1,15 +1,10 @@
 // Function Plane — Privacy / Terms / Open-source license screens
 //
-// The text below is intended for an English-language Google Play release. It
-// is structured to satisfy the Google Play Developer Program Policies, the
-// Play Console "Data safety" form, and the most common consumer-facing legal
-// requirements (GDPR, CCPA, COPPA basics). Bracketed placeholders must be
-// filled in before launch, and the policy MUST also be hosted at a public URL
-// (Google requires this — an in-app screen alone is not sufficient).
-//
-// IMPORTANT: this is a starting template, not legal advice. Have a lawyer
-// review before you publish, especially if you want to ship to children
-// under 13 or in regulated regions (EU, UK, California, Brazil).
+// The text below is written for the English-language Google Play release and
+// is structured around the Play Developer Program Policies, the Data safety
+// form and the usual consumer-facing requirements (GDPR, CCPA, COPPA basics).
+// The policy is also hosted at a public URL, which Play requires; see
+// `legal/` for the hosted copies. It is not legal advice.
 
 const LEGAL_PUBLISHER = 'Nikolay Yaremko';
 const LEGAL_JURIS = 'the Netherlands';
@@ -19,7 +14,7 @@ const LEGAL_WEBSITE = 'https://functionplane.pages.dev'; // public site (privacy
 // dates. They must match the hosted copies in `legal/` exactly: Google reads
 // the published policy against the Play Data safety declaration, and a player
 // reading a different one in the app is the same document saying two things.
-const PRIVACY_EFFECTIVE = '20 September 2026';
+const PRIVACY_EFFECTIVE = '8 October 2026';
 const TERMS_EFFECTIVE = '20 September 2026';
 const APP_NAME = 'Function Plane';
 
@@ -99,8 +94,10 @@ or advertising network — there are none in the app.
 ## 4. Leaderboards and public information
 
 Your **display name** and **avatar** are visible to other users on the global
-leaderboard alongside your total stars and per-level scores. Your email and
-device information are never shown publicly.
+leaderboard alongside your total stars and per-level scores, together with two
+badges: whether the account has Premium, and whether it was created before the
+game's public launch. Your email and device information are never shown
+publicly.
 
 ## 5. Data retention
 
@@ -208,10 +205,12 @@ Service for non-commercial purposes.
 Function Plane sells one thing: **Premium**, a one-time purchase that unlocks
 every pack and every level. It is not a subscription and never renews.
 
-* Google Play handles billing. Their terms also apply to the purchase.
-* Refunds are governed by Google Play's refund policy. If a purchase is
-  refunded or charged back, Premium is removed from the account.
-* Premium can only be bought where Google Play offers in-app purchases, which
+* The app store used for your purchase handles billing. Their terms also
+  apply to the purchase.
+* Refunds are governed by the refund policy of the store used for the
+  purchase. If a purchase is refunded or charged back, Premium is removed
+  from the account.
+* Premium can only be bought where the store offers in-app purchases, which
   is not every country.
 * Premium belongs to your account rather than to a device. Signing in on
   another device and pressing Restore purchases brings it with you.
@@ -276,8 +275,9 @@ licence text for each component is below.
 
 **React** (v18.3.1) — © Meta Platforms, Inc. and affiliates — MIT Licence
 **ReactDOM** (v18.3.1) — © Meta Platforms, Inc. and affiliates — MIT Licence
-**Babel Standalone** (v7.29.0) — © 2014-present, the Babel authors — MIT Licence
 **Supabase JS** (v2) — © 2020 Supabase, Inc. — MIT Licence
+**Capacitor** (v8) — © 2017-present Drifty Co. — MIT Licence
+**cordova-plugin-purchase** (v13) — © 2012-2013 Guillaume Charhon, © Jean-Christophe Hoelt / Fovea — MIT Licence
 
 > MIT Licence
 >

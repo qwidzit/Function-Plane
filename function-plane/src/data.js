@@ -184,7 +184,8 @@ function getLevelData(packId, levelIndex) {
     // count toward eqsUsed or score. Stored as a JSON array of strings.
     preplaced: Array.isArray(ov.preplaced) ? ov.preplaced.filter(s => typeof s === 'string' && s.trim()) : [],
     // Fans, zones, wells, hazards — see level-objects.jsx for the shapes.
-    objects: Array.isArray(ov.objects) ? ov.objects.filter(o => o && window.FP_OBJECTS?.KINDS[o.kind]) : [],
+    // Own keys only: a kind named "constructor" passed a truthiness test.
+    objects: Array.isArray(ov.objects) ? ov.objects.filter(o => o && Object.prototype.hasOwnProperty.call(window.FP_OBJECTS?.KINDS || {}, o.kind)) : [],
     // The figure the stars are arranged in, as polylines over star indices.
     // Decoration for the shape pack: it is drawn, and nothing collides with it.
     outline: Array.isArray(ov.outline) ? ov.outline.filter(Array.isArray) : [],

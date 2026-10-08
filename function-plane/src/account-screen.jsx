@@ -2,11 +2,11 @@
 
 const { useState: useACS, useEffect: useACSEffect } = React;
 
-function AccountScreen({ onBack, density = 'comfortable', account, progress, onAdmin }) {
-  const [view, setView] = useACS('main'); // 'main' | 'signin' | 'register' | 'reset' | 'premium'
+function AccountScreen({ onBack, density = 'comfortable', account, progress, onAdmin, initialView }) {
+  // 'main' | 'signin' | 'register' | 'reset' | 'premium'. The locked-pack
+  // popup opens this screen straight on 'premium'.
+  const [view, setView] = useACS(initialView || 'main');
   const padX = density === 'compact' ? 22 : 26;
-
-  useACSEffect(() => { /* clear sub-view errors on navigation */ }, [view]);
 
   const goMain = () => setView('main');
 
@@ -49,11 +49,14 @@ function ScreenFrame({ title, onBack, padX, children }) {
   );
 }
 
-function AuthField({ label, type, value, onChange, placeholder, autoFocus, error }) {
+// `name`/`autoComplete` are what lets a password manager fill the field and
+// the keyboard's Go key submit the form around it.
+function AuthField({ label, type, name, autoComplete, value, onChange, placeholder, autoFocus, error }) {
+  const id = 'auth-' + name;
   return (
     <div style={{ marginBottom:14 }}>
-      <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', marginBottom:6, letterSpacing:'0.03em', textTransform:'uppercase' }}>{label}</div>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
+      <label htmlFor={id} style={{ display:'block', fontSize:11.5, color:'var(--fp-ink-3)', marginBottom:6, letterSpacing:'0.03em', textTransform:'uppercase' }}>{label}</label>
+      <input id={id} name={name} autoComplete={autoComplete} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
         style={{ width:'100%', height:48, borderRadius:12, boxSizing:'border-box', padding:'0 14px', fontSize:15, background:'var(--fp-surface)', border:`1px solid ${error ? '#e34' : 'var(--fp-line)'}`, color:'var(--fp-ink)', outline:'none' }}/>
     </div>
   );
@@ -293,19 +296,19 @@ function SignInView({ onBack, padX, onSuccess, onReset }) {
 
   return (
     <ScreenFrame title="Sign in" onBack={onBack} padX={padX}>
-      <div style={{ padding:'24px 0' }}>
+      <form style={{ padding:'24px 0' }} onSubmit={e => { e.preventDefault(); if (!busy) submit(); }}>
         <StatusLine msg={msg.text} ok={msg.ok}/>
-        <AuthField label="Email"    type="email"    value={email} onChange={setEmail} placeholder="you@example.com" autoFocus/>
-        <AuthField label="Password" type="password" value={pass}  onChange={setPass}  placeholder="••••••••"/>
+        <AuthField label="Email"    type="email"    name="email"    autoComplete="email"            value={email} onChange={setEmail} placeholder="you@example.com" autoFocus/>
+        <AuthField label="Password" type="password" name="password" autoComplete="current-password" value={pass}  onChange={setPass}  placeholder="••••••••"/>
 
-        <button onClick={submit} disabled={busy} style={{ width:'100%', height:52, borderRadius:15, marginTop:4, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:15, fontWeight:500, opacity:busy?0.6:1 }}>
+        <button type="submit" disabled={busy} style={{ width:'100%', height:52, borderRadius:15, marginTop:4, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:15, fontWeight:500, opacity:busy?0.6:1 }}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
 
         <div style={{ textAlign:'center', marginTop:18 }}>
-          <button onClick={onReset} style={{ fontSize:12.5, color:'var(--fp-ink-3)' }}>Forgot password?</button>
+          <button type="button" onClick={onReset} style={{ fontSize:12.5, color:'var(--fp-ink-3)' }}>Forgot password?</button>
         </div>
-      </div>
+      </form>
     </ScreenFrame>
   );
 }
@@ -328,15 +331,18 @@ function RegisterView({ onBack, padX, onSuccess }) {
     const trimmed = name.trim();
     if (!trimmed) { setNameStatus({ state:'idle', reason:'' }); return; }
     setNameStatus({ state:'checking', reason:'' });
+    // A slow check for an earlier name must not land over a newer one.
+    let stale = false;
     const id = setTimeout(async () => {
       try {
         const r = await FP_AUTH.checkNameAvailable(trimmed);
+        if (stale) return;
         setNameStatus(r.available
           ? { state:'free', reason:'' }
           : { state: trimmed.length < 2 ? 'invalid' : 'taken', reason: r.reason || 'Taken' });
-      } catch { setNameStatus({ state:'idle', reason:'' }); }
+      } catch { if (!stale) setNameStatus({ state:'idle', reason:'' }); }
     }, 350);
-    return () => clearTimeout(id);
+    return () => { stale = true; clearTimeout(id); };
   }, [name]);
 
   const mismatch  = pass2.length > 0 && pass2 !== pass;
@@ -353,14 +359,14 @@ function RegisterView({ onBack, padX, onSuccess }) {
 
   return (
     <ScreenFrame title="Create account" onBack={onBack} padX={padX}>
-      <div style={{ padding:'24px 0' }}>
+      <form style={{ padding:'24px 0' }} onSubmit={e => { e.preventDefault(); submit(); }}>
         <StatusLine msg={msg.text} ok={msg.ok}/>
 
         <div style={{ marginBottom:14 }}>
-          <div style={{ fontSize:11.5, color:'var(--fp-ink-3)', marginBottom:6, letterSpacing:'0.03em', textTransform:'uppercase' }}>
+          <label htmlFor="auth-nickname" style={{ display:'block', fontSize:11.5, color:'var(--fp-ink-3)', marginBottom:6, letterSpacing:'0.03em', textTransform:'uppercase' }}>
             Display name
-          </div>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoFocus
+          </label>
+          <input id="auth-nickname" name="nickname" autoComplete="nickname" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoFocus
             style={{
               width:'100%', height:48, borderRadius:12, boxSizing:'border-box', padding:'0 14px', fontSize:15,
               background:'var(--fp-surface)',
@@ -381,15 +387,15 @@ function RegisterView({ onBack, padX, onSuccess }) {
           </div>
         </div>
 
-        <AuthField label="Email"    type="email"    value={email} onChange={setEmail} placeholder="you@example.com"/>
-        <AuthField label="Password" type="password" value={pass}  onChange={setPass}  placeholder="At least 8 characters"/>
-        <AuthField label="Confirm password" type="password" value={pass2} onChange={setPass2}
+        <AuthField label="Email"    type="email"    name="email"     autoComplete="email"        value={email} onChange={setEmail} placeholder="you@example.com"/>
+        <AuthField label="Password" type="password" name="password"  autoComplete="new-password" value={pass}  onChange={setPass}  placeholder="At least 8 characters"/>
+        <AuthField label="Confirm password" type="password" name="password2" autoComplete="new-password" value={pass2} onChange={setPass2}
           placeholder="Repeat your password" error={mismatch}/>
         <div style={{ minHeight:16, marginTop:-8, marginBottom:8, fontSize:11.5, color:'#e34' }}>
           {mismatch && 'Passwords do not match'}
         </div>
 
-        <button onClick={submit} disabled={!canSubmit} style={{
+        <button type="submit" disabled={!canSubmit} style={{
           width:'100%', height:52, borderRadius:15, marginTop:4,
           background:'var(--fp-accent)', color:'var(--fp-accent-ink)',
           fontSize:15, fontWeight:500, opacity: canSubmit ? 1 : 0.5,
@@ -400,7 +406,7 @@ function RegisterView({ onBack, padX, onSuccess }) {
         <div style={{ textAlign:'center', marginTop:16, fontSize:11.5, color:'var(--fp-ink-4)', lineHeight:1.55 }}>
           The progress on this device comes with you.
         </div>
-      </div>
+      </form>
     </ScreenFrame>
   );
 }
@@ -423,13 +429,13 @@ function ResetView({ onBack, padX }) {
 
   return (
     <ScreenFrame title="Reset password" onBack={onBack} padX={padX}>
-      <div style={{ padding:'24px 0' }}>
+      <form style={{ padding:'24px 0' }} onSubmit={e => { e.preventDefault(); if (!busy) submit(); }}>
         <StatusLine msg={msg.text} ok={msg.ok}/>
-        <AuthField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoFocus/>
-        <button onClick={submit} disabled={busy} style={{ width:'100%', height:52, borderRadius:15, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:15, fontWeight:500, opacity:busy?0.6:1 }}>
+        <AuthField label="Email" type="email" name="email" autoComplete="email" value={email} onChange={setEmail} placeholder="you@example.com" autoFocus/>
+        <button type="submit" disabled={busy} style={{ width:'100%', height:52, borderRadius:15, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:15, fontWeight:500, opacity:busy?0.6:1 }}>
           {busy ? 'Sending…' : 'Send reset link'}
         </button>
-      </div>
+      </form>
     </ScreenFrame>
   );
 }

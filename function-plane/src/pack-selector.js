@@ -7,6 +7,7 @@ function PackSelector({
   progress,
   onBack,
   onPickPack,
+  onPremium,
   density = 'comfortable'
 }) {
   const padX = density === 'compact' ? 18 : 22;
@@ -167,7 +168,8 @@ function PackSelector({
     pack: lockedPack.pack,
     lockInfo: lockedPack.lockInfo,
     totalStars: unlockStars,
-    onClose: () => setLockedPack(null)
+    onClose: () => setLockedPack(null),
+    onPremium: onPremium
   }));
 }
 function PSectionLabel({
@@ -499,7 +501,8 @@ function LockedPackPopup({
   pack,
   lockInfo,
   totalStars,
-  onClose
+  onClose,
+  onPremium
 }) {
   const {
     reason,
@@ -640,7 +643,10 @@ function LockedPackPopup({
       fontWeight: 500
     }
   }, "Got it"), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
+    onClick: () => {
+      onClose();
+      onPremium?.();
+    },
     style: {
       flex: 2,
       height: 50,

@@ -65,9 +65,15 @@ const FILE_BTN = {
   fontSize: 13,
   fontWeight: 500
 };
+
+// `|| 0` alone let "1e400" through as Infinity, which the plane cannot draw.
+const num = v => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
 const pt = p => ({
-  x: Number(p?.x) || 0,
-  y: Number(p?.y) || 0
+  x: num(p?.x),
+  y: num(p?.y)
 });
 // The goal fields are edited as strings, because a half-typed one is not a
 // number yet. Empty stays empty rather than becoming 0.
@@ -103,7 +109,8 @@ function levelToFile(b) {
 }
 function fileToLevel(doc) {
   if (!doc || doc.format !== LEVEL_FILE) throw new Error('Not a Function Plane level file');
-  const stars = Array.isArray(doc.stars) ? doc.stars.map(pt) : [];
+  // Capped where the chip row caps addStar, so a file cannot carry thousands.
+  const stars = Array.isArray(doc.stars) ? doc.stars.slice(0, 10).map(pt) : [];
   if (!stars.length) throw new Error('That file has no stars');
   // Sliders are per-board, the way they are when the studio first opens.
   window.FP_PARAMS = {};
@@ -138,7 +145,7 @@ function fileToLevel(doc) {
     stars,
     // An unknown kind draws nothing and does nothing; getLevelData drops one
     // on the same grounds rather than carrying a hole around.
-    objects: (Array.isArray(doc.objects) ? doc.objects : []).filter(o => o && FP_OBJECTS.KINDS[o.kind]).map(o => ({
+    objects: (Array.isArray(doc.objects) ? doc.objects : []).filter(o => o && Object.prototype.hasOwnProperty.call(FP_OBJECTS.KINDS, o.kind)).map(o => ({
       ...o
     })),
     equations,

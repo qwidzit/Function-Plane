@@ -9,11 +9,13 @@ function AccountScreen({
   density = 'comfortable',
   account,
   progress,
-  onAdmin
+  onAdmin,
+  initialView
 }) {
-  const [view, setView] = useACS('main'); // 'main' | 'signin' | 'register' | 'reset' | 'premium'
+  // 'main' | 'signin' | 'register' | 'reset' | 'premium'. The locked-pack
+  // popup opens this screen straight on 'premium'.
+  const [view, setView] = useACS(initialView || 'main');
   const padX = density === 'compact' ? 22 : 26;
-  useACSEffect(() => {/* clear sub-view errors on navigation */}, [view]);
   const goMain = () => setView('main');
   if (view === 'signin') return /*#__PURE__*/React.createElement(SignInView, {
     onBack: goMain,
@@ -108,21 +110,29 @@ function ScreenFrame({
     }
   }, children));
 }
+
+// `name`/`autoComplete` are what lets a password manager fill the field and
+// the keyboard's Go key submit the form around it.
 function AuthField({
   label,
   type,
+  name,
+  autoComplete,
   value,
   onChange,
   placeholder,
   autoFocus,
   error
 }) {
+  const id = 'auth-' + name;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("label", {
+    htmlFor: id,
     style: {
+      display: 'block',
       fontSize: 11.5,
       color: 'var(--fp-ink-3)',
       marginBottom: 6,
@@ -130,6 +140,9 @@ function AuthField({
       textTransform: 'uppercase'
     }
   }, label), /*#__PURE__*/React.createElement("input", {
+    id: id,
+    name: name,
+    autoComplete: autoComplete,
     type: type,
     value: value,
     onChange: e => onChange(e.target.value),
@@ -723,9 +736,13 @@ function SignInView({
     title: "Sign in",
     onBack: onBack,
     padX: padX
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("form", {
     style: {
       padding: '24px 0'
+    },
+    onSubmit: e => {
+      e.preventDefault();
+      if (!busy) submit();
     }
   }, /*#__PURE__*/React.createElement(StatusLine, {
     msg: msg.text,
@@ -733,6 +750,8 @@ function SignInView({
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Email",
     type: "email",
+    name: "email",
+    autoComplete: "email",
     value: email,
     onChange: setEmail,
     placeholder: "you@example.com",
@@ -740,11 +759,13 @@ function SignInView({
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Password",
     type: "password",
+    name: "password",
+    autoComplete: "current-password",
     value: pass,
     onChange: setPass,
     placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
   }), /*#__PURE__*/React.createElement("button", {
-    onClick: submit,
+    type: "submit",
     disabled: busy,
     style: {
       width: '100%',
@@ -763,6 +784,7 @@ function SignInView({
       marginTop: 18
     }
   }, /*#__PURE__*/React.createElement("button", {
+    type: "button",
     onClick: onReset,
     style: {
       fontSize: 12.5,
@@ -808,9 +830,12 @@ function RegisterView({
       state: 'checking',
       reason: ''
     });
+    // A slow check for an earlier name must not land over a newer one.
+    let stale = false;
     const id = setTimeout(async () => {
       try {
         const r = await FP_AUTH.checkNameAvailable(trimmed);
+        if (stale) return;
         setNameStatus(r.available ? {
           state: 'free',
           reason: ''
@@ -819,13 +844,16 @@ function RegisterView({
           reason: r.reason || 'Taken'
         });
       } catch {
-        setNameStatus({
+        if (!stale) setNameStatus({
           state: 'idle',
           reason: ''
         });
       }
     }, 350);
-    return () => clearTimeout(id);
+    return () => {
+      stale = true;
+      clearTimeout(id);
+    };
   }, [name]);
   const mismatch = pass2.length > 0 && pass2 !== pass;
   const canSubmit = !busy && nameStatus.state === 'free' && email.includes('@') && pass.length >= 8 && pass2 === pass;
@@ -856,9 +884,13 @@ function RegisterView({
     title: "Create account",
     onBack: onBack,
     padX: padX
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("form", {
     style: {
       padding: '24px 0'
+    },
+    onSubmit: e => {
+      e.preventDefault();
+      submit();
     }
   }, /*#__PURE__*/React.createElement(StatusLine, {
     msg: msg.text,
@@ -867,8 +899,10 @@ function RegisterView({
     style: {
       marginBottom: 14
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("label", {
+    htmlFor: "auth-nickname",
     style: {
+      display: 'block',
       fontSize: 11.5,
       color: 'var(--fp-ink-3)',
       marginBottom: 6,
@@ -876,6 +910,9 @@ function RegisterView({
       textTransform: 'uppercase'
     }
   }, "Display name"), /*#__PURE__*/React.createElement("input", {
+    id: "auth-nickname",
+    name: "nickname",
+    autoComplete: "nickname",
     type: "text",
     value: name,
     onChange: e => setName(e.target.value),
@@ -903,18 +940,24 @@ function RegisterView({
   }, nameStatus.state === 'checking' && 'Checking availability…', nameStatus.state === 'free' && '✓ Name is available', nameStatus.state === 'taken' && (nameStatus.reason || 'That name is taken'), nameStatus.state === 'invalid' && (nameStatus.reason || 'Invalid name'))), /*#__PURE__*/React.createElement(AuthField, {
     label: "Email",
     type: "email",
+    name: "email",
+    autoComplete: "email",
     value: email,
     onChange: setEmail,
     placeholder: "you@example.com"
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Password",
     type: "password",
+    name: "password",
+    autoComplete: "new-password",
     value: pass,
     onChange: setPass,
     placeholder: "At least 8 characters"
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Confirm password",
     type: "password",
+    name: "password2",
+    autoComplete: "new-password",
     value: pass2,
     onChange: setPass2,
     placeholder: "Repeat your password",
@@ -928,7 +971,7 @@ function RegisterView({
       color: '#e34'
     }
   }, mismatch && 'Passwords do not match'), /*#__PURE__*/React.createElement("button", {
-    onClick: submit,
+    type: "submit",
     disabled: !canSubmit,
     style: {
       width: '100%',
@@ -989,9 +1032,13 @@ function ResetView({
     title: "Reset password",
     onBack: onBack,
     padX: padX
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("form", {
     style: {
       padding: '24px 0'
+    },
+    onSubmit: e => {
+      e.preventDefault();
+      if (!busy) submit();
     }
   }, /*#__PURE__*/React.createElement(StatusLine, {
     msg: msg.text,
@@ -999,12 +1046,14 @@ function ResetView({
   }), /*#__PURE__*/React.createElement(AuthField, {
     label: "Email",
     type: "email",
+    name: "email",
+    autoComplete: "email",
     value: email,
     onChange: setEmail,
     placeholder: "you@example.com",
     autoFocus: true
   }), /*#__PURE__*/React.createElement("button", {
-    onClick: submit,
+    type: "submit",
     disabled: busy,
     style: {
       width: '100%',

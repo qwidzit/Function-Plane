@@ -142,22 +142,33 @@
     // listener registered after it was never registered at all on such a boot,
     // so a token refreshed later never synced and sign-out did nothing.
     _sb.auth.onAuthStateChange((event, session) => {
-      if (!session) { _forgetAccount(); return; }
-      _adoptSession(session.user, event === 'SIGNED_IN' || !_synced.has(session.user.id));
+      // Only an explicit sign-out forgets the account. A null session also
+      // arrives as INITIAL_SESSION when the stored token has expired and the
+      // refresh cannot reach the server — an offline boot after an hour away —
+      // and forgetting it there dropped the player to guest and orphaned
+      // whatever they played next. supabase-js keeps the token and signs the
+      // account back in once the network returns.
+      if (!session) { if (event === 'SIGNED_OUT') _forgetAccount(); return; }
+      // SIGNED_IN fires again on every return to the foreground, so it is not
+      // the signal to download: only an account not synced this session is.
+      _adoptSession(session.user, !_synced.has(session.user.id));
     });
 
     // Restore the session (returning visitor on the same device). Bounded: an
     // expired token makes this refresh over the network, and unbounded it is a
     // boot that never finishes.
-    let session = null;
+    let session = null, sessErr = null;
     try {
-      ({ data: { session } } = await _withTimeout(_sb.auth.getSession(), 'Session check'));
+      ({ data: { session }, error: sessErr } = await _withTimeout(_sb.auth.getSession(), 'Session check'));
     } catch (e) {
       _emitSyncError(e.message);   // keep the cached account and play offline
       return;
     }
     if (session) _adoptSession(session.user, true);
-    else {
+    else if (sessErr && cached) {
+      // The refresh failed rather than the session ending: unknown, not gone.
+      _emitSyncError(sessErr.message || 'Session check failed');
+    } else {
       if (cached) _forgetAccount(); else notify();
       // A guest's progress uploads the moment they register, so it has to
       // follow a reset too.
@@ -180,7 +191,10 @@
     if (_pendingGuest) {
       _pendingGuest = false;
       const guest = _loadProgress(GUEST_KEY);
-      if (guest && !_loadProgress(progressKey(user.id))) _saveProgress(progressKey(user.id), guest);
+      // Merged rather than skipped: a save already under this id is one an
+      // earlier session on this device left behind, and neither half is
+      // the one to lose.
+      if (guest) _saveProgress(progressKey(user.id), _mergeProgress(_loadProgress(progressKey(user.id)), guest));
       // Cleared, or the same guest save would seed every account registered
       // from this device.
       _dropProgress(GUEST_KEY);
@@ -402,10 +416,18 @@
     // Set before signUp: with autoconfirm the SIGNED_IN event, and so
     // _adoptSession, can run before signUp even returns.
     _pendingGuest = true;
-    const { data, error } = await _withTimeout(_sb.auth.signUp({
-      email, password,
-      options: { data: { name, avatar } },
-    }), 'Register');
+    let data, error;
+    try {
+      ({ data, error } = await _withTimeout(_sb.auth.signUp({
+        email, password,
+        options: { data: { name, avatar } },
+      }), 'Register'));
+    } catch (e) {
+      // Left set, the next sign-in on this device would take the guest save
+      // as its own and clear it.
+      _pendingGuest = false;
+      throw e;
+    }
     if (error) {
       _pendingGuest = false;
       if (/reserved/i.test(error.message || '')) throw new Error('That name is reserved');
@@ -435,6 +457,13 @@
   // the server session simply expires.
   async function signOut() {
     if (!_sb) return;
+    // A level cleared seconds ago can still be in the upload debounce or a
+    // retry gap, and the dialog promises it is on the server: send it first.
+    const id = _currentUser?.id;
+    if (id && _owed) {
+      clearTimeout(_syncTimer);
+      await _uploadProgress(id).catch(() => {});
+    }
     let error;
     try { ({ error } = await _withTimeout(_sb.auth.signOut(), 'Sign out')); }
     catch (e) { error = e; }
@@ -458,6 +487,13 @@
     if (r2.error) errs.push(r2.error.message);
     const r3 = await _write(() => _sb.from('profiles').delete().eq('id', id), 'Delete profile');
     if (r3.error) errs.push(r3.error.message);
+    // Nothing reached the server: the account still exists, so the device
+    // must not be wiped and signed out as though it were gone.
+    if (errs.length === 3) {
+      throw new Error(navigator.onLine
+        ? 'Could not reach the server — nothing was deleted. Try again in a moment.'
+        : 'You are offline — nothing was deleted. Try again when connected.');
+    }
     // Local cleanup
     clearTimeout(_syncTimer);
     _dropProgress(progressKey(id));
@@ -478,10 +514,10 @@
     // native shell the app's origin is https://localhost, which Supabase can't
     // redirect an email link to. The page there handles the recovery token and
     // calls updateUser({ password }) — the app has no such screen.
-    const { error } = await _sb.auth.resetPasswordForEmail(
+    const { error } = await _withTimeout(_sb.auth.resetPasswordForEmail(
       (email || '').trim().toLowerCase(),
       { redirectTo: 'https://functionplane.pages.dev/auth/reset' },
-    );
+    ), 'Reset');
     if (error) throw new Error(error.message);
   }
 
@@ -505,6 +541,7 @@
   const UPLOAD_LOST = 'Could not reach the server — your progress is saved on this device and will upload on its own';
   let _retries   = 0;
   let _uploadSeq = 0;
+  let _owed      = false;   // an upload is queued or being retried
 
   function _scheduleUpload(userId) {
     _retries = 0;
@@ -513,6 +550,7 @@
 
   function _uploadAfter(ms, userId) {
     _uploadSeq++;
+    _owed = true;
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => _uploadProgress(userId), ms);
   }
@@ -562,7 +600,7 @@
       else _emitSyncError(r.reason.message);   // refused, and would be again
     }
     if (seq !== _uploadSeq) return;   // a newer upload is queued and answers for itself
-    if (!lost) { _retries = 0; return; }
+    if (!lost) { _retries = 0; _owed = false; return; }
     // Said once per upload the player caused; the retries behind it are quiet.
     if (_retries === 0) _emitSyncError(UPLOAD_LOST, true);
     if (_retries < RETRY_MS.length) _uploadAfter(RETRY_MS[_retries++], userId);
@@ -767,8 +805,13 @@
       return { available: false, reason: 'That name is reserved' };
     }
     if (!_sb) return { available: true };
-    const { data, error } = await _sb
-      .from('profiles').select('id').ilike('name', name).limit(1);
+    // A check that cannot be answered reads as available: the sign-up form
+    // waits on this, and the database refuses a duplicate anyway.
+    let data, error;
+    try {
+      ({ data, error } = await _withTimeout(
+        _sb.from('profiles').select('id').ilike('name', name).limit(1), 'Name check'));
+    } catch (e) { error = e; }
     if (error) { console.warn('FP_AUTH: name check error', error); return { available: true }; }
     return data && data.length > 0
       ? { available: false, reason: 'That name is taken' }
@@ -817,9 +860,11 @@
       .not('updated_at', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(1);
-    const [p, l, a] = await Promise.all([
+    // Bounded like every other call: unanswered, this one wedged FP_DATA.sync
+    // for the rest of the session.
+    const [p, l, a] = await _withTimeout(Promise.all([
       q('pack_overrides'), q('level_overrides'), q('achievement_overrides'),
-    ]);
+    ]), 'Level data version');
     const sig = (res, tolerateMissing) => {
       if (res.error) {
         if (tolerateMissing && /not exist|relation/i.test(res.error.message || '')) return '0:';

@@ -134,7 +134,7 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
               ['Inv. trig (arcsin…)',    '40 pts'],
               ['Sum (Σ)',                '50 pts'],
               ['Integral (∫)',           '55 pts'],
-              ["Doesn't parse",          '60 pts'],
+              ['Undeclared letters',     '10 pts'],
             ].map(([fn, pts], i, arr) => (
               <div key={fn} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -149,7 +149,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           <div style={{ fontSize: 11.5, color: 'var(--fp-ink-4)', lineHeight: 1.5 }}>
             Surcharges inside one equation: each transcendental past the first adds 60% of the base
             (sin(cos(x))), mixing one with a degree-2-or-higher polynomial (sin(x)·x²) multiplies the
-            total by 1.3, and every polynomial power above 3 adds 5 pts.
+            total by 1.3, and every polynomial power above 3 adds 15 pts. A row that cannot be
+            read at all draws nothing and costs nothing.
           </div>
         </HTPCard>
 

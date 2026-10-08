@@ -2,7 +2,7 @@
 
 const { useState: usePSState } = React;
 
-function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' }) {
+function PackSelector({ progress, onBack, onPickPack, onPremium, density = 'comfortable' }) {
   const padX = density === 'compact' ? 18 : 22;
   // Count stars and the achievable maximum over *visible* packs only —
   // hidden (unreleased) packs must not inflate the "/ 420" style total.
@@ -114,6 +114,7 @@ function PackSelector({ progress, onBack, onPickPack, density = 'comfortable' })
           lockInfo={lockedPack.lockInfo}
           totalStars={unlockStars}
           onClose={() => setLockedPack(null)}
+          onPremium={onPremium}
         />
       )}
     </div>
@@ -296,7 +297,7 @@ function SpecialPackCard({ pack, stars, locked, complete, onClick, lockInfo, tot
   );
 }
 
-function LockedPackPopup({ pack, lockInfo, totalStars, onClose }) {
+function LockedPackPopup({ pack, lockInfo, totalStars, onClose, onPremium }) {
   const { reason, need, have, prevPackName } = lockInfo;
   const isPrevPack = reason === 'prev_pack';
   const isStars    = reason === 'stars';
@@ -374,7 +375,7 @@ function LockedPackPopup({ pack, lockInfo, totalStars, onClose }) {
           }}>
             Got it
           </button>
-          <button onClick={onClose} style={{
+          <button onClick={() => { onClose(); onPremium?.(); }} style={{
             flex: 2, height: 50, borderRadius: 14,
             background: 'var(--fp-ink)', color: 'var(--fp-bg)',
             fontSize: 14, fontWeight: 500,

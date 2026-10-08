@@ -61,7 +61,6 @@
   function preprocess(raw) {
     return raw.toLowerCase().replace(/\s+/g, '')
       .replace(/arcsin/g, 'asin').replace(/arccos/g, 'acos').replace(/arctan/g, 'atan')
-      .replace(/π/g, 'pi')
       .replace(/\*\*/g, '^');
   }
 
@@ -78,6 +77,10 @@
         toks.push({ t: 'num', v });
         i = j; continue;
       }
+      // The glyph is its own token, as normExpr keeps it: rewritten to the
+      // letters "pi" it glued to the next letter run, so πx² read as p·i·x²
+      // — unknown, priced 10 — while the game drew a parabola.
+      if (c === 'π') { toks.push({ t: 'name', v: 'pi' }); i++; continue; }
       if ((c >= 'a' && c <= 'z') || c === '_') {
         let j = i;
         while (j < s.length && (((s[j] >= 'a' && s[j] <= 'z')) || (s[j] >= '0' && s[j] <= '9') || s[j] === '_')) j++;

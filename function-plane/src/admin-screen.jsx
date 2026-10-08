@@ -165,7 +165,16 @@ function LeaderboardAudit({ padX, onBack }) {
   };
   useASE(load, []);
 
-  const remove = (row) => {
+  // Confirmed, because a removal is final: the guard refuses that player's
+  // row for this level from then on, and a suspect row is only worth a look.
+  const remove = async (row) => {
+    const ok = await window.fpConfirm({
+      title: 'Remove this score?',
+      body:  `${row.name || 'This player'} can never post a score for this level again — the removal is remembered, not just the row.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
     const key = `${row.user_id}-${row.pack_id}-${row.level_index}`;
     setBusyKey(key);
     FP_AUTH.deleteScoreRow(row.user_id, row.pack_id, row.level_index)

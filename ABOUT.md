@@ -223,6 +223,10 @@ indefinitely. Symptom: your change works with DevTools "Disable cache"
 checked, but not on a real install or after a normal reload. When in doubt,
 bump it — check `sw.js` line 1 for the current version before editing.
 
+The worker is registered on the web only (`index.html` checks `FP_NATIVE`).
+In the Capacitor shell every file is already local, and a cache-first worker
+there served the previous APK's scripts on the first launch after an update.
+
 ## Physics engine (physics-engine.js, window.FP_PHYSICS)
 
 Collision is **sampled-geometry-based**, not analytic. Earlier versions
@@ -1219,8 +1223,10 @@ physics server-side; short of that, two layers do the useful work.
 `20260816_leaderboard_integrity.sql`, which adds a `before insert or update`
 trigger rejecting a `level_index` outside 0–9, stars outside 1–3, a score
 under the cheapest winning run, a score under `floor × equation count`, and a
-time outside
-0.05–30 s (`TIME_LIMIT` is 28). It also makes the **server** decide what
+time over 30 s (`TIME_LIMIT` is 28). A time under 0.05 s — a star within the
+ball's reach of the spawn, collected on the first tick — is nulled rather than
+refused since `20261009_time_floor.sql`, so the stars and score on the row
+still land. It also makes the **server** decide what
 "best" means — `least`/`greatest` against the stored row — so a client cannot
 walk a record backwards and a stale offline sync cannot clobber a better
 result. It used to *clamp* a 2-star claim whose score missed `score_goal` down
@@ -1380,6 +1386,13 @@ replaying a stored upload, the auth listener is registered before the session
 check (which can time out offline), registering moves the guest save to the
 new account inside `_adoptSession` and clears it, and progress is mirrored in
 memory so a full disk loses nothing until the app closes.
+Only an explicit `SIGNED_OUT` forgets the account: an expired token whose
+refresh cannot reach the server comes back as a null session with an error
+and then as `INITIAL_SESSION` with no session, and forgetting it there
+dropped an offline player to guest after a minute and orphaned what they
+played next. supabase-js also re-emits `SIGNED_IN` on every return to the
+foreground, so the download runs only for an account not in `_synced`, and
+sign-out flushes an upload still in its debounce or a retry gap first.
 `scripts/sync-scenario.js` plays each of these out against a stub.
 
 **Resetting times.** Best times were meant to be reset once, and a plain
@@ -2088,8 +2101,9 @@ Play and never reach us.
   price as a display string, and `FP_PAY_CHANNEL`.
 - `function-plane/src/audio.js` — Web Audio synth for SFX, no sample files.
 - `function-plane/vendor/` — vendored React/ReactDOM/Supabase, plus the
-  self-hosted webfonts (`fonts.css` + `fonts/*.woff2`). If you
-  upgrade React, update the license text in `legal-screens.jsx` too.
+  self-hosted webfonts (`fonts.css` + `fonts/*.woff2`). If you upgrade
+  React, Capacitor or the billing plugin, update the license text in
+  `legal-screens.jsx` too — it credits what the app ships, all MIT.
 
 ## Deployment quick reference
 

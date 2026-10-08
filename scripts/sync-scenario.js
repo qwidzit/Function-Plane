@@ -72,7 +72,12 @@ async function boot(opts) {
     from: query,
     rpc: async () => ({ error: null }),
     auth: {
-      getSession: async () => { log.push('getSession'); return { data: { session: opts.session === false ? null : { user } } }; },
+      getSession: async () => {
+        log.push('getSession');
+        // An expired token whose refresh could not reach the server.
+        if (opts.sessionError) return { data: { session: null }, error: { message: 'Failed to fetch' } };
+        return { data: { session: opts.session === false ? null : { user } } };
+      },
       onAuthStateChange(fn) { log.push('listen'); listener = fn; },
       signOut: async () => ({ error: null }),
       signUp: async () => {
@@ -102,7 +107,7 @@ async function boot(opts) {
   vm.runInContext(fs.readFileSync(path.join(SRC, 'accounts.js'), 'utf8'), ctx);
   await tick(20);
   const read = k => (store.has(k) ? JSON.parse(store.get(k)) : null);
-  return { ctx, uploads, log, read, events };
+  return { ctx, uploads, log, read, events, fire: (event, session) => listener(event, session) };
 }
 
 const played = {
@@ -171,6 +176,29 @@ const progressUploads = u => u.filter(x => x.table === 'progress').map(x => x.ro
     const { log, read } = await boot({ profileError: true, seed: { 'fp-profile-u1': { id: 'u1', isPremium: true }, 'fp-last-user': 'u1' } });
     await tick(120);
     out.boot = { listenFirst: log.indexOf('listen') < log.indexOf('getSession'), premiumKept: read('fp-profile-u1')?.isPremium === true };
+  }
+
+  // Offline with an expired token: the refresh fails, the session comes back
+  // null with an error and then as INITIAL_SESSION null. The account stays.
+  {
+    const { ctx, fire, read } = await boot({
+      sessionError: true, seed: { 'fp-profile-u1': { id: 'u1', name: 'P' }, 'fp-last-user': 'u1', 'fp-progress-u1': played },
+    });
+    const afterCheck = ctx.FP_AUTH.getActive()?.id ?? null;
+    fire('INITIAL_SESSION', null);
+    const afterNull = read('fp-last-user');
+    fire('SIGNED_OUT', null);
+    out.offlineBoot = { afterCheck, afterNull, afterSignOut: ctx.FP_AUTH.getActive() };
+  }
+
+  // Back in the foreground, supabase-js emits SIGNED_IN again for the same
+  // session; the save was downloaded at boot and is not downloaded twice.
+  {
+    const { log, fire } = await boot({ remote: played, seed: { 'fp-last-user': 'u1' } });
+    await tick(120);
+    fire('SIGNED_IN', { user: { id: 'u1', email: 'p@x' } });
+    await tick(120);
+    out.foreground = { downloads: log.filter(x => x === 'get:progress').length };
   }
 
   // A progress upload that gets no answer: the score rows go up anyway, the

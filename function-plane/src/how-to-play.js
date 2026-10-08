@@ -181,7 +181,7 @@ function HowToPlayScreen({
       overflow: 'hidden',
       marginBottom: 8
     }
-  }, [['Constant (y = c)', ' 0 pts'], ['Linear   (mx + b)', '10 pts'], ['Quadratic (x²)', '20 pts'], ['Piecewise (|x|, ⌊x⌋)', '20 pts'], ['Trig (sin, cos, tan)', '25 pts'], ['Cubic (x³)', '30 pts'], ['Rational (1/x)', '30 pts'], ['Log / ln', '30 pts'], ['Exponential (eˣ)', '35 pts'], ['Derivative (d/dx)', '35 pts'], ['Inv. trig (arcsin…)', '40 pts'], ['Sum (Σ)', '50 pts'], ['Integral (∫)', '55 pts'], ["Doesn't parse", '60 pts']].map(([fn, pts], i, arr) => /*#__PURE__*/React.createElement("div", {
+  }, [['Constant (y = c)', ' 0 pts'], ['Linear   (mx + b)', '10 pts'], ['Quadratic (x²)', '20 pts'], ['Piecewise (|x|, ⌊x⌋)', '20 pts'], ['Trig (sin, cos, tan)', '25 pts'], ['Cubic (x³)', '30 pts'], ['Rational (1/x)', '30 pts'], ['Log / ln', '30 pts'], ['Exponential (eˣ)', '35 pts'], ['Derivative (d/dx)', '35 pts'], ['Inv. trig (arcsin…)', '40 pts'], ['Sum (Σ)', '50 pts'], ['Integral (∫)', '55 pts'], ['Undeclared letters', '10 pts']].map(([fn, pts], i, arr) => /*#__PURE__*/React.createElement("div", {
     key: fn,
     style: {
       display: 'flex',
@@ -209,7 +209,7 @@ function HowToPlayScreen({
       color: 'var(--fp-ink-4)',
       lineHeight: 1.5
     }
-  }, "Surcharges inside one equation: each transcendental past the first adds 60% of the base (sin(cos(x))), mixing one with a degree-2-or-higher polynomial (sin(x)\xB7x\xB2) multiplies the total by 1.3, and every polynomial power above 3 adds 5 pts.")), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "Surcharges inside one equation: each transcendental past the first adds 60% of the base (sin(cos(x))), mixing one with a degree-2-or-higher polynomial (sin(x)\xB7x\xB2) multiplies the total by 1.3, and every polynomial power above 3 adds 15 pts. A row that cannot be read at all draws nothing and costs nothing.")), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#6042a6",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,

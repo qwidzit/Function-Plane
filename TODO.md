@@ -12,9 +12,13 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   the account. Builds before 3 could not sell at all — they never loaded the
   billing plugin's script, so the premium card stayed hidden.
 - **Build 4 is in the repo and not yet built or uploaded.** It adds the OG
-  badge on the leaderboards and the admin's grant for it. `versionCode` is 4
-  on the build machine, `sw.js` is at `fp-v97`, and the level snapshot is
-  current as of 7 October.
+  badge on the leaderboards and the admin's grant for it, and the fixes from
+  the 8 October audit: an offline boot after an hour no longer signs the
+  player out, π no longer prices every curve as unknown, the locked-pack
+  popup's Premium button opens the premium screen, the in-app legal text
+  matches the website again, and the service worker stays out of the native
+  shell. `versionCode` is 4 on the build machine, `sw.js` is at `fp-v98`,
+  and the level snapshot is current as of 7 October.
 - **No Russia relay** (decided 7 October). Russian mobile networks hold the
   connection without a VPN; the app retries stalled uploads and tells the
   player to turn one on. See *Networks that hold the connection* in `ABOUT.md`.
