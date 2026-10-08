@@ -1296,7 +1296,11 @@ forward cannot carry a time past a reset; and **equations are private** — the
 guard stores them in `score_equations` and nulls the public column, and
 `submitted_at` is no longer readable, so nobody can copy the top solution or
 track when someone plays. Deleting or un-hiding a level's override row
-therefore changes which scores are accepted.
+therefore changes which scores are accepted. `best_time_at` **has to stay
+readable**: the score upload is an upsert, and Postgres needs SELECT on the
+columns an `ON CONFLICT DO UPDATE` touches — revoking it was tried on
+8 October and every upload answered "permission denied for table
+level_scores" until it was granted back.
 
 **The app catches the plausible-but-false.** Scoring runs through the
 classifier, which SQL has no access to, so each row also carries the
