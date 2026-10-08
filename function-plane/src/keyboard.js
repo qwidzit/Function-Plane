@@ -131,7 +131,7 @@ function MathKeyboard({
   const ABC = [letters('qwertyuiop'), [gap(0.5), ...letters('asdfghjkl'), gap(0.5)], [gap(1.5), ...letters('zxcvbnm'), gap(1.5)], [k('123', () => setPage('main'), 'ctrl', 1.6), k('π', () => ins('π'), 'const'), k(it('e'), () => ins('e'), 'const', 1, 'e'), k(',', () => ins(','), 'op'), k(it('x'), () => ins('x'), 'var', 1, 'x'), k(it('y'), () => ins('y'), 'var', 1, 'y')]];
 
   // ── Right block: page switch, caret, backspace, accept ──
-  const CTRL = [[page === 'fn' ? k('123', () => setPage('main'), 'ctrl', 2) : k('functions', () => setPage('fn'), 'ctrl', 2)], [k('←', () => cmd('left'), 'ctrl'), k('→', () => cmd('right'), 'ctrl')], [k('⌫', () => cmd('backspace'), 'del', 2)], [k('↵', () => onDone?.(), 'enter', 2)]];
+  const CTRL = [[page === 'fn' ? k('123', () => setPage('main'), 'ctrl', 2) : k('functions', () => setPage('fn'), 'ctrl', 2)], [k('←', () => cmd('left'), 'ctrl', 1, 'move left'), k('→', () => cmd('right'), 'ctrl', 1, 'move right')], [k('⌫', () => cmd('backspace'), 'del', 2, 'backspace')], [k('↵', () => onDone?.(), 'enter', 2, 'done')]];
   const bg = t => {
     if (t === 'num') return 'var(--fp-surface-2)';
     if (t === 'ctrl') return 'var(--fp-surface-2)';

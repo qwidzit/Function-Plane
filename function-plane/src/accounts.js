@@ -249,11 +249,12 @@
   const _timesCutoff = () => readJSON(TIMES_RESET_KEY, null);
 
   function _dropStaleTimes(progress, cutoff) {
-    if (!progress || cutoff == null) return progress;
+    if (!_isBlob(progress)) return null;
+    if (cutoff == null) return progress;
     const out = {};
     for (const [k, pd] of Object.entries(progress)) {
-      if (!pd?.bestTime) { out[k] = pd; continue; }
-      const at = pd.bestTimeAt || [];
+      if (!Array.isArray(pd?.bestTime)) { out[k] = pd; continue; }
+      const at = Array.isArray(pd.bestTimeAt) ? pd.bestTimeAt : [];
       const keep = i => pd.bestTime[i] != null && at[i] != null && at[i] >= cutoff;
       out[k] = {
         ...pd,
@@ -329,14 +330,26 @@
   }
 
   // Merge two progress snapshots, taking the best of each level
+  // A pack entry with every field an array, whatever the blob held: a server
+  // row with a string where an array belongs made the merge throw on every
+  // boot, so that account could never sync again.
+  const PACK_FIELDS = ['stars', 'starBits', 'best', 'bestTime', 'bestTimeAt', 'maxScore', 'bestEqs', 'history'];
+  function _packShape(pd) {
+    const src = pd && typeof pd === 'object' ? pd : {};
+    const out = {};
+    for (const f of PACK_FIELDS) out[f] = Array.isArray(src[f]) ? src[f] : [];
+    return out;
+  }
+  const _isBlob = p => !!p && typeof p === 'object' && !Array.isArray(p);
+
   function _mergeProgress(a, b) {
-    if (!a) return b;
-    if (!b) return a;
+    if (!_isBlob(a)) return _isBlob(b) ? b : null;
+    if (!_isBlob(b)) return a;
     const out = {};
     const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
     for (const k of keys) {
-      const pa = a[k] || { stars: [], best: [] };
-      const pb = b[k] || { stars: [], best: [] };
+      const pa = _packShape(a[k]);
+      const pb = _packShape(b[k]);
       // Which stars are lit merges as a union, not a maximum: one device may
       // hold the score goal and the other the equation goal, and taking the
       // higher count would drop one of them. The count follows from the union
@@ -450,6 +463,10 @@
       if (msg.includes('duplicate') || msg.includes('unique') || msg.includes('23505')) {
         throw new Error('That name is taken');
       }
+      // handle_new_user hitting the unique index surfaces as this from Auth:
+      // the name was taken between the availability check and the insert.
+      if (msg.includes('database error saving new user')) throw new Error('That name was just taken — try another');
+      if (_isNetErr(error)) throw new Error('No connection — check your network and try again');
       throw new Error(error.message);
     }
 
@@ -462,7 +479,9 @@
       email: (email || '').trim().toLowerCase(), password,
     }), 'Sign in');
     if (error) throw new Error(
-      error.message.toLowerCase().includes('invalid') ? 'Incorrect email or password' : error.message
+      error.message.toLowerCase().includes('invalid') ? 'Incorrect email or password'
+      : _isNetErr(error) ? 'No connection — check your network and try again'
+      : error.message
     );
     return _currentUser;
   }
@@ -607,17 +626,20 @@
     // waiting for a round trip.
     if (_currentUser?.id === userId) _currentUser.totalStars = _countStars(progress);
 
-    let lost = false;
+    let lost = false, quiet = true;
     for (const r of sent) {
       if (r.status !== 'rejected') continue;
       console.warn('FP_AUTH: upload error', r.reason);
-      if (_isNetErr(r.reason)) lost = true;
+      // An expired token is refreshed by supabase-js on its own; the retry
+      // carries the row, so it is a stall and not a refusal — and not news.
+      if (/jwt expired|PGRST301/i.test(r.reason?.message || '')) { lost = true; continue; }
+      if (_isNetErr(r.reason)) { lost = true; quiet = false; }
       else _emitSyncError(r.reason.message);   // refused, and would be again
     }
     if (seq !== _uploadSeq) return;   // a newer upload is queued and answers for itself
     if (!lost) { _retries = 0; _owed = false; return; }
     // Said once per upload the player caused; the retries behind it are quiet.
-    if (_retries === 0) _emitSyncError(UPLOAD_LOST, true);
+    if (_retries === 0 && !quiet) _emitSyncError(UPLOAD_LOST, true);
     if (_retries < RETRY_MS.length) _uploadAfter(RETRY_MS[_retries++], userId);
   }
 
@@ -692,7 +714,7 @@
   async function _lbCached(key, fetchLive) {
     const map = readJSON(LB_KEY, {});
     const hit = map[key];
-    if (hit && Date.now() - hit.ts < LB_TTL) return hit.rows;
+    if (hit && Math.abs(Date.now() - hit.ts) < LB_TTL) return hit.rows;   // abs: a clock set back
     try {
       const rows = await _withTimeout(fetchLive(), 'Leaderboard');
       const next = readJSON(LB_KEY, {});
@@ -899,7 +921,7 @@
       const hint = /not exist|relation/i.test(error.message)
         ? ' (run the admin migration SQL in Supabase first)'
         : /policy|permission|rls/i.test(error.message)
-          ? ' (your account name must be exactly "Test Account" with no trailing spaces)'
+          ? ' (this account is not in public.admins)'
           : '';
       throw new Error((error.message || 'Save failed') + hint);
     }
@@ -914,7 +936,7 @@
       const hint = /not exist|relation/i.test(error.message)
         ? ' (run the admin migration SQL in Supabase first)'
         : /policy|permission|rls/i.test(error.message)
-          ? ' (your account name must be exactly "Test Account" with no trailing spaces)'
+          ? ' (this account is not in public.admins)'
           : '';
       throw new Error((error.message || 'Save failed') + hint);
     }
@@ -929,7 +951,7 @@
       const hint = /not exist|relation/i.test(error.message)
         ? ' (run the admin migration SQL in Supabase first — see admin panel ▸ Achievements ▸ Help)'
         : /policy|permission|rls/i.test(error.message)
-          ? ' (your account name must be exactly "Test Account" with no trailing spaces)'
+          ? ' (this account is not in public.admins)'
           : '';
       throw new Error((error.message || 'Save failed') + hint);
     }
@@ -1045,46 +1067,6 @@
     writeJSON(LB_KEY, {});   // cached boards still list the deleted entry
   }
 
-  // ── Web Push subscription ─────────────────────────────────────────────────
-  // Subscribes the browser/PWA to push notifications (so the SW push handler
-  // can fire). Requires window.VAPID_PUBLIC_KEY (set in supabase-config.js
-  // alongside the URL/key) and a Supabase table `push_subscriptions` to write
-  // the endpoint to. If either is missing this function still requests
-  // permission so users see the explanatory prompt.
-  async function enablePushNotifications() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      throw new Error("This browser doesn't support push notifications.");
-    }
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Permission denied');
-
-    const reg = await navigator.serviceWorker.ready;
-    const vapid = window.VAPID_PUBLIC_KEY;
-    if (!vapid) {
-      console.warn('FP_AUTH: VAPID_PUBLIC_KEY missing — push subscription skipped');
-      return { skipped: true };
-    }
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: _urlBase64ToUint8Array(vapid),
-    });
-    if (_sb && _currentUser) {
-      await _sb.from('push_subscriptions').upsert({
-        user_id: _currentUser.id,
-        endpoint: sub.endpoint,
-        keys: sub.toJSON().keys,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'endpoint' });
-    }
-    return { subscribed: true };
-  }
-  function _urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const raw = atob(base64);
-    return Uint8Array.from(raw, c => c.charCodeAt(0));
-  }
-
   // Admin search — by name only (RLS already lets anyone read profile rows).
   async function adminSearchProfiles(q) {
     if (!_sb) return { data: [], error: null };
@@ -1110,7 +1092,7 @@
   window.FP_AUTH = {
     getActive, signOut, isAdmin, isPremium, setPremium, setOg, deleteAccount,
     refreshEntitlement, verifyPlayPurchase,
-    enablePushNotifications,
+    hasPendingUpload: () => _owed,
     register, signIn, resetPassword,
     checkNameAvailable,
     getActiveProgress, updateActiveProgress,

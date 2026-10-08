@@ -15,7 +15,8 @@ plane. Fewer/simpler equations score higher.
 Shipped three ways from one codebase, no per-platform forks:
 
 - **Web PWA** — the `function-plane/` folder, deployed to Cloudflare Pages at
-  **https://functionplane.pages.dev**.
+  **https://functionplane-game.pages.dev**. The marketing site at
+  https://functionplane.pages.dev is a separate repo and links to it.
 - **Android** — the same PWA wrapped in a [Capacitor](https://capacitorjs.com)
   WebView shell, shipped as an APK/AAB. See *Building and releasing the
   Android app*.
@@ -95,7 +96,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     overrides-snapshot.js  # generated dump of Supabase override tables (npm run snapshot:data)
     physics-engine.js      # FP_PHYSICS — ball collision against sampled curve geometry
     equation-classifier.js # classifyEquation/detectClass — AST-based equation analysis
-    supabase-config.js     # Supabase URL + anon key + VAPID key
+    supabase-config.js     # Supabase URL + publishable key
     store-config.js        # FP_STORE_LINKS, FP_PREMIUM_PRICE, FP_PAY_CHANNEL
     billing.js             # FP_BILLING — Play Billing purchase/restore, verified server-side
     data.jsx               # pack/level data + lock/unlock logic
@@ -1204,8 +1205,9 @@ re-look against real play. Records already stored keep their stars.
   `preplaced` JSON, `name`, `objects` JSON, `materials`, `explain`, `hint`),
   `achievement_overrides` (`id` PK, `kind` — one of `ACH_KINDS` in
   `achievements.jsx` — `name`, `description`, `threshold`, `pack_id`,
-  `level_index`, `is_hidden`), `push_subscriptions` (`endpoint` PK,
-  `user_id`, `keys`). Schemas live in the Supabase dashboard, not this repo.
+  `level_index`, `is_hidden`). Schemas live in the Supabase dashboard, not
+  this repo, except what `supabase/migrations/` created. The `news` and
+  `push_subscriptions` tables were notification scaffolding and are dropped.
   RLS: users read/write only their own rows; overrides tables restrict writes
   to admins (`is_admin()`). Client roles hold only the privileges the app uses
   (`20260926_grants_and_limits.sql`): guests insert crash reports and nothing

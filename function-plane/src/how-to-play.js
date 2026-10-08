@@ -45,6 +45,7 @@ function HowToPlayScreen({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,
@@ -374,11 +375,15 @@ function Law({
       borderTop: '1px solid var(--fp-line)'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fp-scroll",
     style: {
       flex: '1 1 auto',
+      minWidth: 0,
       fontSize: 14,
       lineHeight: 1.9,
-      color: 'var(--fp-ink)'
+      color: 'var(--fp-ink)',
+      whiteSpace: 'nowrap',
+      overflowX: 'auto'
     }
   }, children), note && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -572,8 +577,8 @@ function Advanced() {
   }, "star taken:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), " \u2212 ", /*#__PURE__*/React.createElement("strong", null, "s"), "| < 0.77"), /*#__PURE__*/React.createElement(Law, {
     note: "nudged, so it rolls off an apex instead of balancing there"
   }, "spawn:\xA0 (x + 0.025, y)"), /*#__PURE__*/React.createElement(Law, {
-    note: "both must hold; with nothing placed, only the first"
-  }, "alive:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), "| \u2264 20,\xA0 \u2264 10 from an object"), /*#__PURE__*/React.createElement(Law, {
+    note: "one box round every star, object and the spawn; the circle clears it by the same 10 and is never under 20"
+  }, "alive:\xA0 inside box + 10,\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), "| \u2264 max(20, reach + 10)"), /*#__PURE__*/React.createElement(Law, {
     note: "the ball's edge, not its centre"
   }, "hazard kills:\xA0 |", /*#__PURE__*/React.createElement("strong", null, "p"), " \u2212 box| \u2264 r")), /*#__PURE__*/React.createElement(FxGroup, {
     title: "Score"
@@ -1176,7 +1181,7 @@ const FP_EXPLAINERS = {
         fontWeight: 600,
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
-      }, "20"), /*#__PURE__*/React.createElement("text", {
+      }, "40"), /*#__PURE__*/React.createElement("text", {
         x: 152,
         y: 20,
         textAnchor: "middle",
@@ -1184,7 +1189,7 @@ const FP_EXPLAINERS = {
         fontWeight: 600,
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
-      }, "20")),
+      }, "40")),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A cut curve scores what the whole one scores. Cut one curve into the two pieces you need and you have paid for a single equation.")
     }]
   },

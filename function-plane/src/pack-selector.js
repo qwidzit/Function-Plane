@@ -139,7 +139,7 @@ function PackSelector({
       marginTop: 22
     }
   }, /*#__PURE__*/React.createElement(PSectionLabel, {
-    sub: "By function family"
+    sub: "By family, or by shape"
   }, "Themed"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
@@ -157,7 +157,6 @@ function PackSelector({
       locked: lockInfo.locked,
       complete: complete,
       lockInfo: lockInfo,
-      totalStars: unlockStars,
       onClick: () => handlePackClick(p, lockInfo)
     });
   }))), /*#__PURE__*/React.createElement("div", {
@@ -364,8 +363,7 @@ function SpecialPackCard({
   locked,
   complete,
   onClick,
-  lockInfo,
-  totalStars
+  lockInfo
 }) {
   const starsNeeded = locked && lockInfo?.reason === 'stars' ? lockInfo.need : null;
   return /*#__PURE__*/React.createElement("button", {

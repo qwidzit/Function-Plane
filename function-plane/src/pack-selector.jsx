@@ -90,7 +90,7 @@ function PackSelector({ progress, onBack, onPickPack, onPremium, density = 'comf
         </div>
 
         <div style={{ marginTop: 22 }}>
-          <PSectionLabel sub="By function family">Themed</PSectionLabel>
+          <PSectionLabel sub="By family, or by shape">Themed</PSectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {visiblePacks(SPECIAL_PACKS).map(p => {
               const lockInfo = computePackLocked(progress, p);
@@ -98,7 +98,7 @@ function PackSelector({ progress, onBack, onPickPack, onPremium, density = 'comf
               const complete = packIsComplete(progress, p.id);
               return (
                 <SpecialPackCard key={p.id} pack={p} stars={stars} locked={lockInfo.locked} complete={complete}
-                  lockInfo={lockInfo} totalStars={unlockStars}
+                  lockInfo={lockInfo}
                   onClick={() => handlePackClick(p, lockInfo)} />
               );
             })}
@@ -222,7 +222,7 @@ function PackRow({ pack, stars, locked, complete, onClick, lockInfo }) {
   );
 }
 
-function SpecialPackCard({ pack, stars, locked, complete, onClick, lockInfo, totalStars }) {
+function SpecialPackCard({ pack, stars, locked, complete, onClick, lockInfo }) {
   const starsNeeded = locked && lockInfo?.reason === 'stars' ? lockInfo.need : null;
   return (
     <button onClick={onClick} style={{

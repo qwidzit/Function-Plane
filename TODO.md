@@ -90,7 +90,7 @@ a draft there.
   `resetPassword()`, and add the URL under Supabase → Authentication → URL
   Configuration.
 - **Native push** through `@capacitor/push-notifications` and FCM/APNs. The
-  web-push scaffolding in the service worker exists.
+  web-push scaffolding was removed on 8 October; start fresh.
 - **Daily levels.**
 - **Server-side replay** of leaderboard scores; the fixed-tick sim clock makes
   it possible.

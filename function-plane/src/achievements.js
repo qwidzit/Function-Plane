@@ -1,7 +1,8 @@
 // Function Plane — Achievements screen
 
 const {
-  useState: useACHState
+  useState: useACHState,
+  useEffect: useACHEffect
 } = React;
 
 // ── Achievement kinds ──────────────────────────────────────────────────────
@@ -127,7 +128,7 @@ const ACH_KINDS = {
     thresholdLabel: 'Milliseconds',
     desc: ({
       threshold
-    }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds`,
+    }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'}`,
     build: ({
       threshold
     }) => p => Object.values(p).some(pd => runTimes(pd).some(t => t <= threshold / 1000))
@@ -428,6 +429,7 @@ function AchievementsScreen({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,
@@ -587,10 +589,8 @@ function LeaderboardTab({
   padX,
   myStars
 }) {
-  const {
-    useState: useL,
-    useEffect: useLE
-  } = React;
+  const useL = useACHState,
+    useLE = useACHEffect;
   const [rows, setRows] = useL(null); // null = loading
   const [signedIn, setSignedIn] = useL(!!(window.FP_AUTH && FP_AUTH.getActive()));
   useLE(() => {

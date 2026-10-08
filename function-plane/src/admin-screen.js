@@ -1,5 +1,5 @@
 // Function Plane — Admin panel
-// Visible only to the user with display name "Test Account". Lets them edit
+// Visible to accounts in public.admins (is_admin() decides). Lets them edit
 // pack metadata (name, allowed equation class, pack rule) and open any level
 // in the studio (level-studio.jsx) to author it by playing it. Writes go to
 // the pack_overrides / level_overrides Supabase tables; on save the parent
@@ -430,18 +430,19 @@ function UsersAdmin({
   const [results, setResults] = useAS([]);
   const [busy, setBusy] = useAS(false);
   const [msg, setMsg] = useAS('');
+  const [searched, setSearched] = useAS(false); // "No matches" only after a search ran
+
   const search = async () => {
     setBusy(true);
     setMsg('');
     try {
-      const sb = window.FP_SB || null; // fallback
-      // Use buildLeaderboard's underlying client via a quick query
       const {
         data,
         error
       } = await window.fpAdminSearchProfiles(q);
       if (error) throw new Error(error.message);
       setResults(data || []);
+      setSearched(true);
     } catch (e) {
       setMsg(e.message);
     } finally {
@@ -512,8 +513,11 @@ function UsersAdmin({
   }, /*#__PURE__*/React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "Search by name or email",
+    placeholder: "Search by display name",
     autoFocus: true,
+    onKeyDown: e => {
+      if (e.key === 'Enter' && !busy && q.trim().length >= 2) search();
+    },
     style: {
       flex: 1,
       height: 42,
@@ -544,7 +548,7 @@ function UsersAdmin({
       fontSize: 12,
       color: '#e34'
     }
-  }, msg), results.length === 0 && !busy && q && /*#__PURE__*/React.createElement("div", {
+  }, msg), results.length === 0 && !busy && searched && /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       color: 'var(--fp-ink-3)',
@@ -1200,6 +1204,7 @@ function ScreenFrameAS({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,

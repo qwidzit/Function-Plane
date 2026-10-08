@@ -340,6 +340,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
       };
       if (!patch.stars.length) throw new Error('At least one star is required');
       if (!isFinite(patch.score_goal) || !isFinite(patch.eq_goal)) throw new Error('Both star goals are required');
+      if (patch.eq_goal < 1 || patch.score_goal < 1) throw new Error('Goals must be at least 1');
       await FP_AUTH.saveLevelOverride(pack.id, levelIndex, patch);
       setMsg({ text: 'Saved' });
       onSaved && await onSaved();
@@ -399,7 +400,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--fp-ink-3)', marginBottom: 5 }}>Hint</div>
           <textarea value={hint} onChange={e => setHint(e.target.value)} rows={2}
-            placeholder={window.getHint?.(pack.id, levelIndex) || 'No hint — the button says so'}
+            placeholder={window.getHint?.(pack.id, levelIndex) ? `Built-in: ${window.getHint(pack.id, levelIndex)}` : 'No hint — the button says so'}
             style={{
               width: '100%', borderRadius: 10, padding: '8px 10px', resize: 'vertical',
               boxSizing: 'border-box', background: 'var(--fp-surface)',

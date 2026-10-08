@@ -1,4 +1,4 @@
-const CACHE = 'fp-v99';
+const CACHE = 'fp-v100';
 const SHELL = [
   './',
   './index.html',
@@ -97,30 +97,3 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── Web Push ─────────────────────────────────────────────────────────────
-// Scaffolding only — nothing in the app subscribes yet; notifications ship
-// with daily levels in v2. Receives push messages from a backend signed with
-// the VAPID keys in supabase-config.js. Body shape: { title, body, url? }.
-
-self.addEventListener('push', e => {
-  let data = {};
-  try { data = e.data?.json() || {}; } catch { data = { body: e.data?.text() || '' }; }
-  const title = data.title || 'Function Plane';
-  const body  = data.body  || 'New update available';
-  const url   = data.url   || './';
-  e.waitUntil(self.registration.showNotification(title, {
-    body, icon: './icons/icon.svg', badge: './icons/icon.svg',
-    data: { url }, tag: 'fp-news', renotify: true,
-  }));
-});
-
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  const target = e.notification.data?.url || './';
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => {
-    for (const c of clients) {
-      if (c.url.endsWith(target) && 'focus' in c) return c.focus();
-    }
-    return self.clients.openWindow(target);
-  }));
-});

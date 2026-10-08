@@ -115,9 +115,9 @@ function MathKeyboard({ field, onDone }) {
     [page === 'fn'
       ? k('123', ()=>setPage('main'), 'ctrl', 2)
       : k('functions', ()=>setPage('fn'), 'ctrl', 2)],
-    [k('←', ()=>cmd('left'), 'ctrl'), k('→', ()=>cmd('right'), 'ctrl')],
-    [k('⌫', ()=>cmd('backspace'), 'del', 2)],
-    [k('↵', () => onDone?.(), 'enter', 2)],
+    [k('←', ()=>cmd('left'), 'ctrl', 1, 'move left'), k('→', ()=>cmd('right'), 'ctrl', 1, 'move right')],
+    [k('⌫', ()=>cmd('backspace'), 'del', 2, 'backspace')],
+    [k('↵', () => onDone?.(), 'enter', 2, 'done')],
   ];
 
   const bg = t => {

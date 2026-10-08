@@ -15,7 +15,7 @@ const LEGAL_WEBSITE    = 'https://functionplane.pages.dev';         // public si
 // the published policy against the Play Data safety declaration, and a player
 // reading a different one in the app is the same document saying two things.
 const PRIVACY_EFFECTIVE = '8 October 2026';
-const TERMS_EFFECTIVE   = '20 September 2026';
+const TERMS_EFFECTIVE   = '8 October 2026';
 const APP_NAME         = 'Function Plane';
 
 // ── Privacy Policy ────────────────────────────────────────────────────────
@@ -114,8 +114,9 @@ personal data, correct inaccurate data, delete your data, restrict or object
 to processing, and lodge a complaint with a data-protection authority (in the
 EU/UK).
 
-You can exercise most of these rights directly in the app or by emailing
-${LEGAL_EMAIL}. We respond within 30 days.
+You can delete your account and its data directly in the app (Account →
+Delete account). For everything else, email ${LEGAL_EMAIL}. We respond
+within 30 days.
 
 ## 7. Children
 
@@ -139,8 +140,7 @@ perfectly secure; we cannot guarantee absolute security.
 ## 10. Changes to this policy
 
 We will post any updates to this Privacy Policy in the app and on our website,
-and will update the effective date above. Material changes will be notified
-through the app.
+and will update the effective date above.
 
 ## 11. Contact
 
@@ -245,10 +245,9 @@ breach of these Terms or your misuse of the Service.
 
 ## 10. Changes
 
-We may update these Terms; the new version will appear in the app with a new
-effective date. Material changes will be highlighted at first launch after
-the change. Continuing to use the Service after that means you accept the
-updated Terms.
+We may update these Terms; the new version will appear in the app and on our
+website with a new effective date. Continuing to use the Service after that
+means you accept the updated Terms.
 
 ## 11. Governing law
 

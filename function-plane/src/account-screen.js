@@ -80,6 +80,7 @@ function ScreenFrame({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,
@@ -305,6 +306,7 @@ function GuestView({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,
@@ -485,6 +487,7 @@ function SignedInView({
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
+    "aria-label": "Back",
     style: {
       width: 36,
       height: 36,

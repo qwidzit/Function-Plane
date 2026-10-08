@@ -40,7 +40,10 @@ function App() {
   // has the hardware back button below and no such dialog, so this is web only.
   useEffect(() => {
     if (window.FP_NATIVE) return;
+    // Only while a score is still owed to the server: with nothing pending
+    // the prompt is a nag on every tab close.
     const ask = e => {
+      if (!FP_AUTH.hasPendingUpload?.()) return;
       e.preventDefault();
       e.returnValue = '';
     };
@@ -164,6 +167,8 @@ function App() {
   //   const ok = await window.fpConfirm({ title: '…', body: '…', danger: true })
   const [toast, setToast] = useState(null);
   const [confirmReq, setConfirmReq] = useState(null);
+  const confirmRef = useRef(null); // read by the back-button listener, which closes over nothing else
+  confirmRef.current = confirmReq;
   useEffect(() => {
     window.fpToast = (msg, opts = {}) => {
       setToast({
@@ -276,6 +281,13 @@ function App() {
     if (!Cap?.Plugins?.App) return;
     let removeFn;
     const ret = Cap.Plugins.App.addListener('backButton', () => {
+      // A confirm dialog is App-level state, not a screen: back dismisses it
+      // as a No rather than leaving it drawn over the previous screen.
+      if (confirmRef.current) {
+        confirmRef.current.resolve(false);
+        setConfirmReq(null);
+        return;
+      }
       if (navStackRef.current.length > 0) {
         navigateBack();
       } else {
@@ -493,10 +505,8 @@ function App() {
         })
       });
     }
-    return /*#__PURE__*/React.createElement(PlaceholderScreen, {
-      title: route,
-      subtitle: "Coming soon",
-      onBack: () => navigateBack('main')
+    return /*#__PURE__*/React.createElement(BootFailed, {
+      message: `No screen named ${route}.`
     });
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -798,68 +808,6 @@ function AchievementToast({
       letterSpacing: '-0.01em'
     }
   }, name))));
-}
-function PlaceholderScreen({
-  title,
-  subtitle,
-  onBack
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "fp-screen",
-    style: {
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      boxSizing: 'border-box'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: `calc(14px + env(safe-area-inset-top, 0px)) 22px 6px`,
-      display: 'flex',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onBack,
-    style: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'var(--fp-ink-2)'
-    }
-  }, /*#__PURE__*/React.createElement(Icon.Chevron, {
-    dir: "left",
-    size: 20
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      padding: '0 32px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif', Georgia, serif",
-      fontStyle: 'italic',
-      fontSize: 36,
-      lineHeight: 1,
-      letterSpacing: '-0.02em',
-      color: 'var(--fp-ink)',
-      textAlign: 'center'
-    }
-  }, title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: 'var(--fp-ink-3)',
-      textAlign: 'center'
-    }
-  }, subtitle)));
 }
 
 // A render that throws unmounts the whole tree in React 18, leaving a blank

@@ -440,6 +440,8 @@ function TogRow({
     onHelp: onHelp
   })), /*#__PURE__*/React.createElement("button", {
     onClick: () => onChange(!value),
+    role: "switch",
+    "aria-checked": !!value,
     "aria-label": label,
     style: {
       width: 42,
@@ -496,6 +498,7 @@ function SegRow({
   }, options.map(o => /*#__PURE__*/React.createElement("button", {
     key: o.value,
     onClick: () => onChange(o.value),
+    "aria-pressed": value === o.value,
     style: {
       padding: '5px 10px',
       borderRadius: 6,

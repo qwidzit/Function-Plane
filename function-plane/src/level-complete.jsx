@@ -80,7 +80,7 @@ function LevelCompletePopup({
         transform: revealed ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform .3s cubic-bezier(.22,.68,0,1.2)',
         boxSizing: 'border-box',
-        maxHeight: '90vh',
+        maxHeight: '90%',   // of #root, which is capped on desktop; vh is the window
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Drag pill + header */}

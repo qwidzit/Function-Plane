@@ -292,10 +292,15 @@ function LevelRow({
     style: {
       fontSize: 14,
       fontWeight: 500,
-      color: 'var(--fp-ink)'
+      color: 'var(--fp-ink)',
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }, window.getLevelName ? getLevelName(pack.id, index) : LEVEL_NAMES[index]), status === 'cleared' && stars === 3 && /*#__PURE__*/React.createElement("span", {
     style: {
+      flex: '0 0 auto',
       fontSize: 8.5,
       letterSpacing: '0.08em',
       textTransform: 'uppercase',

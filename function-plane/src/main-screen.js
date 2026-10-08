@@ -14,17 +14,7 @@ function MainScreen({
 }) {
   const padX = density === 'compact' ? 22 : 26;
   const hasAnyProgress = progress && Object.values(progress).some(pd => pd.stars.some(s => s > 0));
-  const {
-    useState: useMS
-  } = React;
-  const [ratePopup, setRatePopup] = useMS(false);
-
-  // Straight to the listing once it exists; the popup is the pre-launch state,
-  // so a tester never gets sent to a 404.
-  const onRate = () => {
-    const url = (window.FP_STORE_LINKS || {}).android;
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');else setRatePopup(true);
-  };
+  const onRate = () => window.open(window.FP_STORE_LINKS.android, '_blank', 'noopener,noreferrer');
   return /*#__PURE__*/React.createElement("div", {
     className: "fp-screen",
     style: {
@@ -254,64 +244,7 @@ function MainScreen({
       paddingTop: 10,
       flex: '0 0 auto'
     }
-  }, "v 1.0 \xB7 build 4"), ratePopup && /*#__PURE__*/React.createElement("div", {
-    onClick: () => setRatePopup(false),
-    style: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 200,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
-      backdropFilter: 'blur(3px)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      background: 'var(--fp-bg)',
-      border: '1px solid var(--fp-line)',
-      borderRadius: 22,
-      padding: '28px 22px 22px',
-      maxWidth: 300,
-      width: '100%',
-      textAlign: 'center',
-      boxShadow: '0 12px 40px rgba(0,0,0,0.35)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 40,
-      marginBottom: 14
-    }
-  }, "\uD83C\uDFAE"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Instrument Serif', Georgia, serif",
-      fontStyle: 'italic',
-      fontSize: 23,
-      letterSpacing: '-0.02em',
-      color: 'var(--fp-ink)',
-      marginBottom: 10
-    }
-  }, "Coming soon"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: 'var(--fp-ink-3)',
-      lineHeight: 1.6,
-      marginBottom: 22
-    }
-  }, "Function Plane isn't on Google Play yet \u2014 but it will be soon! Check back later to leave a rating."), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setRatePopup(false),
-    style: {
-      width: '100%',
-      height: 44,
-      borderRadius: 12,
-      background: 'var(--fp-ink)',
-      color: 'var(--fp-bg)',
-      fontSize: 13.5,
-      fontWeight: 500
-    }
-  }, "Got it"))));
+  }, "v 1.0 \xB7 build 4"));
 }
 function PlaneBackdrop() {
   return /*#__PURE__*/React.createElement("svg", {

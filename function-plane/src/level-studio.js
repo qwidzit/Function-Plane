@@ -436,6 +436,7 @@ function LevelStudio({
       };
       if (!patch.stars.length) throw new Error('At least one star is required');
       if (!isFinite(patch.score_goal) || !isFinite(patch.eq_goal)) throw new Error('Both star goals are required');
+      if (patch.eq_goal < 1 || patch.score_goal < 1) throw new Error('Goals must be at least 1');
       await FP_AUTH.saveLevelOverride(pack.id, levelIndex, patch);
       setMsg({
         text: 'Saved'
@@ -563,7 +564,7 @@ function LevelStudio({
       value: hint,
       onChange: e => setHint(e.target.value),
       rows: 2,
-      placeholder: window.getHint?.(pack.id, levelIndex) || 'No hint — the button says so',
+      placeholder: window.getHint?.(pack.id, levelIndex) ? `Built-in: ${window.getHint(pack.id, levelIndex)}` : 'No hint — the button says so',
       style: {
         width: '100%',
         borderRadius: 10,

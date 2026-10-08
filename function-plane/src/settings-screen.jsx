@@ -253,7 +253,7 @@ function TogRow({ label, value, onChange, helpKey, onHelp }) {
         <span>{label}</span>
         <HelpButton k={helpKey} onHelp={onHelp}/>
       </div>
-      <button onClick={() => onChange(!value)} aria-label={label} style={{
+      <button onClick={() => onChange(!value)} role="switch" aria-checked={!!value} aria-label={label} style={{
         width: 42, height: 24, borderRadius: 999,
         background: value ? 'var(--fp-ink)' : 'var(--fp-surface-2)',
         border: '1px solid var(--fp-line)',
@@ -282,7 +282,7 @@ function SegRow({ label, value, options, onChange, helpKey, onHelp }) {
         background: 'var(--fp-surface-2)', border: '1px solid var(--fp-line)',
       }}>
         {options.map(o => (
-          <button key={o.value} onClick={() => onChange(o.value)} style={{
+          <button key={o.value} onClick={() => onChange(o.value)} aria-pressed={value === o.value} style={{
             padding: '5px 10px', borderRadius: 6,
             background: value === o.value ? 'var(--fp-bg)' : 'transparent',
             color: value === o.value ? 'var(--fp-ink)' : 'var(--fp-ink-3)',

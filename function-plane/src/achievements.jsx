@@ -1,6 +1,6 @@
 // Function Plane — Achievements screen
 
-const { useState: useACHState } = React;
+const { useState: useACHState, useEffect: useACHEffect } = React;
 
 // ── Achievement kinds ──────────────────────────────────────────────────────
 // Every achievement — built-in or admin-created — is a data row naming one of
@@ -112,7 +112,7 @@ const ACH_KINDS = {
     label: 'Finish a level in under N milliseconds',
     needs: ['threshold'],
     thresholdLabel: 'Milliseconds',
-    desc: ({ threshold }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} seconds`,
+    desc: ({ threshold }) => `Beat any level in under ${(threshold / 1000).toFixed(threshold % 1000 ? 1 : 0)} second${threshold === 1000 ? '' : 's'}`,
     build: ({ threshold }) => p => Object.values(p).some(pd =>
       runTimes(pd).some(t => t <= threshold / 1000)
     ),
@@ -253,7 +253,7 @@ function AchievementsScreen({ onBack, progress, density = 'comfortable' }) {
         padding: `calc(14px + env(safe-area-inset-top, 0px)) ${padX}px 0`,
         display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto',
       }}>
-        <button onClick={onBack} style={{
+        <button onClick={onBack} aria-label="Back" style={{
           width: 36, height: 36, borderRadius: 10,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--fp-ink-2)',
@@ -360,7 +360,7 @@ function AchievementsScreen({ onBack, progress, density = 'comfortable' }) {
 }
 
 function LeaderboardTab({ padX, myStars }) {
-  const { useState: useL, useEffect: useLE } = React;
+  const useL = useACHState, useLE = useACHEffect;
   const [rows, setRows]       = useL(null);   // null = loading
   const [signedIn, setSignedIn] = useL(!!(window.FP_AUTH && FP_AUTH.getActive()));
 

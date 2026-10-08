@@ -33,7 +33,7 @@ function ScreenFrame({ title, onBack, padX, children }) {
         display:'flex', alignItems:'center', gap:12, flex:'0 0 auto',
         borderBottom: title ? '1px solid var(--fp-line)' : 'none',
       }}>
-        <button onClick={onBack} style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
+        <button onClick={onBack} aria-label="Back" style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
           <Icon.Chevron dir="left" size={18}/>
         </button>
         {title && (
@@ -117,7 +117,7 @@ function GuestView({ onBack, padX, onSignIn, onRegister, onPremium }) {
   return (
     <div className="fp-screen" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', boxSizing:'border-box' }}>
       <div style={{ padding:`calc(14px + env(safe-area-inset-top, 0px)) ${padX}px 0`, display:'flex', alignItems:'center', flex:'0 0 auto' }}>
-        <button onClick={onBack} style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
+        <button onClick={onBack} aria-label="Back" style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
           <Icon.Chevron dir="left" size={18}/>
         </button>
       </div>
@@ -200,7 +200,7 @@ function SignedInView({ account, progress, onBack, padX, onPremium, onAdmin }) {
       )}
 
       <div style={{ padding:`calc(14px + env(safe-area-inset-top, 0px)) ${padX}px 0`, display:'flex', alignItems:'center', flex:'0 0 auto' }}>
-        <button onClick={onBack} style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
+        <button onClick={onBack} aria-label="Back" style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
           <Icon.Chevron dir="left" size={18}/>
         </button>
       </div>

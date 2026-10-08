@@ -640,7 +640,7 @@ it('builds a fraction from the keys the way typing does', () => {
 
 it('builds an exponent from the keys', () => {
   eq(typeKeys(['x', 'power', 'x', '+', '1']).text(), 'x^(x+1)');
-  eq(typeKeys(['x', 'power', 'x', '→', '+', '1']).text(), 'x^x+1', 'the arrow leaves the exponent');
+  eq(typeKeys(['x', 'power', 'x', 'move right', '+', '1']).text(), 'x^x+1', 'the arrow leaves the exponent');
   eq(typeKeys(['x', 'squared', '+', '1']).text(), 'x^2+1');
 });
 
@@ -649,8 +649,8 @@ it('opens a bracket that its own key closes', () => {
   eq(typeKeys(['(', 'x']).text(), '(x)');
   eq(typeKeys(['(', 'x', ')', '+', '2']).text(), '(x)+2');
   eq(typeKeys(['|a|', 'x', '|a|', '+', '2']).text(), 'abs(x)+2');
-  eq(typeKeys(['1', 'fraction', 'x', '→', '+', '2']).text(), '1/x+2', 'the arrow steps out of the denominator');
-  eq(typeKeys(['x', '⌫']).text(), '');
+  eq(typeKeys(['1', 'fraction', 'x', 'move right', '+', '2']).text(), '1/x+2', 'the arrow steps out of the denominator');
+  eq(typeKeys(['x', 'backspace']).text(), '');
 });
 
 // ── 1b4. The equations panel header ────────────────────────────────────────
@@ -1541,7 +1541,7 @@ it('takes premium back when a purchase is refunded', () => {
     'Stripe refunds and disputes both end the entitlement');
   // A refund arrives as a charge, which knows its payment_intent and not the
   // checkout session the row is keyed on.
-  ok(/payment_ref: session\.payment_intent/.test(FN('stripe-webhook')),
+  ok(/p_intent: session\.payment_intent/.test(FN('stripe-webhook')),
     'the grant must record what a later refund can be matched by');
   // A refunded Play token is refunded for good: Play never reissues a
   // one-time-product token, so a token coming back after its refund is a
@@ -1552,9 +1552,10 @@ it('takes premium back when a purchase is refunded', () => {
   const integrity = read(path.join(__dirname, '..', 'supabase', 'migrations', '20260926_purchase_integrity.sql'));
   ok(/from public\.voided_tokens/.test(integrity) && /insert into public\.voided_tokens/.test(integrity),
     'a refund must be remembered apart from the account it was on');
-  // A Stripe refund voids the old session; buying again is a new session with
-  // a new token, which the void never touched.
-  ok(/voided_at:\s*null/.test(FN('stripe-webhook')), 'stripe-webhook records a live purchase');
+  // A Stripe session is claimed the way a Play token is: through an RPC that
+  // refuses a voided one and never un-voids a row on a replayed event.
+  ok(/rpc\('grant_stripe_purchase'/.test(FN('stripe-webhook')), 'stripe-webhook claims the session through the grant RPC');
+  ok(!/voided_at:\s*null/.test(FN('stripe-webhook')), 'and never clears a void from the function');
 });
 
 it('sells one lifetime unlock through Google Play only', () => {

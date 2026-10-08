@@ -5,16 +5,7 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
   const hasAnyProgress = progress && Object.values(progress).some(pd =>
     pd.stars.some(s => s > 0)
   );
-  const { useState: useMS } = React;
-  const [ratePopup, setRatePopup] = useMS(false);
-
-  // Straight to the listing once it exists; the popup is the pre-launch state,
-  // so a tester never gets sent to a 404.
-  const onRate = () => {
-    const url = (window.FP_STORE_LINKS || {}).android;
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-    else setRatePopup(true);
-  };
+  const onRate = () => window.open(window.FP_STORE_LINKS.android, '_blank', 'noopener,noreferrer');
 
   return (
     <div className="fp-screen" style={{
@@ -140,38 +131,6 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
         v 1.0 · build 4
       </div>
 
-      {/* Rate — coming-soon popup */}
-      {ratePopup && (
-        <div onClick={() => setRatePopup(false)} style={{
-          position: 'absolute', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '24px', backdropFilter: 'blur(3px)',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: 'var(--fp-bg)', border: '1px solid var(--fp-line)',
-            borderRadius: 22, padding: '28px 22px 22px',
-            maxWidth: 300, width: '100%', textAlign: 'center',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
-          }}>
-            <div style={{ fontSize: 40, marginBottom: 14 }}>🎮</div>
-            <div style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic', fontSize: 23, letterSpacing: '-0.02em',
-              color: 'var(--fp-ink)', marginBottom: 10,
-            }}>Coming soon</div>
-            <div style={{ fontSize: 13, color: 'var(--fp-ink-3)', lineHeight: 1.6, marginBottom: 22 }}>
-              Function Plane isn't on Google Play yet — but it will be soon!
-              Check back later to leave a rating.
-            </div>
-            <button onClick={() => setRatePopup(false)} style={{
-              width: '100%', height: 44, borderRadius: 12,
-              background: 'var(--fp-ink)', color: 'var(--fp-bg)',
-              fontSize: 13.5, fontWeight: 500,
-            }}>Got it</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

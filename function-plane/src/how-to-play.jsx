@@ -27,7 +27,7 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
         display: 'flex', alignItems: 'center', gap: 12, flex: '0 0 auto',
         borderBottom: '1px solid var(--fp-line)',
       }}>
-        <button onClick={onBack} style={{
+        <button onClick={onBack} aria-label="Back" style={{
           width: 36, height: 36, borderRadius: 10,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--fp-ink-2)',
@@ -251,7 +251,8 @@ function Law({ note, children }) {
       display: 'flex', alignItems: 'baseline', gap: 10,
       padding: '5px 0', borderTop: '1px solid var(--fp-line)',
     }}>
-      <div style={{ flex: '1 1 auto', fontSize: 14, lineHeight: 1.9, color: 'var(--fp-ink)' }}>{children}</div>
+      {/* A formula broken across lines reads as two formulas; it scrolls instead. */}
+      <div className="fp-scroll" style={{ flex: '1 1 auto', minWidth: 0, fontSize: 14, lineHeight: 1.9, color: 'var(--fp-ink)', whiteSpace: 'nowrap', overflowX: 'auto' }}>{children}</div>
       {note && <div style={{
         flex: '0 0 auto', fontSize: 10.5, lineHeight: 1.4, textAlign: 'right',
         color: 'var(--fp-ink-4)', maxWidth: 100,
@@ -363,7 +364,7 @@ function Advanced() {
       <FxGroup title="Bounds">
         <Law note="s is the star">star taken:&nbsp; |<strong>p</strong> − <strong>s</strong>| &lt; 0.77</Law>
         <Law note="nudged, so it rolls off an apex instead of balancing there">spawn:&nbsp; (x + 0.025, y)</Law>
-        <Law note="both must hold; with nothing placed, only the first">alive:&nbsp; |<strong>p</strong>| ≤ 20,&nbsp; ≤ 10 from an object</Law>
+        <Law note="one box round every star, object and the spawn; the circle clears it by the same 10 and is never under 20">alive:&nbsp; inside box + 10,&nbsp; |<strong>p</strong>| ≤ max(20, reach + 10)</Law>
         <Law note="the ball's edge, not its centre">hazard kills:&nbsp; |<strong>p</strong> − box| ≤ r</Law>
       </FxGroup>
 
@@ -715,9 +716,9 @@ const FP_EXPLAINERS = {
               stroke="#6042a6" strokeWidth={2.6} strokeLinecap="round"/>
             <line x1={104} y1={14} x2={104} y2={90} stroke="#6042a6" strokeWidth={1.4} strokeDasharray="4 3" opacity={0.55}/>
             <text x={60} y={20} textAnchor="middle" fontSize={11} fontWeight={600}
-              fontFamily="ui-monospace,monospace" fill="#388c46">20</text>
+              fontFamily="ui-monospace,monospace" fill="#388c46">40</text>
             <text x={152} y={20} textAnchor="middle" fontSize={11} fontWeight={600}
-              fontFamily="ui-monospace,monospace" fill="#388c46">20</text>
+              fontFamily="ui-monospace,monospace" fill="#388c46">40</text>
           </Art>
         ),
         body: <>

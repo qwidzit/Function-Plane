@@ -1,5 +1,5 @@
 // Function Plane — Admin panel
-// Visible only to the user with display name "Test Account". Lets them edit
+// Visible to accounts in public.admins (is_admin() decides). Lets them edit
 // pack metadata (name, allowed equation class, pack rule) and open any level
 // in the studio (level-studio.jsx) to author it by playing it. Writes go to
 // the pack_overrides / level_overrides Supabase tables; on save the parent
@@ -261,15 +261,15 @@ function UsersAdmin({ padX, onBack }) {
   const [results, setResults] = useAS([]);
   const [busy, setBusy] = useAS(false);
   const [msg, setMsg] = useAS('');
+  const [searched, setSearched] = useAS(false);   // "No matches" only after a search ran
 
   const search = async () => {
     setBusy(true); setMsg('');
     try {
-      const sb = window.FP_SB || null; // fallback
-      // Use buildLeaderboard's underlying client via a quick query
       const { data, error } = await window.fpAdminSearchProfiles(q);
       if (error) throw new Error(error.message);
       setResults(data || []);
+      setSearched(true);
     } catch (e) { setMsg(e.message); }
     finally { setBusy(false); }
   };
@@ -309,7 +309,8 @@ function UsersAdmin({ padX, onBack }) {
     <ScreenFrameAS title="Admin · Users" onBack={onBack} padX={padX}>
       <div style={{ padding: '18px 0 24px' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name or email" autoFocus
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by display name" autoFocus
+            onKeyDown={e => { if (e.key === 'Enter' && !busy && q.trim().length >= 2) search(); }}
             style={{ flex:1, height:42, borderRadius:10, padding:'0 12px', fontSize:14,
               background:'var(--fp-surface)', border:'1px solid var(--fp-line)',
               color:'var(--fp-ink)', outline:'none' }}/>
@@ -322,7 +323,7 @@ function UsersAdmin({ padX, onBack }) {
 
         {msg && <div style={{ marginBottom: 10, fontSize: 12, color: '#e34' }}>{msg}</div>}
 
-        {results.length === 0 && !busy && q && (
+        {results.length === 0 && !busy && searched && (
           <div style={{ textAlign: 'center', color: 'var(--fp-ink-3)', fontSize: 12.5, padding: 20 }}>
             No matches.
           </div>
@@ -695,7 +696,7 @@ function ScreenFrameAS({ title, onBack, padX, children }) {
         display:'flex', alignItems:'center', gap:12, flex:'0 0 auto',
         borderBottom: '1px solid var(--fp-line)',
       }}>
-        <button onClick={onBack} style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
+        <button onClick={onBack} aria-label="Back" style={{ width:36, height:36, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--fp-ink-2)' }}>
           <Icon.Chevron dir="left" size={18}/>
         </button>
         <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontStyle:'italic', fontSize:22, letterSpacing:'-0.02em', color:'var(--fp-ink)' }}>

@@ -5,7 +5,6 @@
   --fp-surface: #ffffff;
   --fp-surface-2: #f3f3ef;
   --fp-line: #e6e6e0;
-  --fp-line-strong: #1f1f1d;
   --fp-ink: #18181a;
   --fp-ink-2: #4a4a48;
   --fp-ink-3: #8a8a85;
@@ -34,9 +33,6 @@
   --fp-play-line: rgba(250,250,247,0.14);
   --fp-play-pill-bg: #fafaf7;
   --fp-play-pill-ink: #18181a;
-  /* safe area */
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 [data-theme="dark"] {
@@ -44,7 +40,6 @@
   --fp-surface: #161718;
   --fp-surface-2: #1f2122;
   --fp-line: #2a2c2e;
-  --fp-line-strong: #e6e6e0;
   --fp-ink: #f3f3ef;
   --fp-ink-2: #c4c4be;
   --fp-ink-3: #8a8a85;
@@ -73,17 +68,6 @@
   --fp-play-line: rgba(243,243,239,0.08);
   --fp-play-pill-bg: #f3f3ef;
   --fp-play-pill-ink: #0e0f10;
-}
-
-[data-density="compact"] {
-  --fp-pad-x: 18px;
-  --fp-row-y: 14px;
-  --fp-stack: 14px;
-}
-[data-density="comfortable"] {
-  --fp-pad-x: 22px;
-  --fp-row-y: 18px;
-  --fp-stack: 20px;
 }
 
 /* Prevent mobile scroll bouncing that causes black-screen compositing glitch */
@@ -120,22 +104,8 @@ input { font: inherit; }
   font-feature-settings: 'ss02';
 }
 
-.fp-serif-num {
-  font-family: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
-}
-
 .fp-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .fp-scroll { scrollbar-width: none; }
-
-.fp-hr { height: 1px; background: var(--fp-line); width: 100%; }
-
-.fp-mini-grid {
-  background-image:
-    linear-gradient(to right, var(--fp-grid) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--fp-grid) 1px, transparent 1px);
-}
 
 /* The equation field draws its own caret; the hidden input under it only
    holds focus. */

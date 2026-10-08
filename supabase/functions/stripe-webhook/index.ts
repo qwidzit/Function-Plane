@@ -98,27 +98,19 @@ Deno.serve(async req => {
     return new Response('no client_reference_id', { status: 200 });
   }
 
-  const { error: recErr } = await admin.from('purchases').upsert({
-    token:       session.id,
-    user_id:     userId,
-    platform:    'stripe',
-    product_id:  'premium_lifetime',
-    // How a later refund finds its way back to this row, and what clears a
-    // previous void if this player is buying again after one.
-    payment_ref: session.payment_intent,
-    voided_at:   null,
-  }, { onConflict: 'token' });
-  if (recErr) {
-    console.error('stripe-webhook: could not record purchase', recErr.message);
+  // Claimed and granted in one transaction, as a Play purchase is
+  // (20261009_stripe_purchase_integrity.sql): first claim wins, a refunded
+  // session is never granted again, and a replayed event changes nothing.
+  // payment_intent is what a later refund arrives under.
+  const { data: claim, error: claimErr } = await admin.rpc('grant_stripe_purchase', {
+    p_token: session.id, p_user: userId, p_product: 'premium_lifetime',
+    p_intent: session.payment_intent ?? null,
+  });
+  if (claimErr) {
+    console.error('stripe-webhook: could not record purchase', claimErr.message);
     return new Response('record failed', { status: 500 });  // let Stripe retry
   }
+  if (claim !== 'ok') console.warn('stripe-webhook: session not granted:', claim, session.id);
 
-  const { error: grantErr } = await admin
-    .from('profiles').update({ is_premium: true }).eq('id', userId);
-  if (grantErr) {
-    console.error('stripe-webhook: could not grant premium', grantErr.message);
-    return new Response('grant failed', { status: 500 });
-  }
-
-  return new Response('ok', { status: 200 });
+  return new Response(claim === 'ok' ? 'ok' : claim, { status: 200 });
 });
