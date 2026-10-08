@@ -107,9 +107,23 @@ window.FP_BILLING = (function () {
   // purchase not yet acknowledged, and skips one it reported in the last
   // minute, so a restore on a second device — or just after launch — never
   // reached the server. Resolves to whether the server granted premium.
+  // Play's own query has no bound of its own; left unanswered it held the
+  // premium screen on "Checking…" with no way out. The server calls behind it
+  // are bounded already.
+  const PLAY_TIMEOUT_MS = 15000;
+  function bounded(promise, what) {
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise).finally(() => clearTimeout(timer)),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} — Google Play did not answer. Check your connection and try again`)), PLAY_TIMEOUT_MS);
+      }),
+    ]);
+  }
+
   async function restore() {
     if (!(await start())) throw new Error('Google Play billing is not available in this build');
-    const err = await store().restorePurchases();
+    const err = await bounded(store().restorePurchases(), 'Restore timed out');
     if (err) throw new Error(err.message || 'Google Play could not restore purchases');
     let granted = false;
     for (const tx of store().localTransactions || []) {
