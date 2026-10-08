@@ -45,21 +45,19 @@ static files talking to it over HTTPS; there is no server of ours. It boots from
 a baked snapshot of the level tables, so it plays offline.
 
 The same code ships as the web PWA above and as an Android app — a
-[Capacitor](https://capacitorjs.com) WebView shell around the same folder. iOS
-needs a Mac to generate the project and has not been built yet.
+[Capacitor](https://capacitorjs.com) WebView shell around the same folder,
+through closed testing on Google Play and on its way to production. iOS needs
+a Mac to generate the project and has not been built yet.
+
+The game is free. One optional purchase, sold through Google Play only, unlocks
+every pack and level at once; the web build can restore it but does not sell it.
 
 ## The rest of the documentation
 
 | | |
 |---|---|
-| [`ABOUT.md`](./ABOUT.md) | How it all works: physics, classifier, level data, auth, the native shells |
-| [`CLAUDE.md`](./CLAUDE.md) | Conventions, and what to run before calling a change done |
-| [`MOBILE-BUILD.md`](./MOBILE-BUILD.md) | Building the Android and iOS apps |
-| [`TODO.md`](./TODO.md) | **Start here.** What is left, and where the release stands |
-| [`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) | The same work by area, with how each item got there |
-| [`COMMANDS.md`](./COMMANDS.md) | Copy-paste commands from "code changed" to "bundle uploaded" |
-| [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md) | What premium is, and the Play Console and Supabase wiring behind it |
-| [`PLAYTEST-SETUP.md`](./PLAYTEST-SETUP.md) | Running closed testing and reaching production access |
-| [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) | Writes that never arrive from some countries — and why the fix is on hold |
+| [`ABOUT.md`](./ABOUT.md) | The full description: physics, classifier, level data, accounts, payments, building the Android app, the Play Console answers |
+| [`TODO.md`](./TODO.md) | **Start here.** Everything left to do, and where the release stands |
+| [`CLAUDE.md`](./CLAUDE.md) | Working agreements and pitfalls for Claude Code sessions in this repo |
 
 Built by Quant. Bugs and requests: functionplane.support@gmail.com.

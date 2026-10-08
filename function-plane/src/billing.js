@@ -26,8 +26,8 @@ window.FP_BILLING = (function () {
   // The Capacitor bridge injects only the plugin's native half. Its JavaScript
   // ships for bundlers (`import … from`), and this app has none, so the script
   // build is vendored (vendor/cdv-purchase.js, checked against node_modules by
-  // `npm test`) and loaded here, in the Play build only. Builds 2 and 3 loaded
-  // nothing, so available() was never true and the premium card never showed.
+  // `npm test`) and loaded here, in the Play build only. Build 2 loaded nothing,
+  // so available() was never true and the premium card never showed.
   function _loadPlugin() {
     window.CdvPurchaseCapacitor = { installed: true };   // store.js: talk to Capacitor.Plugins, not cordova.exec
     const s = document.createElement('script');

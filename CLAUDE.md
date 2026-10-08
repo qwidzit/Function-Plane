@@ -7,14 +7,11 @@ physics, classifier, level data, auth and native shells actually work, and
 what's left to ship — is in [`ABOUT.md`](./ABOUT.md).** Read it before
 changing anything you don't already understand; this file assumes it.
 
-Two things live outside it: [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) (why
-the server cannot be reached from Russian mobile networks without a VPN — not
-a code problem; reproduced on 6 October 2026, and a relay was decided against,
-so the app retries and tells the player instead; read its status section
-before acting on it) and
-[`TODO.md`](./TODO.md) (what is left, and where the release stands).
-[`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) keeps the same work by area
-with the history behind each item.
+One thing lives outside it: [`TODO.md`](./TODO.md), the single list of what is
+left and where the release stands. There are no other documents — build
+commands, payment setup, the Play Console answers and the note on Russian
+networks (not a code problem; a relay was decided against, so the app retries
+and tells the player) are all sections of `ABOUT.md`.
 
 ## Before calling a change done
 
@@ -126,7 +123,7 @@ believing it.
   *Load these equations* brings back a different curve. The domain was
   missed exactly this way until Build 3.
 - The premium card is missing in the Android build, or nothing can be bought
-  → `window.CdvPurchase` does not exist. Capacitor injects only a plugin's
+  → `window.CdvPurchase` does not exist, as in Build 2. Capacitor injects only a plugin's
   native half; the JavaScript of `capacitor-plugin-cdv-purchase` is vendored
   as `vendor/cdv-purchase.js` and `billing.js` adds the `<script>` in the
   Play build. After updating the plugin, copy its `www/store.js` over the

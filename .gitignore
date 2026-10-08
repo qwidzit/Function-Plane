@@ -11,6 +11,10 @@ dist/
 build/
 www/
 
+# Per-machine Claude Code settings and its scratch worktrees
+.claude/settings.local.json
+.claude/worktrees/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

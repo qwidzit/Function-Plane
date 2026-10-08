@@ -1459,7 +1459,7 @@ const billRun = (() => {
 })();
 
 it('loads the Play Billing plugin in the Play build, and only there', () => {
-  // Builds 2 and 3 shipped the plugin's native half and never loaded its
+  // Build 2 shipped the plugin's native half and never loaded its
   // JavaScript: Capacitor injects none, and the package expects a bundler.
   // available() was false forever, so the premium card hid itself and nothing
   // could be bought.

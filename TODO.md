@@ -1,203 +1,99 @@
 # What's left
 
-Everything still to do, grouped by **where you do it**.
-[`RELEASE-CHECKLIST.md`](./RELEASE-CHECKLIST.md) is the same work grouped by
-area, with the history of how each item got to where it is; the numbers below
-point back at it.
+Everything still to do, in one place. How the game works, and how it is built,
+sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
-> ## Where the release stands — 25 September 2026
->
-> **Closed testing is finished.** Build 2 (`versionCode` 2, Play Billing
-> included) is live on the closed track. Build 3 is the last upload before
-> production.
->
-> **Checked and done since the 20th:** the website's legal pages (served
-> byte-identical to `legal/`), Data safety (crash logs, purchase history), the
-> content rating re-take, the keystore backup, the low-end device pass, both
-> refund-sweep secrets and the service-account key, and the store screenshots
-> (re-captured against the authored levels).
->
-> **Since the 25th:** the audit round (items 38–41) — server holes closed and
-> verified live, the save-wiping sync bugs fixed in Build 3 — and signups now
-> need an 8-character password.
->
-> **Blocking production:** the service account's Play permissions were granted
-> on 25 September and are still reaching Google (up to 24 h), so no purchase
-> can be confirmed yet (§4). No test purchase has been made — `purchases` is
-> empty.
->
-> **In Build 3:** a one-time reset of best times that sticks and keeps offline
-> play (item 34, migration applied). Stars and scores are kept. Run it once
-> Build 3 has reached the testers (§3, 16).
->
-> **Found 7 October: no build so far can sell.** Builds 2 and 3 never loaded
-> the billing plugin's JavaScript, so the premium card stayed hidden in the
-> Play build. Fixed in the repo; the test purchase needs a build made from
-> today's `main` or later.
->
-> **Decided 7 October:** no Russia relay. The fault is real on mobile data
-> (reproduced on MTS on 6 October) but nearly every Russian player has a VPN.
-> The app now retries stalled uploads and tells the player to turn one on.
-> Build 3 has not been built yet, so it goes out with it.
+## Where the release stands — 8 October 2026
 
-## First, the question that decides everything
+- **Closed testing is finished** (25 September). All 70 levels of the seven
+  visible packs are authored and have been played by hand.
+- **Premium works.** The first real purchase went through on 8 October, on
+  Build 3: Play sheet, server verification, a row in `purchases`, Premium on
+  the account. Builds before 3 could not sell at all — they never loaded the
+  billing plugin's script, so the premium card stayed hidden.
+- **Build 4 is in the repo and not yet built or uploaded.** It adds the OG
+  badge on the leaderboards and the admin's grant for it. `versionCode` is 4
+  on the build machine, `sw.js` is at `fp-v97`, and the level snapshot is
+  current as of 7 October.
+- **No Russia relay** (decided 7 October). Russian mobile networks hold the
+  connection without a VPN; the app retries stalled uploads and tells the
+  player to turn one on. See *Networks that hold the connection* in `ABOUT.md`.
 
-**Levels, packs and achievements are not in the build.** `overrides-store.js`
-syncs all three from Supabase on every boot and on every reconnect. The baked
-`overrides-snapshot.js` only serves the first offline boot before a sync lands.
+## Before production, in order
 
-So a level goal, a hint, a pack's rule, an achievement threshold or a pack's
-visibility can be changed from the admin panel at any time and reaches players
-who already installed. Only §1 needs an upload.
-
----
-
-## 1. In the build — Build 3
-
-Needs `versionCode` +1 and a new AAB.
-
-| # | What | Note |
+| # | Where | What |
 |---|---|---|
-| ~~35~~ | ~~In-app terms behind `legal/terms.html`~~ | **Done in the repo (25 September).** The terms gained "refunded or charged back removes Premium" and "only where Google Play offers in-app purchases". The legal renderer also split every wrapped bullet into a bullet plus a stray paragraph mid-sentence — visible in Build 2 — and now joins them |
-| ~~37~~ | ~~Load these equations drops a curve's domain~~ | **Done in the repo (25 September).** The run entry stores `domains` beside `mats` and `shifts`, and one function (`rowsFromRun`) turns a run back into rows, so all three restore on the same curve-aligned index. Runs saved before this load unrestricted, as they did; a new win records the domain. `npm test` round-trips a run through JSON and back |
-| ~~34~~ | ~~Reset of best times~~ | **Done (25 September), and its migration is applied.** Times only — stars and scores stay — and a time set offline after the reset survives. See §3 item 16 for how and when to run it |
-| ~~23~~ | ~~Bump to build 3~~ | **Done (25 September).** `FP_BUILD` and both screen strings read build 3, and `versionCode` is **3** in `android/app/build.gradle` on this machine (gitignored — a fresh checkout still needs it). `versionName` stays `"1.0"` |
-| 4 | `npm run snapshot:data` | Current as of 7 October: it picked up the 1 October retune of *Space Exploration* (`r-III-9`, goals 120/4 to 60/3). Re-run only if a level is edited in the admin panel before the build. Only from a networked machine — the sandbox proxy refuses the Supabase host |
-| ~~38~~ | ~~The 25 September audit, app side~~ | **Done in the repo (26 September).** A failed progress download no longer uploads over the cloud save, and nothing uploads for an account until its download has merged (a new phone on a slow network used to overwrite its own save with an empty one). The offline upload queue is gone — reconnecting syncs instead. Registering moves the guest save and clears it. The auth listener is registered before the session check. A failed profile read no longer caches Premium as off. Saves missing a pack no longer crash on completing a level there. Sign-out works offline; delete account is bounded. Tied times keep their date. A full disk keeps progress in memory and says so. Restore verifies Play's transactions itself, and a pending payment says it is pending. Admin is read from the server. `scripts/sync-scenario.js` plays out every save-wiping case, and fails against the old code |
-| — | Bump `sw.js` | `fp-v96` as of the OG badge (8 October); bump again if anything else bundled changes |
+| 1 | Your machine | **Build and upload Build 4** to the closed track: `npm test`, `npx cap sync android`, `cd android && gradlew bundleRelease`. Steps and the signing check are in *Building and releasing the Android app* in `ABOUT.md` |
+| 2 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
+| 3 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
+| 4 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
+| 5 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
+| 6 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 7 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is entering closed testing", shows a "Soon on Google Play" badge and offers the APK. Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
+| 8 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8 |
 
-## 2. In the admin panel
+## Any time, in the admin panel
 
-Account ▸ Admin, on the admin account. Everything here is live for every
-player on their next launch. No build, no deploy.
+Levels, packs and achievements are not in the build: the app syncs them from
+Supabase on every boot, so an edit in Account ▸ Admin reaches every player on
+their next launch. No build, no deploy.
 
-**What it can edit**
+- Re-tune anything testing found. Goals are the common case and they live here.
+- Raise *Impossible?* (`stars_210`) if a hidden pack is ever released. 210 is
+  70 levels × 3 — release more and the achievement stops meaning a perfect game.
+- Grant or remove Premium and the OG badge under Manage users.
 
-| Where | What |
-|---|---|
-| Pack ▸ *(any pack)* | Name, allowed equation class, pack rule (gravity flip), hide from all users |
-| Pack ▸ *(any level)* | Opens the studio: name, score goal, equation goal, hint, the explainer popup, whether players may set bounce, the spawn, the stars, every object, pre-placed equations. Export and import a level as JSON |
-| Manage achievements | Every achievement — kind, thresholds, name, description, hide. Add new ones |
-| Manage users | Grant or revoke premium and the OG badge |
-| Audit leaderboard | Review submitted runs |
+After editing a level, and before the next build: `npm run snapshot:data`,
+bump `sw.js`, and copy new geometry back into `levels/*.json` if that pack has
+a draft there.
 
-**Outstanding**
+## Every build
 
-| # | What |
-|---|---|
-| 2 | Re-tune anything closed testing found. Goals are the common case and they live here |
-| 3 | Raise *Impossible?* (`stars_210`) if a hidden pack is ever released. 210 is 70 levels × 3 — release more and the achievement stops meaning "a perfect game" |
-| 1d | Unhide Trigonometry, Exponential, Inversion and Roman VI–X once they are authored. All are empty today — v2, not a launch blocker |
-
-## 3. In Supabase
-
-| # | What |
-|---|---|
-| ~~36~~ | ~~Delete the sign-in account with the profile~~ | **Applied 25 September.** `profiles_delete_auth_user` removes the auth user, and with it the `purchases` row |
-| ~~39~~ | ~~The 25 September audit, server side~~ | **Applied 26 September.** Admin is a user id in `public.admins`, not the name — deleting the admin account would have handed the role to whoever registered "Test Account" next; the name is reserved. A refunded purchase can never be granted again, even to a new account, and two accounts racing one token cannot both win (`grant_play_purchase`, `play-verify` v4). The refund sweep reads 30 days (`play-refunds` v3). An admin's score removal sticks. Hidden packs and non-existent levels no longer count, so total stars cap at 210. A future-dated time is clamped. Equations and submission times are private. Client roles lost every privilege the app does not use; progress, avatars and crash reports are bounded. Each verified live, several inside rolled-back transactions |
-| ~~40~~ | ~~Two data cleanups~~ | **Applied 26 September.** The public copies of winning equations are cleared (54 kept in `score_equations`), `achieved_at` is dropped, and the one Premium holder is marked as an admin grant |
-| ~~41~~ | ~~Password strength~~ | **Done 25 September.** Leaked-password protection is Pro-plan only (the project is on Free), so Auth's minimum password length is now **8** (set in the dashboard, confirmed saved) and the app matches: `register` in `accounts.js` and the sign-up form. Existing players keep their passwords; Supabase may flag a shorter one as weak at sign-in. The website's reset page still accepts 6 — item 43 |
-| — | `stripe-webhook` stays: it verifies Stripe signatures and, with no secret set, refuses everything, and PAYMENTS-SETUP.md keeps it on purpose for web sales. Delete it in the dashboard if that plan is dropped |
-| — | Accepted: `pg_net` sits in `public` (advisor 0014); the extension cannot be moved, only dropped and recreated, which would break the refund sweep for a warning. Scores and times can still be forged through the API — only a server-side replay prevents that |
-| 16 | **Reset best times for everyone, once Build 3 is live.** `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. Each Build 3 device drops its own pre-reset times the next time it connects and keeps any set after the reset, even offline. Build 2 keeps saving stars and scores but its times, which carry no date, are dropped — so run it after Build 3 has reached the testers, or their times stop counting until they update. Dry-run on 25 September inside a rolled-back transaction: all 65 times cleared, 191 stars unchanged |
-
-**Checked and clear:**
-
-- **5 / 8b — secrets (25 September).** `GOOGLE_SERVICE_ACCOUNT` and both halves
-  of `REFUND_SWEEP_SECRET` are set: the nightly `play-refund-sweep` passes the
-  function's own check and reaches Google, which is where it fails (§4).
-- **4 — the snapshot (25 September).** Generated 10 s after the last
-  `level_overrides` edit; nothing has changed since.
-- **11 — the leaderboard migration is live (20 September).** `level_scores_guard`
-  plus the three `level_scores_stars_*` triggers exist, and `sync_total_stars`,
-  `admin_set_premium` and `void_purchase` are all present.
-- **13 — the RLS sweep passes (20 September).** RLS is on for all ten tables.
-  Overrides and `news` are read-all / admin-write; `progress` and
-  `push_subscriptions` are owner-only; `level_scores` inserts and updates only
-  as `auth.uid() = user_id` and deletes own (admins remove through
-  `admin_remove_score`); `client_errors` is
-  insert-for-anyone, read-admin, with no update or delete path; `purchases`
-  carries no policy at all, so only the edge functions' service role touches
-  it. `profiles` has SELECT, INSERT and DELETE policies and **no UPDATE** —
-  read-only to clients, as intended. The table holds no email, so the open read
-  policy leaks nothing. (The admin gate was the name `Test Account` then; it is
-  a user id since 26 September — item 39.)
-- **14 — email confirmation is off (20 September).**
-
-## 4. In Google Cloud and Play Console
-
-| # | What |
-|---|---|
-| ~~5~~ | ~~Enable the Google Play Android Developer API~~ | **Done (25 September).** Google now answers — with *insufficient permissions* (next row) |
-| 5 | **Service account permissions: granted 25 September, still propagating.** Right after, the sweep still got "insufficient permissions" (Google checks parameters first, which is how a too-wide 30-day window showed up — fixed, `play-refunds` v4 asks for 29). Confirm with `select public.sweep_play_refunds();` and then `select status_code, content from net._http_response order by created desc limit 1;` — 200 and `{"seen":0,"revoked":0}` means done. The nightly run at 03:40 UTC does the same; cron marks it "succeeded" either way, so read the response |
-| 5 | **Make a test purchase** as a licence tester, from a build made on or after 7 October (earlier ones cannot show the premium screen). The sweep has answered 200 since 7 October. The first end-to-end run of `play-verify`; a row should appear in `purchases` and the account should show Premium |
-| 26 | Replace the uploaded screenshots with `store-assets/screenshots/01`–`08`, in that order |
-| — | Confirm the listing's **In-app purchases** answer reads **Yes**, and that `premium_lifetime` is **active**, not draft |
-| — | Upload Build 3 to the closed track, then apply for production access and roll out staged, ~20% first |
-
-**Done:** 30 and 27b (Data safety), 28 (content rating re-take), the product,
-the service account and its Play permissions, licence testing.
-
-## 5. On the website
-
-| # | What |
-|---|---|
-| 42 | **The homepage still describes closed testing.** It says "Not on Google Play yet — it is entering closed testing", shows a "Soon on Google Play" badge, and offers the APK as the way to install. Point it at `https://play.google.com/store/apps/details?id=app.functionplane` the day production goes live |
-| 43 | **The password-reset page accepts 6 characters.** `Function-Plane-Website/auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters." Auth now refuses anything under 8, so a 6–7 character password there fails with the server's message. Set both to 8 in the website repo |
-
-**Done:** 17 — `privacy`, `terms` and `delete-account` are served byte-identical
-to `legal/` (checked 25 September).
-
-## 6. On your machine
-
-| # | What |
-|---|---|
-| — | Build and upload Build 3: `npm test`, `npx cap sync android`, `gradlew bundleRelease`. Steps in [`COMMANDS.md`](./COMMANDS.md) |
-
-**Done:** 21 (keystore backed up offline), 31 (low-end device pass).
-
-## 7. After launch
-
-Each of these needs a client change, so each costs a build.
-
-| # | What |
-|---|---|
-| 11c | **Ship the upload retry and the VPN notice** — done in the repo on 7 October and part of Build 3, which had not been built yet. Stalled uploads retry on their own, a stalled progress upload no longer skips the score, and the first unanswered request tells a Russian player to turn on a VPN. The relay itself is decided against for now; the measurement and the reasons are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md) |
-
-### 34 — reset of best times (done 25 September)
-
-Times could not be cleared: `level_scores_guard` refuses to lower a record,
-`_mergeProgress` takes the faster time, and `_syncProgressDown` uploads the
-merge. Every best time now carries when it was set, and one cutoff decides
-which survive — see *Resetting times* in [`ABOUT.md`](./ABOUT.md). Settled:
-
-- **Times only.** Stars, scores and equations stay, so pack unlocks and
-  `profiles.total_stars` are untouched.
-- **Offline play survives.** A time set after the reset is kept even if it
-  reaches the server days later; only times dated before the cutoff, or with
-  no date, are dropped.
-- **Achievements stay earned.** The two time achievements also read run
-  history, which the reset keeps.
-- **Global and one-time.** A second reset would just move the cutoff.
-
-A first version (an epoch that cleared all progress, and with it anything
-played offline before the device reconnected) was applied and replaced the
-same day; `20260925_times_reset.sql` removes it.
+- `versionCode` up by one, with `FP_BUILD` and the two `v 1.0 · build N`
+  strings (`npm test` checks the three in the repo agree).
+- `sw.js` cache version up if anything bundled changed.
+- `npm run snapshot:data` if a level was edited since the last build.
 
 ## Known and accepted
 
 - **46 of the 70 levels have no recorded answer**, so `npm run verify:levels`
-  replays 24. All 70 have been played by hand, so nothing is unclearable
-  today — but a future physics change has no automated check over those 46.
-  Recording answers into `levels/*.json` is the fix, and it can happen any
-  time; it ships nothing.
+  replays 24. Nothing is unclearable today, but a future physics change has no
+  automated check over those 46. Recording answers into `levels/*.json` fixes
+  it and ships nothing.
 - **`r-V-9` *The finale* is `70/4` on purpose.** Four equations cost 80 at the
-  floor, so the score goal cannot be met at the full equation budget. The
-  stars are independent: a four-equation run still takes the clear star and
-  the equation star. Tightening it to `70/3` would take that second star away.
+  floor, so the score goal cannot be met at the full equation budget; the
+  stars are independent, so a four-equation run still takes the clear star and
+  the equation star.
+- **Scores and times can still be forged through the API.** The database guard
+  and the admin's leaderboard audit cover v1; only a server-side replay
+  prevents it.
+- **`pg_net` sits in `public`** (advisor 0014). It cannot be moved, only
+  dropped and recreated, which would break the refund sweep for a warning.
+- **`stripe-webhook` stays deployed and dormant**, for the day the web sells.
+  Delete it in the dashboard if that plan is dropped.
 
-## Not required for launch
+## Later — not required for launch
 
-iOS (needs a Mac and an Apple developer account), native push notifications,
-daily levels, the reset-password deep link into the app, and server-side
-replay verification of leaderboard scores.
+- **The hidden packs.** Trigonometry, Exponential, Inversion and Roman VI–X are
+  empty; unhide each once it is authored.
+- **iOS.** Needs a Mac and an Apple developer account; purchases through
+  StoreKit.
+- **Reset-password deep link**, so the email link opens the app rather than
+  the website. Resetting already works through the page at
+  `https://functionplane.pages.dev/auth/reset`. To hand the link to the app:
+  register App Links / Universal Links (`assetlinks.json` /
+  `apple-app-site-association`, preferred over a custom scheme), build a
+  set-a-new-password screen in the app, repoint `redirectTo` in
+  `resetPassword()`, and add the URL under Supabase → Authentication → URL
+  Configuration.
+- **Native push** through `@capacitor/push-notifications` and FCM/APNs. The
+  web-push scaffolding in the service worker exists.
+- **Daily levels.**
+- **Server-side replay** of leaderboard scores; the fixed-tick sim clock makes
+  it possible.
+- **A relay for Russian networks**, if players without a VPN turn out to be a
+  real share of the audience. The recipe is in `ABOUT.md`.
+- **Selling on the web**, which is a VAT decision before it is a code one.
+- **More level rules** — ordered stars, per-level equation classes,
+  speed-gated stars, one-way and breakable curves. Considered and declined for
+  now; the reasoning is under *Level variety* in `ABOUT.md`.

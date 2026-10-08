@@ -1,7 +1,8 @@
 # ABOUT.md
 
-Everything about the Function Plane project: what it is, how it's built, how
-the pieces fit together, and what's left to do. Working agreements — code
+Everything about the Function Plane project: what it is, how the pieces fit
+together, and how it is built, sold and released. What is left
+to do is in [`TODO.md`](./TODO.md), and only there. Working agreements — code
 style, the checks to run before calling a change done — live in `CLAUDE.md`.
 
 ## What this is
@@ -16,7 +17,8 @@ Shipped three ways from one codebase, no per-platform forks:
 - **Web PWA** — the `function-plane/` folder, deployed to Cloudflare Pages at
   **https://functionplane.pages.dev**.
 - **Android** — the same PWA wrapped in a [Capacitor](https://capacitorjs.com)
-  WebView shell, shipped as an APK/AAB. See `MOBILE-BUILD.md`.
+  WebView shell, shipped as an APK/AAB. See *Building and releasing the
+  Android app*.
 - **iOS** — planned; `@capacitor/ios` is installed but the `ios/` folder has
   never been generated (needs a Mac + `npm run cap:add:ios`).
 
@@ -82,7 +84,7 @@ finished parsing).
 function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
   index.html               # entry; fixed <script> load order
   sw.js  manifest.json     # service worker + PWA manifest
-  vendor/                  # React, ReactDOM, Supabase JS, webfonts (no npm/CDN at runtime)
+  vendor/                  # React, ReactDOM, Supabase JS, the billing plugin's script, webfonts
     fonts.css  fonts/       # self-hosted woff2 subsets
   src/                     # *.jsx = source, *.js = generated (build-jsx.js)
     accounts.js            # FP_AUTH — auth, profiles, is_premium, leaderboards
@@ -95,7 +97,7 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
     billing.js             # FP_BILLING — Play Billing purchase/restore, verified server-side
     data.jsx               # pack/level data + lock/unlock logic
     level-screen.jsx       # graph view, equation panel, physics step loop
-    admin-screen.jsx       # in-app admin (grant premium, edit packs/levels, audit leaderboard)
+    admin-screen.jsx       # in-app admin (grant premium and OG, edit packs/levels, audit leaderboard)
     level-objects.jsx      # FP_OBJECTS — fans, zero-g, wells, hazards: physics + drawing
     level-studio.jsx       # sandbox AND the admin level editor — same plane/panel/physics
     legal-screens.jsx      # in-app Privacy / Terms / Licenses text
@@ -106,17 +108,19 @@ function-plane/            # THE deployed PWA (Cloudflare Pages serves this)
 scripts/
   build-jsx.js              # JSX -> JS compiler; run after every .jsx edit
   test.js                   # the whole suite, zero dependencies (npm test)
+  sync-scenario.js          # progress sync against a stub Supabase, run by test.js
+  billing-scenario.js       # Play Billing against a fake of the native plugin, run by test.js
   verify-levels.js          # replays every authored level's intended solution
   snapshot-overrides.js     # pulls Supabase override tables -> overrides-snapshot.js
 levels/                    # authored drafts — the written record of what a level asks
 legal/                     # hostable Privacy/Terms HTML for the website (see below)
-store-assets/              # Play listing copy, screenshots, Console answers
-supabase/config.toml       # Supabase project config
+store-assets/              # Play listing text, icon, feature graphic, screenshots
+supabase/                  # config, edge functions, and every migration applied to the project
 capacitor.config.json      # native shell config (appId app.functionplane)
 README.md                  # the public front door
-TODO.md                    # what is left, by where you do it
-MOBILE-BUILD.md            # how to build the Android/iOS apps
-NETWORK-ACCESS.md          # networks that hold the connection, and why no relay
+ABOUT.md                   # this file
+TODO.md                    # everything left to do
+CLAUDE.md                  # working agreements and pitfalls, read by Claude Code
 ```
 
 `android/` and `ios/` are gitignored — recreated locally with `npx cap add
@@ -135,8 +139,7 @@ android` / `npx cap add ios` (iOS needs a Mac).
 | `npm run ios:build` | build:jsx + sync ios + open Xcode (needs Mac + `ios/` folder) |
 | `npm run cap:add:android` / `cap:add:ios` | Generate the native shell folder (one-time) |
 
-Full build walkthrough (Android Studio / Xcode steps, troubleshooting) is in
-`MOBILE-BUILD.md`.
+The full build walkthrough is *Building and releasing the Android app*.
 
 ## Tests (`npm test`)
 
@@ -175,6 +178,14 @@ for not running it before a commit.
   walked across each one, counting the cursors drawn.
 - **Level data** — the snapshot parses, every authored level has a ball, stars
   and positive goals, and `_default`'s goal stays on the authored scale.
+- **Sync** — `scripts/sync-scenario.js` runs the real `accounts.js` against a
+  stub Supabase through the cases that have wiped or resurrected saves, and a
+  progress upload that gets no answer: the score rows still go up, the stalled
+  request is cancelled, and the upload is retried.
+- **Billing** — `scripts/billing-scenario.js` runs `billing.js` and the
+  plugin's real JavaScript against a fake of the native half: buy, a refused
+  purchase, a pending payment, restore. The vendored plugin script must match
+  the one in `node_modules`.
 - **Build parity** — recompiles every `.jsx` and compares to the committed
   `.js` (escape-normalized). Skipped with a notice if `@babel/core` isn't
   installed, so it's silent in sandboxes and real in CI.
@@ -1294,7 +1305,7 @@ with the VPN off: a progress upload reached the project 81 seconds after it
 was sent, in one burst with the leaderboard reads waiting beside it; home
 broadband in the same city is fine. It is not a bug in the app and a different
 database would not fix it — the measurement, the decision not to buy a relay
-and the recipe for one are in [`NETWORK-ACCESS.md`](./NETWORK-ACCESS.md). What
+and the recipe for one are in *Networks that hold the connection* below. What
 the app does about it:
 
 - The save and the score rows upload independently (`_uploadSave`,
@@ -1478,9 +1489,7 @@ Google Play requires the privacy policy at a **public URL**, not just in-app.
 > and naming it in a legal document means reissuing the document. If you touch
 > `TERMS_TEXT` in `legal-screens.jsx`, keep it store-neutral to match.
 
-## Roadmap / left to do
-
-### Payments — dual path + environment detection *(partly built)*
+## Payments
 
 **What is sold:** one lifetime unlock of every pack and every level, **€4.90**, through Google
 Play. Not a subscription — `is_premium` is a boolean with no expiry column, so
@@ -1493,93 +1502,203 @@ The game is distributed on **both** Google Play and the open web, but it
 **sells on Play only**. The web build signs in, restores and plays; it has no
 checkout.
 
-- [x] **Google Play Billing** — required for the Play Store build; Google
-      forbids external payment for digital goods there. `billing.js` wraps
-      `capacitor-plugin-cdv-purchase` (MIT, Billing Library 9 — anything below
-      8 is rejected at upload since 31 August 2026) and hands the purchase
-      token to the `play-verify` edge function, which asks the Play Developer
-      API, records the purchase and grants the flag. **No billing provider**:
-      verifying server-side ourselves is what keeps Supabase the only host the
-      app talks to, so the privacy policy and the Data safety answers stand
-      unchanged. The plugin install and the Play Console product are the
-      remaining manual steps — see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
-      Capacitor injects only the plugin's native half; its JavaScript is
-      written for a bundler, which this app does not have. So the script build
-      is vendored as `vendor/cdv-purchase.js` and `billing.js` adds the
-      `<script>` itself, in the Play build only. Builds 2 and 3 shipped
-      without it: `window.CdvPurchase` never existed, the premium card stayed
-      hidden and nothing could be bought. `scripts/billing-scenario.js` now
-      runs `billing.js` and the plugin's real JavaScript against a fake of the
-      native half, and `npm test` fails if the vendored copy and the installed
-      plugin differ.
-- [ ] **The web channel does not sell** — `FP_PAY_CHANNEL` is `web` there and
-      the premium screen says premium is sold through Google Play, with a link
-      to the listing once `FP_STORE_LINKS.android` is set. Restore still works,
-      which is the point: buying in the app unlocks the web build too.
-      A Stripe path exists server-side (`stripe-webhook`, deployed but with no
-      secret and nothing pointing at it) and the client half was removed. The
-      reason is tax, not code: on Play, Google is merchant of record and
-      handles VAT; selling direct makes that ours from the first sale. Turning
-      it on again means a checkout in `PremiumView` and a decision about VAT —
-      see [`PAYMENTS-SETUP.md`](./PAYMENTS-SETUP.md).
-- [x] **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
-      resolves to `play` on any native build and `web` otherwise. A sideloaded
-      build counts as `play`: of the two ways to be wrong, an outside payment
-      route inside a Play build is the one that gets the app taken down.
-      `PremiumCard` renders only where the build can actually take money: on
-      web always, on Play once `FP_BILLING.available()` is true, which happens
-      when the plugin's script has loaded (`fp-billing-ready`). So the entry point
-      turns itself on with the plugin rather than on a flag someone has to
-      remember. `PremiumView` keeps its own channel check on the purchase
-      button. Both paths converge on the same `is_premium` write, so screen
-      logic downstream is unchanged.
-- [x] **Restore purchases** — a Play requirement for any paid entitlement.
-      `FP_AUTH.refreshEntitlement()` re-reads the profile, which is the whole
-      restore while the flag is granted server-side. Play Billing's own
-      restore queries Play first and then lands on the same refresh.
-- [x] **A purchase can only be spent once** — `purchases` (token PK) is the
-      ledger both functions write; a token already attached to another account
-      is refused. Only the service role can read or write it.
-- [x] **A refund takes premium back** — Stripe sends `charge.refunded` and
-      `charge.dispute.created` and the webhook revokes within seconds; Google
-      tells nobody, so the `play-refund-sweep` cron job (03:40 UTC) has
-      `play-refunds` read the Play Developer API's voided purchases. Both call
-      `void_purchase()`, which holds the one rule worth not duplicating:
-      premium drops only when the player has **no live purchase left**, so
-      buying on both channels and refunding one keeps it. Granting clears any
-      earlier void, so re-buying after a refund works.
-- [x] **The entitlement is server-side only** — see *Supabase & entitlement
-      model* above. Do not reintroduce a client write to `is_premium`; the
-      column privilege is gone and the write would fail in a player's hands
-      even though it looks fine in review.
-- [ ] iOS equivalent uses StoreKit (RevenueCat covers it in the same
-      integration).
+**Proven end to end on 8 October 2026:** a licence-tester purchase on Build 3
+produced a row in `purchases` and Premium on the account. Restore on a second
+device and the refund sweep have not been exercised against a real purchase
+yet — see `TODO.md`.
 
-### Other pre-launch / v2 items
+**Google Play billing does not work in Russia.** Play suspended purchases for
+users there in March 2022, so a Russian Play account cannot buy premium at all.
+A developer whose payout bank account is in Russia has purchases fail
+*worldwide*; this account's is not.
 
-- [ ] **Haptic vibration on iOS** — `navigator.vibrate` is a no-op on iOS
-      WebKit; would need `@capacitor/haptics`. Low priority (haptics were
-      removed project-wide, see above) — only revisit on explicit request.
-- [ ] **Native push** via `@capacitor/push-notifications` + FCM/APNs (Web
-      Push SW scaffolding already exists).
-- [ ] **Reset-password deep link** so the email link opens the *app* rather
-      than the website. Resetting already works: `resetPassword()` in
-      `accounts.js` sends players to
-      `https://functionplane.pages.dev/auth/reset`, a page on the website
-      that handles the recovery token and calls `updateUser({ password })`.
-      The app itself has no set-a-new-password screen, and the native shell's
-      origin (`https://localhost`) can't receive an email redirect, which is
-      why the page lives there. To hand the link back to the app instead,
-      register App Links / Universal Links via `assetlinks.json` /
-      `apple-app-site-association` (recommended over a custom
-      `app.functionplane://` scheme), build the password screen in-app, then
-      repoint `redirectTo` and add the URL under Supabase → Authentication →
-      URL Configuration → Redirect URLs.
-- Done already: `LEGAL_WEBSITE` set to the public site URL; Android hardware
-  back button (`@capacitor/app`); haptics removed; webfonts self-hosted;
-  password-reset redirect pointed at the website page.
+- **Google Play Billing** — required for the Play Store build; Google
+  forbids external payment for digital goods there. `billing.js` wraps
+  `capacitor-plugin-cdv-purchase` (MIT, Billing Library 9 — anything below
+  8 is rejected at upload since 31 August 2026) and hands the purchase
+  token to the `play-verify` edge function, which asks the Play Developer
+  API, records the purchase and grants the flag. **No billing provider**:
+  verifying server-side ourselves is what keeps Supabase the only host the
+  app talks to, so the privacy policy and the Data safety answers stand
+  unchanged.
+  Capacitor injects only the plugin's native half; its JavaScript is
+  written for a bundler, which this app does not have. So the script build
+  is vendored as `vendor/cdv-purchase.js` and `billing.js` adds the
+  `<script>` itself, in the Play build only. Build 2 shipped
+  without it: `window.CdvPurchase` never existed, the premium card stayed
+  hidden and nothing could be bought. `scripts/billing-scenario.js`
+  runs `billing.js` and the plugin's real JavaScript against a fake of the
+  native half, and `npm test` fails if the vendored copy and the installed
+  plugin differ.
+- **The web channel does not sell** — `FP_PAY_CHANNEL` is `web` there and
+  the premium screen says premium is sold through Google Play, with a link
+  to the listing. Restore still works, which is the point: buying in the app
+  unlocks the web build too. See *Why the web does not sell* below.
+- **Environment detection** — `FP_PAY_CHANNEL` in `store-config.js`
+  resolves to `play` on any native build and `web` otherwise. A sideloaded
+  build counts as `play`: of the two ways to be wrong, an outside payment
+  route inside a Play build is the one that gets the app taken down.
+  `PremiumCard` renders only where the build can actually take money: on
+  web always, on Play once `FP_BILLING.available()` is true, which happens
+  when the plugin's script has loaded (`fp-billing-ready`). So the entry point
+  turns itself on with the plugin rather than on a flag someone has to
+  remember. `PremiumView` keeps its own channel check on the purchase
+  button. Both paths converge on the same `is_premium` write, so screen
+  logic downstream is unchanged.
+- **Restore purchases** — a Play requirement for any paid entitlement.
+  `FP_AUTH.refreshEntitlement()` re-reads the profile, which is the whole
+  restore while the flag is granted server-side. Play Billing's own
+  restore queries Play first and then lands on the same refresh.
+- **A purchase can only be spent once** — `purchases` (token PK) is the
+  ledger both functions write; a token already attached to another account
+  is refused. Only the service role can read or write it.
+- **A refund takes premium back** — Stripe sends `charge.refunded` and
+  `charge.dispute.created` and the webhook revokes within seconds; Google
+  tells nobody, so the `play-refund-sweep` cron job (03:40 UTC) has
+  `play-refunds` read the Play Developer API's voided purchases. Both call
+  `void_purchase()`, which holds the one rule worth not duplicating:
+  premium drops only when the player has **no live purchase left**, so
+  buying on both channels and refunding one keeps it. Granting clears any
+  earlier void, so re-buying after a refund works.
+- **The entitlement is server-side only** — see *Supabase & entitlement
+  model* above. Do not reintroduce a client write to `is_premium`; the
+  column privilege is gone and the write would fail in a player's hands
+  even though it looks fine in review.
 
-### Level variety — objects, rules and what each one costs
+### How a purchase moves
+
+Nothing the device says grants anything. `is_premium` is revoked from both
+client roles, so the only writers are the edge functions (service-role key)
+and the admin RPC. A modified app can lie all it likes; the column does not
+move.
+
+```
+  Play build          app  →  Play sheet  →  purchaseToken
+                                              ↓
+                                     play-verify (edge fn)
+                                              ↓  asks Google
+                                     profiles.is_premium = true
+                                              ↓
+                                     tx.finish()  ← releases the money
+
+  Web build           no checkout — "buy it in the Android app", and
+                      Restore purchases unlocks what Play already sold
+
+  Refunds             Play  →  nightly sweep asks Google
+                                              ↓
+                                     void_purchase(token)
+                                              ↓  no live purchase left?
+                                     profiles.is_premium = false
+```
+
+### Setting it up from scratch
+
+All of this is done for the live project; it is here for the day it has to be
+redone. The order matters: Play will not let you create a product until it has
+seen a build that declares the billing permission.
+
+1. **Install the plugin** and copy its script into the app — again whenever
+   the plugin is updated, or the premium card never appears in the Play build:
+   ```
+   npm install capacitor-plugin-cdv-purchase
+   npx cap sync android
+   cp node_modules/capacitor-plugin-cdv-purchase/www/store.js function-plane/vendor/cdv-purchase.js
+   ```
+   The merged `AndroidManifest.xml` must then contain
+   `com.android.vending.BILLING`.
+2. **Upload a build** with the plugin to the closed track.
+3. **Create the product.** Play Console → Monetise → Products → **One-time
+   products**. Product ID **`premium_lifetime`** — this exact string is in
+   `billing.js` and in `play-verify`. Its *Purchase option ID* takes hyphens
+   only, so it cannot be the same string. €4.90 for the euro zone, let Play
+   convert the rest, and **activate** it: a draft cannot be bought, even by you.
+4. **Service account**, so the server can ask Google about a purchase. In the
+   Cloud project linked to the Play account (number 1096366903282): IAM →
+   Service accounts → create one → Keys → Add key → JSON, and enable the
+   **Google Play Android Developer API** in that same project. Then Play
+   Console (all-apps level) → Users and permissions → invite the service
+   account's email with *View app information and download bulk reports*,
+   *View financial data, orders, and cancellation survey responses* and
+   *Manage orders and subscriptions*. Permissions take up to 24 hours to reach
+   Google; until they do every verification answers 401.
+5. **Supabase secrets.** Edge Functions → Secrets → `GOOGLE_SERVICE_ACCOUNT` =
+   the whole JSON key as one line. The refund sweep needs a shared secret in
+   two places: generate one (`openssl rand -hex 32`), add it as the Edge
+   Function secret `REFUND_SWEEP_SECRET`, and store the same value in the
+   vault with `select vault.create_secret('<value>', 'refund_sweep_secret');`.
+   Until both exist the nightly job returns without calling anything.
+6. **Licence testers.** Play Console → Setup → License testing → add the
+   tester Google accounts. Their purchases complete for free and can be
+   refunded from the Orders page. The build must be installed from Play, not
+   sideloaded, for the product to be offered.
+
+A release that changes what is sold also changes three declarations: the
+listing's *In-app purchases* answer, the content rating questionnaire
+(digital purchases), and Data safety (*Financial info ▸ Purchase history*).
+See *Play Console* below.
+
+### Proving it works
+
+1. Buy as a licence tester. Expect: Play sheet → purchase → within a second or
+   two the screen says *Purchase confirmed*. **Done 8 October.**
+2. `select * from purchases` has one row, and that account's
+   `profiles.is_premium` is true. **Done 8 October.**
+3. Sign in on a second device and press **Restore purchases** — premium
+   without paying again.
+4. Refund the test order in Play Console, then run the sweep by hand rather
+   than waiting for 03:40 UTC: `select public.sweep_play_refunds();`. Within a
+   few seconds the `purchases` row has a `voided_at` and `is_premium` is false.
+   The cron job reports "succeeded" whatever the function answered — `pg_net`
+   does not wait — so read the answer itself:
+   `select status_code, content from net._http_response order by created desc limit 1;`
+   (200 and `{"seen":…,"revoked":…}` is a real answer). Then press Restore on
+   that account: it must say *That purchase was refunded*, never Premium.
+5. On the web build, sign in as the buyer: the premium screen says premium is
+   active. As anyone else it says premium is sold in the Android app, with no
+   button that cannot complete.
+6. Kill the app mid-purchase and reopen it: `billing.js` starts at launch and
+   picks up anything Play is still holding.
+
+### When something goes wrong
+
+| Symptom | Cause |
+|---|---|
+| The premium card is missing in the Android build | `window.CdvPurchase` does not exist — `vendor/cdv-purchase.js` is missing or stale. Copy the plugin's `www/store.js` over it |
+| "Could not confirm the purchase (401)" | Service-account permissions have not propagated yet, or `GOOGLE_SERVICE_ACCOUNT` is missing or malformed |
+| Sweep answers "The current user has insufficient permissions…" | The service account's Play permissions have not reached Google yet (up to 24 h), or were not saved |
+| Sweep answers "…has not been used in project … or it is disabled" | The Google Play Android Developer API is off in the service account's Cloud project |
+| "That purchase is already attached to another account" (409) | By design: one purchase, one account, claimed first-writer-wins (`grant_play_purchase`) |
+| "That purchase was refunded" (403) | By design: a refunded token is never granted again, even to a new account (`voided_tokens`) |
+| The screen says the payment is pending | A slow payment method. Nothing is granted or acknowledged until it clears; Play re-sends it then |
+| "Google could not find that purchase" (402) | Product ID mismatch, or the purchase was made against a different package |
+| Purchase succeeds, premium never arrives | Read the `play-verify` logs in the Supabase dashboard — every failure path logs |
+| Money taken, then refunded a few days later | The transaction was never finished. That is the deliberate order: acknowledge only after granting |
+| A refunded player still has premium | Play refunds are swept nightly. Run `select public.sweep_play_refunds();` to check now. If that does nothing, the two halves of `REFUND_SWEEP_SECRET` disagree, or the player has a second live purchase row |
+
+### Why the web does not sell
+
+Tax, not code. On Play, Google is the merchant of record: it charges the
+buyer's local VAT and remits it. Selling direct makes you the merchant, and EU
+VAT on digital goods is then yours from the first sale — there is no
+small-seller threshold for cross-border digital sales to consumers. For a
+channel that would see a fraction of Play's volume, that is a poor trade.
+
+The server half still exists: `stripe-webhook` is deployed but dormant (no
+secret, nothing pointing at it). It grants on `checkout.session.completed`,
+revokes on `charge.refunded` and `charge.dispute.created`, and records
+`payment_ref` so a refund finds its row. What was removed is the client half —
+a checkout button in `PremiumView` and the link config — because a payment
+link the app can open must never exist inside the Play build (anti-steering).
+
+If it is ever turned on, in rough order of effort: **Stripe + Stripe Tax**
+(0.5% per transaction; you still register, usually through One-Stop Shop), **a
+merchant-of-record reseller** (Paddle, Lemon Squeezy, FastSpring — about 5%
+plus fees, VAT stops being yours, least work by a distance, needs a different
+webhook), or **Stripe alone**, registering and filing yourself.
+
+The iOS equivalent would be StoreKit; the same plugin covers it.
+
+## Level variety — objects, rules and what each one costs
 
 **Built:** fans, zero-gravity zones, gravity wells, hazards, dead/rubber curve
 materials (player-set, per level, off by default), the Inversion pack
@@ -1596,7 +1715,7 @@ of every visible pack is authored — 70 of 70, `npm test` prints it — so none
 what follows is load-bearing any more. It is kept for the reasoning, and
 because the rules below are still the cheap way to widen what a level can ask
 for. What is left on the content side is tuning rather than authoring: goals,
-hints and recorded answers, per *Level & pack data* and the release checklist.
+hints and recorded answers, per *Level & pack data* and `TODO.md`.
 
 **Rules first — no engine work at all.** These multiply what an authored level
 can ask for without touching physics, and every one of them applies to levels
@@ -1674,6 +1793,284 @@ with what's drawn" and make the path trace unreadable), **random gusts**
 (kills determinism and the time leaderboard), **player-placed objects** (turns
 the game into a sandbox builder and makes scores incomparable).
 
+## Networks that hold the connection
+
+Some Russian networks hold the app's connection to Supabase for a minute or
+more. Nothing here is a bug in the app, and a different database would not fix
+it: Supabase's REST endpoint is Cloudflare-fronted, and that is what the
+filtering is aimed at. What the app does about it is under *Leaderboard
+integrity* above; this is the measurement, the decision, and the fix that was
+not bought.
+
+**Measured on 6 October 2026**, one account, VPN off:
+
+- **Home fibre (KOMTEHCENTR):** two levels cleared, both scores saved, the
+  leaderboards loaded. Same as 18–21 September — about 55 writes from that
+  ISP in 30 days and none lost.
+- **MTS mobile, Moscow:** one level cleared. The progress upload was built at
+  15:37:38 UTC and reached Supabase at 15:38:59 — **81 seconds later**, in one
+  burst with the leaderboard reads that had been waiting beside it. The app
+  had given up at 10 s and the leaderboard showed a timeout.
+- The same phone did the same on 17 September: it synced through a VPN, and
+  26 seconds later with the VPN off its preflights arrived and the uploads
+  behind them did not.
+
+So the connection is held — reads included — and sometimes let go. Two
+attempts on one SIM in one city is the whole sample.
+
+**Decision (7 October): no relay.**
+
+- Nearly every Russian player runs a VPN. In 30 days of logs every tester
+  with an account came in through a VPN exit on every session, and the only
+  tester device seen on a Russian network never signed in.
+- The game works without the server. Levels and progress are local; what a
+  player on a held connection loses is the leaderboard for that session, and
+  the score goes up later.
+- A relay is €3–5 a month, a box to keep patched, a domain to renew, and a
+  single point of failure for every player in the world.
+
+Revisit if players without a VPN turn out to be a real share of the audience.
+
+**Before trusting a measurement of this:**
+
+- **The request logs go back 30 days.** Each query is capped at a 24-hour
+  window, but the store answers for older days; walk it one day at a time.
+  On `edge_logs` the useful fields are `request.cf.country`,
+  `request.cf.asOrganization` (the ISP, or the VPN host),
+  `request.sb.auth_user`, `request.method` and `request.path`.
+- **A signed-out player sends no writes.** A country with GETs and no POSTs
+  proves nothing unless those requests carry `auth_user`.
+- **The edge log is not complete.** On 6 October it had no entry for an
+  upload the database proves arrived. The database is the witness:
+  `level_scores.submitted_at` is the server's clock, `progress.updated_at` is
+  the phone's, and the gap between that and the edge log's timestamp is how
+  long the request was held.
+- `client_errors.kind` only accepts `'error' | 'unhandledrejection' | 'react'`,
+  so a probe that posts any other kind gets 400 on every network.
+
+**The relay, if it is ever built.** Nothing leaves Supabase; only the address
+the app dials changes, to a host the filtering does not recognise, which
+forwards every request on unchanged.
+
+1. Rent the smallest VPS that answers from the affected network, by the hour.
+   **Not Hetzner** — it is one of the four networks Russia interferes with
+   (Cloudflare, Hetzner, DigitalOcean, OVH) and no longer serves Russian
+   customers. Verify it answers a signed-in upload from an MTS SIM with the
+   VPN off before paying for a month.
+2. Point `api.<domain>` at it and install Caddy. The whole config:
+
+   ```
+   api.example.com {
+     reverse_proxy https://<ref>.supabase.co {
+       header_up Host <ref>.supabase.co
+     }
+   }
+   ```
+
+   `header_up Host` is not optional — Supabase routes on the Host header, and
+   without it every request 404s.
+3. Set `window.SUPABASE_URL = 'https://api.example.com'` in `supabase-config.js`.
+4. Pin the session's storage key in `createClient` (`accounts.js`):
+   `auth: { storageKey: 'sb-<ref>-auth-token', … }`. supabase-js names the
+   saved session after the first label of the hostname, so without this the
+   new address signs every player out once.
+
+The relay becomes the only door for every player, so keep the direct Supabase
+address as a fallback. Supabase's own custom-domain add-on does not help: it
+still terminates on their Cloudflare edge.
+
+Admin saves go through `_write` and say so when they cannot get through. From
+an affected network, use a VPN.
+
+## Building and releasing the Android app
+
+The Android app is a [Capacitor](https://capacitorjs.com) WebView shell around
+`function-plane/`. `android/` is gitignored and lives only on the build
+machine. Commands below are for Windows, run from the project root unless a
+step says otherwise.
+
+**Prerequisites:** Node.js 18+ and Android Studio, which brings the JDK, Gradle
+and the Android SDK.
+
+### Every build
+
+```bat
+git pull origin main
+npm test
+npx cap sync android
+cd android && gradlew bundleRelease && cd ..
+```
+
+- `npm test` — if it fails, stop: something is wrong that a build will not
+  tell you about.
+- `npx cap sync android` copies `function-plane/` into the Android project.
+  **Skipping it is the classic mistake**: Gradle happily builds the previous
+  copy of the web app and you upload a build without your change.
+- The bundle to upload is
+  `android\app\build\outputs\bundle\release\app-release.aab` — not
+  `android\app\release\` (Android Studio's wizard) and nothing under
+  `build\intermediates\`.
+
+Before the build: `npm run snapshot:data` if any level was edited in the admin
+panel since the last one, and bump `sw.js`.
+
+### A new build number, every upload
+
+Play rejects any `versionCode` it has seen before, including uploads later
+discarded. Raise all of these together:
+
+| Where | What |
+|---|---|
+| `android\app\build.gradle` | `versionCode` (and `versionName` if 1.0 changes) |
+| `function-plane\src\store-config.js` | `FP_BUILD` |
+| `main-screen.jsx`, `settings-screen.jsx` | the `v 1.0 · build N` text, then `npm run build:jsx` |
+
+`npm test` checks the three in the repo agree; nothing checks them against
+`build.gradle`.
+
+### Check the bundle is signed
+
+An unsigned bundle is rejected at upload with a message that does not explain
+itself. From the project root:
+
+```bat
+"C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -printcert -jarfile android\app\build\outputs\bundle\release\app-release.aab
+```
+
+It prints the certificate; the SHA256 must match the keystore's
+(`keytool -list -v -keystore "%USERPROFILE%\function-plane-upload.jks" -alias function-plane`,
+which asks for the keystore password). The upload key's SHA256 starts
+`A9:28:DA:F5`. If `-printcert` says the file is unsigned,
+`android\keystore.properties` is missing or wrong.
+
+### Put it on a phone
+
+A `.aab` cannot be installed. Build an APK:
+
+```bat
+cd android && gradlew assembleRelease && cd ..
+```
+
+It lands at `android\app\build\outputs\apk\release\app-release.apk`. Copy it to
+the phone and tap it, or with USB debugging on:
+
+```bat
+"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" install -r android\app\build\outputs\apk\release\app-release.apk
+```
+
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` means a copy signed with a different key
+is installed (the Play one is); uninstalling it deletes that copy's local
+progress. A sideloaded build cannot buy premium — Play offers the product only
+to a Play-installed one.
+
+### The keystore
+
+**The one irreversible thing in the project.** It proves an update comes from
+you; lose it and `app.functionplane` can never be updated again. It lives
+outside the repo at `%USERPROFILE%\function-plane-upload.jks` (alias
+`function-plane`, PKCS12, valid to 2054), and `android\keystore.properties`
+holds its path and passwords in plain text — gitignored, and it must stay that
+way. Keep a copy on a drive away from this machine, a copy in cloud storage,
+and the file plus its password in a password manager. Play App Signing is on,
+which lets Google re-issue the upload key if it is lost; it does not replace
+the backups.
+
+### If `android/` is ever regenerated
+
+`npx cap add android` rewrites `app\build.gradle` and wipes the signing block,
+which produces an unsigned bundle that only fails at upload. After regenerating:
+restore `keystore.properties` and the `signingConfigs` block, recreate
+`local.properties` (`sdk.dir=…`), set `versionCode` back, check
+`variables.gradle` reads `targetSdkVersion = 36` (Play's floor since
+31 August 2026), then `npx cap sync android` and confirm with `-printcert`.
+
+### When something goes wrong
+
+| Message | Fix |
+|---|---|
+| `'gradlew' is not recognized` | Run it from `android`; the file is `android\gradlew.bat` |
+| `JAVA_HOME is not set` / `Unsupported class file major version` | `set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr` in that terminal |
+| `SDK location not found` | `android\local.properties` is missing — it is machine-specific and never arrives with the repo |
+| Build succeeds but the app looks unchanged | `npx cap sync android` was skipped |
+| `keytool` says the keystore password was incorrect | PKCS12 uses one password for both store and key |
+| Console: "Version code N has already been used" | Raise `versionCode` and rebuild |
+| The app cannot reach Supabase | Supabase → Authentication → URL Configuration must allow `https://localhost`, the native shell's origin |
+| White screen on launch | `npx cap sync android` again |
+
+### iOS
+
+Not built. It needs a Mac, Xcode and an Apple developer account:
+`npm run cap:add:ios` once, then `npm run ios:build` → Xcode → Archive →
+Upload. Purchases would go through StoreKit.
+
+## Play Console — listing, declarations and release
+
+The app is `app.functionplane`. Closed testing finished on 25 September 2026.
+Everything here is written to be literally true of the shipped app — if the
+app changes, the declarations change with it.
+
+### Listing
+
+| Field | Value |
+|---|---|
+| App name | `Function Plane` |
+| Short description | `store-assets/short-description.txt` |
+| Full description | `store-assets/full-description.txt` (plain text; the Console takes no markdown) |
+| App icon | `store-assets/icon-512.png`, resized from `assets/icon.png` — regenerate it when the art changes; `@capacitor/assets` only writes mipmaps up to 192px |
+| Feature graphic | `store-assets/feature-graphic-1024x500.png` |
+| Phone screenshots | `store-assets/screenshots/` — upload `01` to `08` in file order; `09` and `10` are spares. Captured from the running app at 1080×1920 against the authored levels (25 September); re-capture when a pictured board or screen changes |
+| Category | Game ▸ **Puzzle**. Tags: Physics, Brain games, Logic puzzle, Education |
+| Contact | functionplane.support@gmail.com, website https://functionplane.pages.dev, no phone |
+| Privacy policy | https://functionplane.pages.dev/privacy.html |
+| Price | Free. Contains ads: **No**. In-app purchases: **Yes** — one product, `premium_lifetime` |
+
+### Declarations
+
+- **App access: Yes, with a reviewer login.** Sign-in is optional, but
+  answering No fails the pre-review check with *Missing sign in details*. The
+  login is a throwaway account made through the app's own sign-up (`Base
+  Account`). Keep it alive and its password unchanged — a dead login is a
+  rejection reason on every later update. Never hand over the admin account.
+- **Ads: none.** Advertising ID: not used. There is no ad SDK in the bundle.
+- **Content rating:** category Game, No to every substantive question, except
+  **Purchases of digital goods: Yes** since billing shipped. Users see each
+  other's display names and scores on leaderboards and nothing else; there is
+  no chat. Result: PEGI 3 / ESRB Everyone.
+- **Target audience:** 13–15, 16–17, 18+. Never tick a band under 13 — the
+  privacy policy sets 13 as the floor, and a younger band pulls the app into
+  Designed for Families. Not a government app, no financial or health features.
+- **Account creation:** username and password only. **Account deletion:**
+  `https://functionplane.pages.dev/delete-account.html`, and in the app at
+  Account ▸ Delete account, which removes the profile, progress, scores and the
+  sign-in account itself.
+
+**Data safety.** Collected, encrypted in transit (HTTPS to Supabase only),
+never shared, and none of it required to play:
+
+| Type | Linked to the user | Purpose |
+|---|---|---|
+| Personal info ▸ Email address | Yes | Account management |
+| Personal info ▸ User IDs (display name) | Yes | Account management, app functionality |
+| App activity ▸ In-app actions (progress, scores, times) | Yes | App functionality |
+| App info and performance ▸ Crash logs | **No** — message, trace, screen and build only (`error-log.js`) | App functionality |
+| Financial info ▸ Purchase history | Yes — the `purchases` row | App functionality |
+
+Everything else is declared not collected, including location, contacts,
+device IDs, the advertising ID, diagnostics, and every financial type other
+than purchase history: card details and billing addresses stay with Google
+Play and never reach us.
+
+### Going to production
+
+1. Upload the build to the closed track and let testers update.
+2. Apply for **production access** — a short questionnaire about how testing
+   went. It needed 12+ testers opted in for 14 continuous days, which closed
+   testing met.
+3. Promote the build to production with a **staged rollout**, about 20% first,
+   and watch vitals before widening. The first production review takes days
+   rather than hours.
+4. The same day, point the website at the listing (see `TODO.md`).
+
 ## Non-obvious files worth knowing about
 
 - `function-plane/src/physics-engine.js`, `equation-classifier.js`,
@@ -1700,10 +2097,9 @@ the game into a sandbox builder and makes scores incomparable).
 
 | Target | How |
 |---|---|
-| Android APK | `npm run android:build` → Android Studio → Build APK |
-| Cloudflare Pages | Push to `main`; build-output directory is `function-plane`, root directory blank, no build command. Setting both to `function-plane` produces a 404 (looks in `function-plane/function-plane/`). |
-| iOS TestFlight | Needs Mac. `npm run cap:add:ios` (first time), then `npm run ios:build` → Xcode → Archive → Upload |
-
-Full walkthrough (prerequisites, device testing, troubleshooting) is in
-`MOBILE-BUILD.md`.
-
+| Web (Cloudflare Pages) | Push to `main`. Build-output directory is `function-plane`, root directory blank, no build command. Setting both to `function-plane` produces a 404 (it looks in `function-plane/function-plane/`). |
+| Android | *Building and releasing the Android app* above, then upload the `.aab` in Play Console |
+| Level, pack and achievement data | Nothing to deploy: edited in the admin panel, live on every player's next launch. Re-run `npm run snapshot:data` before the next build so offline boots match |
+| Database | `supabase/migrations/` is the record; apply a new file through the Supabase SQL editor or MCP, and keep the file in the repo |
+| Website | A separate repo (`qwidzit/Function-Plane-Website`); `legal/` here is the source for its three legal pages |
+| iOS | Not built — needs a Mac |
