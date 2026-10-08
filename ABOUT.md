@@ -61,7 +61,10 @@ at runtime. A new top-level file needs three additions in lockstep: the
 check in the `mount()` polling guard near the bottom of `app.jsx`
 (`setTimeout(mount, 30)` until every global it needs exists; skipping this
 creates a race where React tries to render a component before its script has
-finished parsing).
+finished parsing). After ten seconds of polling `mount()` gives up, reports
+which globals never arrived through `FP_ERRORS` and renders a reload button,
+and the tree is wrapped in an `ErrorBoundary` that does the same for a render
+that throws — React 18 otherwise unmounts everything and leaves a blank page.
 
 > **Use the pinned Babel and a full rebuild is free.** `package.json` pins
 > `@babel/core` and `@babel/preset-react` at **7.29.7**, and the committed

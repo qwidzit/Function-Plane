@@ -561,7 +561,7 @@ function PremiumView({ onBack, padX }) {
             Premium is active on this account
           </div>
         ) : onPlay ? (
-          <button onClick={onBuy} style={{ width:'100%', height:54, borderRadius:16, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:16, fontWeight:600 }}>Unlock for {price}</button>
+          <button onClick={onBuy} disabled={busy} style={{ width:'100%', height:54, borderRadius:16, background:'var(--fp-accent)', color:'var(--fp-accent-ink)', fontSize:16, fontWeight:600, opacity:busy?0.6:1 }}>{busy ? 'Opening Google Play…' : `Unlock for ${price}`}</button>
         ) : (
           // Nothing to buy on the web. Say where it is sold rather than
           // showing a button that cannot complete, and point at the listing

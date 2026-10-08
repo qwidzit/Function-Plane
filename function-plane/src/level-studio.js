@@ -145,9 +145,9 @@ function fileToLevel(doc) {
     stars,
     // An unknown kind draws nothing and does nothing; getLevelData drops one
     // on the same grounds rather than carrying a hole around.
-    objects: (Array.isArray(doc.objects) ? doc.objects : []).filter(o => o && Object.prototype.hasOwnProperty.call(FP_OBJECTS.KINDS, o.kind)).map(o => ({
-      ...o
-    })),
+    // Every field goes through setField, so a value that is not a number, or
+    // is out of range, reads as the registry's default or its clamp.
+    objects: (Array.isArray(doc.objects) ? doc.objects : []).filter(o => o && Object.prototype.hasOwnProperty.call(FP_OBJECTS.KINDS, o.kind)).map(o => FP_OBJECTS.KINDS[o.kind].fields.reduce((acc, f) => FP_OBJECTS.setField(acc, f.k, Number(o[f.k])), FP_OBJECTS.makeObject(o.kind))),
     equations,
     scoreGoal: goalIn(doc.scoreGoal),
     eqGoal: goalIn(doc.eqGoal),

@@ -1315,6 +1315,7 @@ function PremiumView({
     }
   }, "Premium is active on this account") : onPlay ? /*#__PURE__*/React.createElement("button", {
     onClick: onBuy,
+    disabled: busy,
     style: {
       width: '100%',
       height: 54,
@@ -1322,9 +1323,10 @@ function PremiumView({
       background: 'var(--fp-accent)',
       color: 'var(--fp-accent-ink)',
       fontSize: 16,
-      fontWeight: 600
+      fontWeight: 600,
+      opacity: busy ? 0.6 : 1
     }
-  }, "Unlock for ", price) :
+  }, busy ? 'Opening Google Play…' : `Unlock for ${price}`) :
   /*#__PURE__*/
   // Nothing to buy on the web. Say where it is sold rather than
   // showing a button that cannot complete, and point at the listing

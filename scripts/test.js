@@ -1643,6 +1643,8 @@ const screens = (() => {
     useMemo: fn => fn(), useCallback: fn => fn,
     useReducer: (r, init) => [init, () => {}],
     memo: c => c, forwardRef: c => c,
+    // app.jsx's ErrorBoundary is a class; a base with the one method it calls.
+    Component: class { constructor(props) { this.props = props; this.state = {}; } setState() {} },
   };
   const el = () => ({
     style: {}, classList: { add() {}, remove() {} },

@@ -637,7 +637,51 @@ function PlaceholderScreen({ title, subtitle, onBack }) {
   );
 }
 
+// A render that throws unmounts the whole tree in React 18, leaving a blank
+// page with nothing to tap. This catches it, reports it the way an uncaught
+// error is reported, and offers a reload.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error) {
+    window.FP_ERRORS?.report('react', error?.message || String(error), error?.stack);
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <BootFailed message="Something went wrong on this screen." />;
+  }
+}
+
+function BootFailed({ message }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center', background: 'var(--fp-bg)', color: 'var(--fp-ink)' }}>
+      <div style={{ fontSize: 15, lineHeight: 1.5 }}>{message}</div>
+      <button onClick={() => window.location.reload()} style={{ height: 46, padding: '0 22px', borderRadius: 14, background: 'var(--fp-ink)', color: 'var(--fp-bg)', fontSize: 14, fontWeight: 500 }}>
+        Reload
+      </button>
+    </div>
+  );
+}
+
+// Polled until every script has parsed. A script that never arrives — a bad
+// deploy, a stale cache — used to poll forever behind a hidden splash, with
+// nothing on screen and nothing reported.
+const MOUNT_WAIT_MS = 10000;
+const mountStarted  = Date.now();
+
 function mount() {
+  const missing = [
+    'MainScreen', 'PackSelector', 'LevelSelector', 'SettingsScreen', 'LevelScreen',
+    'LevelCompletePopup', 'HowToPlayScreen', 'AchievementsScreen', 'AccountScreen',
+    'AdminScreen', 'LevelStudio', 'FP_OBJECTS', 'LegalScreen', 'MathKeyboard', 'MathField',
+    'freshProgress', 'Icon', 'FP_AUTH',
+  ].filter(n => typeof window[n] === 'undefined');
+  if (missing.length && Date.now() - mountStarted > MOUNT_WAIT_MS) {
+    window.FP_ERRORS?.report('error', 'boot: missing ' + missing.join(', '));
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <BootFailed message="The game could not load. Check your connection and try again." />);
+    return;
+  }
   if (
     typeof MainScreen === 'undefined' ||
     typeof PackSelector === 'undefined' ||
@@ -660,6 +704,6 @@ function mount() {
   ) {
     return setTimeout(mount, 30);
   }
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
 }
 mount();

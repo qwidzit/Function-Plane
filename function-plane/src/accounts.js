@@ -40,7 +40,10 @@
   // what a filtered network looks like; the App adds the VPN advice to those.
   const _isNetErr = e => /timed out|failed to fetch|networkerror|load failed/i.test(e?.message || '');
   function _emitSyncError(msg, network = _isNetErr({ message: msg })) {
-    const detail = { msg, network: network && navigator.onLine };
+    // Offline, a request that failed for being offline is not news: the
+    // Offline pill already says it, and each boot used to add red toasts.
+    if (network && !navigator.onLine) return;
+    const detail = { msg, network };
     try { window.dispatchEvent(new CustomEvent('fp-sync-error', { detail })); }
     catch {}
   }
@@ -187,7 +190,19 @@
   // Take the session's identity now, from whatever is cached, and confirm it
   // against the server afterwards. Every await in here used to sit between the
   // player and their own save file.
-  async function _adoptSession(user, download) {
+  // INITIAL_SESSION and getSession() both adopt at boot; the second caller
+  // joins the first rather than reading the profile and the save twice.
+  let _adopting = null;
+  function _adoptSession(user, download) {
+    if (_adopting?.id === user.id) return _adopting.promise;
+    const promise = _adoptSessionNow(user, download).finally(() => {
+      if (_adopting?.promise === promise) _adopting = null;
+    });
+    _adopting = { id: user.id, promise };
+    return promise;
+  }
+
+  async function _adoptSessionNow(user, download) {
     if (_pendingGuest) {
       _pendingGuest = false;
       const guest = _loadProgress(GUEST_KEY);
