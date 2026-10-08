@@ -293,10 +293,7 @@ function LevelRow({
       fontSize: 14,
       fontWeight: 500,
       color: 'var(--fp-ink)',
-      minWidth: 0,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      minWidth: 0
     }
   }, window.getLevelName ? getLevelName(pack.id, index) : LEVEL_NAMES[index]), status === 'cleared' && stars === 3 && /*#__PURE__*/React.createElement("span", {
     style: {

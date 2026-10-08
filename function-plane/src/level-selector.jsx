@@ -169,7 +169,8 @@ function LevelRow({ index, pack, stars, starBits, best, unlocked, attempted, cle
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--fp-ink)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {/* Wraps rather than truncates: a two-line name beats "Tunnel vis…". */}
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--fp-ink)', minWidth: 0 }}>
             {(window.getLevelName ? getLevelName(pack.id, index) : LEVEL_NAMES[index])}
           </span>
           {status === 'cleared' && stars === 3 && (
