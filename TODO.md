@@ -53,11 +53,10 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 |---|---|---|
 | 1 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
 | 2 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
-| 3 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
-| 4 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
-| 5 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
-| 6 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
-| 7 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
+| 3 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
+| 4 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 5 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
+| 6 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
 
 ## Any time, in the admin panel
 
