@@ -24,12 +24,20 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   the build machine, `sw.js` is at `fp-v101`, and the level snapshot is
   current as of 7 October. The web build at functionplane-game.pages.dev
   already serves all of it.
-- **Build 4 was uploaded on 8 October** with the audit's fixes. **Build 5 is
-  in the repo**: it adds *Pacesetter*, the achievement for holding the
-  fastest time on any level's board (`my_time_firsts()`, asked after every
-  score upload), bounds the Play restore query so "Checking…" always ends,
-  and lets a level name wrap beside its badge instead of truncating, which
-  Build 4 got wrong. `versionCode` is 5, `sw.js` is at `fp-v104`.
+- **Build 5 was uploaded on 9 October** to the closed track. Over Build 4
+  (8 October, the audit's fixes) it adds *Pacesetter*, the achievement for
+  holding the fastest time on any level's board (`my_time_firsts()`, asked
+  after every score upload), bounds the Play restore query so "Checking…"
+  always ends, shows the offline notice for five seconds instead of the
+  whole session, and lets a level name wrap beside its badge instead of
+  truncating. `versionCode` is 5, `sw.js` is at `fp-v105`. The Rate and
+  Google Play buttons and the studio's Export were tapped on the installed
+  build and work.
+- **The refund test is mid-flight.** The test order was refunded without the
+  revoke option, which Google's voided-purchases feed deliberately omits, then
+  revoked through `orders.refund?revoke=true` in the API explorer (204). The
+  feed had not listed it as of 9 October 11:00 UTC; the nightly sweep will
+  pick it up when it does.
 - **Database and website are already current.** Every migration through
   `20261009_stripe_purchase_integrity.sql` is applied, the dormant Stripe
   webhook is redeployed against its grant RPC, and the May APK is gone from
@@ -43,15 +51,13 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Your machine | **Build and upload Build 4** to the closed track: `git pull`, `npm test`, `npx cap sync android` (the Android assets are still at `fp-v95` — the sync is the step that matters), `cd android && gradlew bundleRelease`. Steps and the signing check are in *Building and releasing the Android app* in `ABOUT.md` |
-| 2 | Phone | **Two taps the audit could not confirm from code**, on the installed Build 4: the Rate button and the premium screen's *Get it on Google Play* (both `window.open`), and one Export from the studio (a blob download). If either does nothing in the WebView, say so — the fix is routing them through Capacitor's Browser and Filesystem plugins |
-| 3 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
-| 4 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
-| 5 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
-| 6 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
-| 7 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
-| 8 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
-| 9 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
+| 1 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
+| 2 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
+| 3 | Play Console | **Replace the screenshots** with `store-assets/screenshots/01`–`08`, in that order |
+| 4 | Play Console | **Confirm the listing's In-app purchases answer reads Yes.** The product itself is active — the purchase proved that |
+| 5 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 6 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
+| 7 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
 
 ## Any time, in the admin panel
 
