@@ -91,15 +91,24 @@ function App() {
   const prevUnlockedRef = useRef(new Set());
 
   // Online / offline indicator (so the player knows their progress is queued)
-  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  // Said once, for five seconds, each time the connection goes — at boot or
+  // later — not for as long as it stays gone: the pill sat over the keyboard
+  // for the whole of an offline session.
+  const [offlineNotice, setOfflineNotice] = useState(false);
   useEffect(() => {
+    let timer;
+    const down = () => {
+      setOfflineNotice(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setOfflineNotice(false), 5000);
+    };
     // Back online: refresh the data version check too, so an offline boot
     // picks up pending level updates as soon as the network returns.
-    const up = () => { setOnline(true); reloadOverrides(); };
-    const down = () => setOnline(false);
+    const up = () => { clearTimeout(timer); setOfflineNotice(false); reloadOverrides(); };
+    if (typeof navigator !== 'undefined' && !navigator.onLine) down();
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
-    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+    return () => { clearTimeout(timer); window.removeEventListener('online', up); window.removeEventListener('offline', down); };
   }, []);
 
   // Sync-error toast (Supabase upload failures). A request that got no answer
@@ -465,8 +474,8 @@ function App() {
         />
       )}
 
-      {/* Offline indicator (shows only when offline) */}
-      {!online && (
+      {/* Offline notice: five seconds after the connection goes, then gone */}
+      {offlineNotice && (
         <div style={{
           position: 'absolute', bottom: 'env(safe-area-inset-bottom, 0px)', left: 0, right: 0,
           display: 'flex', justifyContent: 'center', zIndex: 9998, pointerEvents: 'none',

@@ -112,18 +112,29 @@ function App() {
   const prevUnlockedRef = useRef(new Set());
 
   // Online / offline indicator (so the player knows their progress is queued)
-  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  // Said once, for five seconds, each time the connection goes — at boot or
+  // later — not for as long as it stays gone: the pill sat over the keyboard
+  // for the whole of an offline session.
+  const [offlineNotice, setOfflineNotice] = useState(false);
   useEffect(() => {
+    let timer;
+    const down = () => {
+      setOfflineNotice(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setOfflineNotice(false), 5000);
+    };
     // Back online: refresh the data version check too, so an offline boot
     // picks up pending level updates as soon as the network returns.
     const up = () => {
-      setOnline(true);
+      clearTimeout(timer);
+      setOfflineNotice(false);
       reloadOverrides();
     };
-    const down = () => setOnline(false);
+    if (typeof navigator !== 'undefined' && !navigator.onLine) down();
     window.addEventListener('online', up);
     window.addEventListener('offline', down);
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('online', up);
       window.removeEventListener('offline', down);
     };
@@ -575,7 +586,7 @@ function App() {
     key: toastQueue[0].id,
     name: toastQueue[0].name,
     onDone: () => setToastQueue(q => q.slice(1))
-  }), !online && /*#__PURE__*/React.createElement("div", {
+  }), offlineNotice && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
       bottom: 'env(safe-area-inset-bottom, 0px)',
