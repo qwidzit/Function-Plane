@@ -33,11 +33,12 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   truncating. `versionCode` is 5, `sw.js` is at `fp-v105`. The Rate and
   Google Play buttons and the studio's Export were tapped on the installed
   build and work.
-- **The refund test is mid-flight.** The test order was refunded without the
-  revoke option, which Google's voided-purchases feed deliberately omits, then
-  revoked through `orders.refund?revoke=true` in the API explorer (204). The
-  feed had not listed it as of 9 October 11:00 UTC; the nightly sweep will
-  pick it up when it does.
+- **The refund is proven server-side** (10 October). The test order was refunded
+  without the revoke option, then revoked through `orders.refund?revoke=true` in
+  the API explorer; Google's voided-purchases feed never listed it, so the sweep
+  now also re-checks every live ledger row with `products.get`. The first run
+  voided the row and took Premium off the account. What is left of the proof is
+  on the phone: Restore must report the refund.
 - **Database and website are already current.** Every migration through
   `20261009_stripe_purchase_integrity.sql` is applied, the dormant Stripe
   webhook is redeployed against its grant RPC, and the May APK is gone from
@@ -51,7 +52,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Phone, Supabase | **Finish proving payments** on the uploaded build: Restore purchases on a second device; refund the test order in Play Console, run `select public.sweep_play_refunds();`, and confirm Premium is taken back and Restore then says the purchase was refunded. The steps are *Proving it works* in `ABOUT.md` |
+| 1 | Phone | **Finish proving payments:** press *Restore purchases* on the refunded account and confirm it says the purchase was refunded. Restore on a second device, with Premium arriving, is still unproven; it needs a fresh licence-tester purchase, since a refunded token is never granted again |
 | 2 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
 | 3 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
 | 4 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
