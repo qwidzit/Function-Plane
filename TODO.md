@@ -59,8 +59,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 | # | Where | What |
 |---|---|---|
 | 1 | Play Console | **Apply for production access**, turn on managed publishing, then promote Build 5 to production at **100%**. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
-| 2 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
-| 3 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
+| 2 | Website repo | **On launch day:** the change is ready on the local `launch-day` branch of `Function-Plane-Website/` (commit `90df701`: hero notice, Google Play card and download note point at the listing). From that folder: `git checkout main && git merge launch-day && git push`. Pages deploys it within a minute |
 
 ## Any time, in the admin panel
 
