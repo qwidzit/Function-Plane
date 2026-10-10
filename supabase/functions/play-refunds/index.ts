@@ -117,8 +117,34 @@ Deno.serve(async req => {
       pageToken = body.tokenPagination?.nextPageToken || '';
     } while (pageToken);
 
-    console.log(`play-refunds: ${seen} voided purchases from Google, ${revoked} newly voided here`);
-    return new Response(JSON.stringify({ seen, revoked }), {
+    // The feed is not the whole story: a refund issued without the revoke
+    // option, and a licence-tester order revoked afterwards, never appear in
+    // it (measured 9 October: products.get said cancelled, the feed said
+    // nothing, for fifteen hours). So every purchase still live in the
+    // ledger is asked about directly — a handful of calls, once a day.
+    const { data: live, error: liveErr } = await admin
+      .from('purchases').select('token, product_id').eq('platform', 'play').is('voided_at', null);
+    if (liveErr) throw new Error(liveErr.message);
+    let checked = 0, cancelled = 0;
+    for (const row of live || []) {
+      const res = await fetch(
+        `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}`
+        + `/purchases/products/${row.product_id}/tokens/${encodeURIComponent(row.token)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      // 404 is a token Google no longer knows; anything else unexpected is
+      // left for the next run rather than guessed at.
+      if (!res.ok && res.status !== 404) { console.warn('play-refunds: products.get', res.status, row.token.slice(0, 12)); continue; }
+      checked++;
+      const receipt = res.ok ? await res.json() : null;
+      // 0 purchased, 1 cancelled, 2 pending. Pending stays live.
+      if (receipt && receipt.purchaseState !== 1) continue;
+      const { data } = await admin.rpc('void_purchase', { p_token: row.token });
+      if (data === true) { cancelled++; revoked++; }
+    }
+
+    console.log(`play-refunds: ${seen} voided purchases from Google, ${checked} live purchases re-checked, ${cancelled} cancelled, ${revoked} newly voided here`);
+    return new Response(JSON.stringify({ seen, checked, cancelled, revoked }), {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
   } catch (e) {

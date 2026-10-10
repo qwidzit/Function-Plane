@@ -1175,7 +1175,11 @@ re-look against real play. Records already stored keep their stars.
   two accounts racing the same token cannot both win, and a refund is final.
   "Ever refunded" is `voided_tokens`, a SHA-256 of each voided token linked to
   no one, so it outlives the account the purchase was on without keeping
-  personal data. The refund sweep reads Google's full 30-day window.
+  personal data. The refund sweep reads Google's full 30-day voided-purchases
+  window **and** re-checks every live Play row with `products.get`: the feed
+  omits a refund issued without the revoke option and a licence-tester order
+  revoked afterwards (measured 9 October: `purchaseState: 1` from
+  `products.get`, nothing in the feed for fifteen hours).
 - `FP_AUTH.refreshEntitlement()` re-reads the profile and notifies
   subscribers. That is what the premium screen's **Restore purchases** button
   calls: the entitlement is account-based, so re-reading it restores a
