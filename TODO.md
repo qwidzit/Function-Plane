@@ -37,8 +37,10 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   without the revoke option, then revoked through `orders.refund?revoke=true` in
   the API explorer; Google's voided-purchases feed never listed it, so the sweep
   now also re-checks every live ledger row with `products.get`. The first run
-  voided the row and took Premium off the account. What is left of the proof is
-  on the phone: Restore must report the refund.
+  voided the row and took Premium off the account. Restore on the phone then
+  reported the refund. Restore on a second device, with Premium arriving, has
+  not been exercised; it would need a fresh licence-tester purchase, since a
+  refunded token is never granted again.
 - **Database and website are already current.** Every migration through
   `20261009_stripe_purchase_integrity.sql` is applied, the dormant Stripe
   webhook is redeployed against its grant RPC, and the May APK is gone from
@@ -52,11 +54,10 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Phone | **Finish proving payments:** press *Restore purchases* on the refunded account and confirm it says the purchase was refunded. Restore on a second device, with Premium arriving, is still unproven; it needs a fresh licence-tester purchase, since a refunded token is never granted again |
-| 2 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
-| 3 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
-| 4 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
-| 5 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
+| 1 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
+| 2 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 3 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
+| 4 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
 
 ## Any time, in the admin panel
 
