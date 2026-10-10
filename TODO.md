@@ -55,7 +55,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 | # | Where | What |
 |---|---|---|
 | 1 | Supabase | **Reset best times for everyone**, once the testers have a build from 3 onward: `select public.reset_times();` in the SQL editor. It stamps `game_state.times_reset_at` and clears every stored time; stars, scores and equations stay. A device on Build 3 or later drops its own pre-reset times the next time it connects and keeps any set after, even offline; since Build 4 a device clock set in the past cannot date a new time before the cutoff. Build 2 keeps saving stars and scores but its times carry no date and are dropped. It has not been run (`times_reset_at` is null) |
-| 2 | Play Console | **Apply for production access**, then promote the build with a staged rollout, about 20% first |
+| 2 | Play Console | **Apply for production access**, turn on managed publishing, then promote Build 5 to production at **100%**. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
 | 3 | Website repo | **On launch day:** the homepage still says "Not on Google Play yet — it is in closed testing" and shows a "Soon on Google Play" badge (the APK download is already gone). Point it at `https://play.google.com/store/apps/details?id=app.functionplane` |
 | 4 | Website repo | **The password-reset page accepts 6 characters.** `auth/reset.html` has `MIN_LENGTH = 6` and the hint "At least 6 characters"; Auth refuses anything under 8. Set both to 8. Any time |
 

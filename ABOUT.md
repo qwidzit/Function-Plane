@@ -2094,9 +2094,14 @@ Play and never reach us.
 2. Apply for **production access** — a short questionnaire about how testing
    went. It needed 12+ testers opted in for 14 continuous days, which closed
    testing met.
-3. Promote the build to production with a **staged rollout**, about 20% first,
-   and watch vitals before widening. The first production review takes days
-   rather than hours.
+3. Promote the build to production at **100%**. A staged rollout on a first
+   release is a cap on installs — there is no older version for the other
+   share to keep, so they are turned away from a live listing — and a new
+   indie listing's first days are small enough that it protects nothing.
+   From the next build on, stage updates (20% → 50% → 100%, a day or two at
+   each while vitals and `client_errors` stay quiet): there the others simply
+   keep the build they have, and a halt stops a fault before most meet it.
+   The first production review takes days rather than hours.
 4. The same day, point the website at the listing (see `TODO.md`).
 
 ## Non-obvious files worth knowing about
