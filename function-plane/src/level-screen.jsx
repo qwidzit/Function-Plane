@@ -1064,10 +1064,12 @@ function DomValBtn({ segId, val, domKb, onTap, label }) {
 // eqId scopes each segment's NumPad id. Without it two equations' first
 // segments both answer to "0-min", so opening one highlighted and echoed the
 // keypad value into every equation's matching field at once.
-function DomainEditor({ eqId, domain, disabled, onChange, domKb, onDomInput }) {
+function DomainEditor({ eqId, domain, disabled, onChange, domKb, onDomInput, onDomClose }) {
   const segs = domain || [];
-  const add    = () => !disabled && onChange([...segs, { xMin:-5, xMax:5 }]);
-  const remove = i => !disabled && onChange(segs.filter((_,j)=>j!==i));
+  // An open keypad writes to a segment by its place in the list as it was
+  // when it opened, so anything that changes the list closes it first.
+  const add    = () => { if (disabled) return; onDomClose(); onChange([...segs, { xMin:-5, xMax:5 }]); };
+  const remove = i => { if (disabled) return; onDomClose(); onChange(segs.filter((_,j)=>j!==i)); };
   const update = (i, k, v) => onChange(segs.map((s,j)=>j===i?{...s,[k]:v}:s));
 
   return (
@@ -1210,16 +1212,27 @@ function MaterialIcon({ m }) {
 // place of the field, with the equation kept in view above, so the numbers,
 // the equation and the curve stay on screen together.
 const SHIFT_STEP = 0.5;
-function EqSettings({ eq, onChange, disabled, materialsOn, domKb, onDomInput }) {
+function EqSettings({ eq, onChange, onEdit, disabled, materialsOn, domKb, onDomInput, onDomClose }) {
   const shift = eq.shift || { x: 0, y: 0 };
-  const setShift = (k, v) => {
-    const next = { ...shift, [k]: Math.round(v * 100) / 100 };
-    onChange({ shift: next.x || next.y ? next : null });
-  };
+  // From the row as it is now, not as it was drawn: an open keypad holds on to
+  // this until it closes, and the other axis may have been nudged since.
+  const setShift = (k, v) => onChange(e => {
+    const next = { ...(e.shift || { x: 0, y: 0 }), [k]: Math.round(v * 100) / 100 };
+    return { shift: next.x || next.y ? next : null };
+  });
+  const padId = k => `${eq.id}-shift-${k}`;
+  const openPad = (k, v) => onDomInput(padId(k), v, n => setShift(k, n), `move along ${k}`);
   const label = { fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fp-ink-3)',
     width:52, flex:'0 0 52px' };
   const nudge = (k, d) => (
-    <button onPointerDown={e=>{e.preventDefault(); if (!disabled) setShift(k, shift[k] + d);}}
+    <button onPointerDown={e=>{
+        e.preventDefault();
+        if (disabled) return;
+        const v = Math.round((shift[k] + d) * 100) / 100;
+        setShift(k, v);
+        // A keypad open on this number goes on showing what it is editing.
+        if (domKb?.id === padId(k)) openPad(k, v);
+      }}
       aria-label={`${k} ${d > 0 ? 'plus' : 'minus'}`} style={{
       width:26, height:28, borderRadius:6, border:'1px solid var(--lv-line)',
       background:'var(--fp-surface)', color:'var(--fp-ink-2)', fontSize:15, lineHeight:1,
@@ -1227,10 +1240,13 @@ function EqSettings({ eq, onChange, disabled, materialsOn, domKb, onDomInput }) 
   );
   return (
     <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:8, padding:'8px 8px 8px 0' }}>
-      <div style={{ fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:13, color:'var(--fp-ink-2)',
+      {/* The equation is the way back to itself. A click, not a press: this
+          line is most of what a finger lands on when it scrolls the list. */}
+      <button onClick={onEdit} aria-label="Edit the equation" style={{
+        fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:13, color:'var(--fp-ink-2)',
         whiteSpace:'nowrap', overflow:'hidden', display:'flex', alignItems:'center', minHeight:22 }}>
         <MathExpr src={eq.expr}/>
-      </div>
+      </button>
       {materialsOn && (
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <span style={label}>Bounce</span>
@@ -1262,8 +1278,8 @@ function EqSettings({ eq, onChange, disabled, materialsOn, domKb, onDomInput }) 
             <div key={k} style={{ display:'flex', alignItems:'center', gap:3 }}>
               <span className="fp-mono" style={{ fontSize:11, color:'var(--fp-ink-3)', width:12 }}>{k}</span>
               {nudge(k, -SHIFT_STEP)}
-              <DomValBtn segId={`${eq.id}-shift-${k}`} val={shift[k]} domKb={domKb} label={`move along ${k}`}
-                onTap={() => !disabled && onDomInput(`${eq.id}-shift-${k}`, shift[k], v => setShift(k, v), `move along ${k}`)}/>
+              <DomValBtn segId={padId(k)} val={shift[k]} domKb={domKb} label={`move along ${k}`}
+                onTap={() => !disabled && openPad(k, shift[k])}/>
               {nudge(k, SHIFT_STEP)}
             </div>
           ))}
@@ -1273,19 +1289,24 @@ function EqSettings({ eq, onChange, disabled, materialsOn, domKb, onDomInput }) 
         <span style={{ ...label, paddingTop:7 }}>Domain</span>
         <DomainEditor eqId={eq.id} domain={eq.domain} disabled={disabled}
           onChange={domain => onChange({ domain: domain.length ? domain : null })}
-          domKb={domKb} onDomInput={onDomInput}/>
+          domKb={domKb} onDomInput={onDomInput} onDomClose={onDomClose}/>
       </div>
     </div>
   );
 }
 
-function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDomInput, missing, onAddSliders, materialsOn }) {
+function EqRow({ idx, eq, onChange, onRemove, disabled, active, onActivate, onSettings, domKb, onDomInput, onDomClose,
+                 missing, onAddSliders, materialsOn }) {
   const [settingsOpen, setSettingsOpen] = useSL(false);
   const [focused, setFocused] = useSL(false);
   const [, bump] = useSL(0);
   const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
   const locked = !!eq.preplaced;
   const slots = missing || [];
+  const showSettings = settingsOpen && !locked && !eq.param;
+  // Open, the row's buttons stay on the equation's line instead of drifting to
+  // the middle of a block four lines tall.
+  const headAlign = showSettings ? { alignSelf:'flex-start', height:38 } : null;
 
   // The field is the source of truth while it is being edited; eq.expr is
   // what it last wrote. A change that arrives from anywhere else — the
@@ -1306,12 +1327,31 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
   const field = fieldRef.current;
   if (eq.expr !== emitted.current) { emitted.current = eq.expr; field.setText(eq.expr); }
 
+  // Settings take the field's place, so they take its keyboard with it — and
+  // hand it back on the way out if it was this row's on the way in.
+  const resume = useRL(false);
+  const openSettings = () => { resume.current = active; field.blur(); onSettings(); setSettingsOpen(true); };
+  const closeSettings = edit => {
+    if (edit) resume.current = true;
+    onDomClose();
+    setSettingsOpen(false);
+  };
+  // In an effect because the field has no input until it is drawn again.
+  useEL(() => {
+    if (settingsOpen || !resume.current) return;
+    resume.current = false;
+    if (disabled) return;
+    field.focus();
+    setFocused(true);
+    onActivate(field);
+  }, [settingsOpen]);
+
   return (
     <div style={{ borderTop:'1px solid var(--lv-line)',
       background: locked ? 'color-mix(in srgb, var(--fp-ink) 4%, transparent)' : 'transparent' }}>
       <div style={{ display:'flex', alignItems:'stretch' }}>
         <button onPointerDown={e=>{e.preventDefault(); !disabled && !eq.param && onChange({ visible:!eq.visible });}}
-          style={{ width:36, flex:'0 0 36px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          style={{ width:36, flex:'0 0 36px', display:'flex', alignItems:'center', justifyContent:'center', ...headAlign }}>
           <span style={{
             width:20, height:20, borderRadius:'50%',
             background: eq.param ? 'transparent' : (eq.visible ? eq.color : 'transparent'),
@@ -1322,9 +1362,9 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
           }}>{eq.param ? eq.param.name : idx+1}</span>
         </button>
 
-        {settingsOpen && !locked && !eq.param ? (
-          <EqSettings eq={eq} onChange={onChange} disabled={disabled} materialsOn={materialsOn}
-            domKb={domKb} onDomInput={onDomInput}/>
+        {showSettings ? (
+          <EqSettings eq={eq} onChange={onChange} onEdit={() => closeSettings(true)} disabled={disabled}
+            materialsOn={materialsOn} domKb={domKb} onDomInput={onDomInput} onDomClose={onDomClose}/>
         ) : locked ? (
           <div style={{ flex:1, minWidth:0, display:'flex', alignItems:'center', minHeight:38, padding:'8px 0',
             fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:14, color:'var(--fp-ink-2)',
@@ -1343,24 +1383,27 @@ function EqRow({ idx, eq, onChange, onRemove, disabled, onActivate, domKb, onDom
         )}
 
         {!locked && !eq.param && (
-          // Lit while open, and while anything in it is set, so a moved or cut
-          // curve says so from the row.
-          <button onPointerDown={e=>{e.preventDefault(); field.blur(); setSettingsOpen(o=>!o);}}
-            title={settingsOpen ? 'Back to the equation' : 'Curve settings: bounce, move, domain'}
-            aria-label="Curve settings"
+          // Lit while anything in it is set, so a moved or cut curve says so
+          // from the row. Open, it is the way out and says that instead: three
+          // dots that had to be pressed a second time read as nothing at all.
+          <button onPointerDown={e=>{e.preventDefault(); showSettings ? closeSettings() : openSettings();}}
+            title={showSettings ? 'Back to the equation' : 'Curve settings: bounce, move, domain'}
+            aria-label={showSettings ? 'Close curve settings' : 'Curve settings'}
             style={{
-              width:32, flex:'0 0 32px', display:'flex', alignItems:'center', justifyContent:'center',
-              color: settingsOpen || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
+              minWidth:32, flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', ...headAlign,
+              color: showSettings || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)',
             }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
-              <circle cx={5} cy={12} r={2.1}/><circle cx={12} cy={12} r={2.1}/><circle cx={19} cy={12} r={2.1}/>
-            </svg>
+            {showSettings
+              ? <span style={{ fontSize:12, fontWeight:500 }}>Done</span>
+              : <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx={5} cy={12} r={2.1}/><circle cx={12} cy={12} r={2.1}/><circle cx={19} cy={12} r={2.1}/>
+                </svg>}
           </button>
         )}
 
         <button
           onPointerDown={e=>{e.preventDefault(); if (locked || disabled) return; onRemove();}}
-          style={{ width:34, flex:'0 0 34px', display:'flex', alignItems:'center', justifyContent:'center',
+          style={{ width:34, flex:'0 0 34px', display:'flex', alignItems:'center', justifyContent:'center', ...headAlign,
             color: locked ? 'var(--fp-ink-4)' : 'var(--fp-ink-3)', cursor: locked ? 'default' : 'pointer' }}
           title={locked ? 'Pre-placed by the level designer — locked' : 'Remove equation'}>
           {locked
@@ -1457,23 +1500,50 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
   // the plane is the screen, and only the tab that brings it back is left.
   const [hidden, setHidden] = useSL(false);
   const objectsEditable = !!setObjects;
-  // suppressKeyboard is the studio saying it has a keypad of its own open;
-  // two custom keyboards covering each other is the one thing this panel must
-  // never do.
-  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible && !hidden && !suppressKeyboard;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
   const [domKb, setDomKb] = useSL(null);
   const domKbCommitRef    = useRL(null); // current commit fn (number → void)
 
+  // The two keyboards answer to a row each, and a row can go — removed, reset,
+  // replaced by a file — while one is up. A keyboard left behind has nothing
+  // to write to, and the keypad left behind kept the math keyboard from ever
+  // opening again. Every keypad id starts with its row's.
+  const activeGone = activeId !== null && !equations.some(e => e.id === activeId);
+  const padGone = !!domKb && (domKb.id.startsWith('obj-')
+    ? !objects?.[parseInt(domKb.id.slice(4), 10)]
+    : !equations.some(e => domKb.id.startsWith(`${e.id}-`)));
+
+  // suppressKeyboard is the studio saying it has a keypad of its own open;
+  // two custom keyboards covering each other is the one thing this panel must
+  // never do. Nor two of its own: a field taking focus closes the keypad, and
+  // the keypad opening takes focus from the field.
+  const kbOpen  = tab === 'eq' && activeId !== null && !activeGone && !disabled && kbVisible && !hidden && !suppressKeyboard;
+  // Not while a run is going: the keypad writes straight to the curve, and the
+  // colliders for the run were built before it started.
+  const padOpen = !!domKb && !padGone && !disabled && !suppressKeyboard;
+  const anyKbOpen = kbOpen || padOpen;
+
+  const closeNumPad = () => { setDomKb(null); domKbCommitRef.current = null; };
+  const closeRowPad = id => { if (domKb?.id.startsWith(`${id}-`)) closeNumPad(); };
+
+  const dismiss = () => { setActiveId(null); activeFieldRef.current?.blur(); };
+  const activate = (id, field) => {
+    closeNumPad();
+    activeFieldRef.current = field;
+    setActiveId(id);
+    setKbVisible(true);
+  };
+
   const onDomInput = (id, currentVal, commit, label) => {
+    dismiss();
     domKbCommitRef.current = commit;
     setDomKb({ id, val: String(currentVal), label });
   };
 
   const handleNumPadChange = v => {
-    setDomKb(d => ({ ...d, val: v }));
+    setDomKb(d => d && { ...d, val: v });
     const n = parseFloat(v);
     if (!isNaN(n) && domKbCommitRef.current) domKbCommitRef.current(n);
   };
@@ -1481,20 +1551,16 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
   const handleNumPadDone = () => {
     const n = parseFloat(domKb?.val);
     if (!isNaN(n) && domKbCommitRef.current) domKbCommitRef.current(n);
-    setDomKb(null);
-    domKbCommitRef.current = null;
+    closeNumPad();
   };
 
-  const anyKbOpen = ((kbOpen && !domKb) || domKb !== null) && !suppressKeyboard;
+  useEL(() => {
+    if (activeGone) dismiss();
+    if (padGone) closeNumPad();
+  }, [activeGone, padGone]);
 
-  const activate = (id, field) => {
-    activeFieldRef.current = field;
-    setActiveId(id);
-    setKbVisible(true);
-  };
-  const dismiss = () => { setActiveId(null); activeFieldRef.current?.blur(); };
-  const switchTab = id => { if (id !== 'eq') dismiss(); setDomKb(null); setTab(id); };
-  const hide = () => { dismiss(); setDomKb(null); setHidden(true); };
+  const switchTab = id => { if (id !== 'eq') dismiss(); closeNumPad(); setTab(id); };
+  const hide = () => { dismiss(); closeNumPad(); setHidden(true); };
 
   const eqCount  = equations.filter(e => e.expr.trim() && !e.param && e.visible !== false).length;
 
@@ -1505,6 +1571,8 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
   };
   const setObjField = (i, k, v) => setObjects(objs => objs.map((o, j) => j === i ? FP_OBJECTS.setField(o, k, v) : o));
   const removeObject = i => {
+    // Every object after this one moves up a place, keypad ids included.
+    closeNumPad();
     setObjects(objs => objs.filter((_, j) => j !== i));
     onSelectObj?.(null);
   };
@@ -1514,8 +1582,11 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
     return [...eqs, { id, expr:'', fn:null, isImplicit:false, color:EQ_COLORS[eqs.length%EQ_COLORS.length], visible:true, domain:null }];
   });
 
-  const update = (id, patch) => setEquations(eqs => eqs.map(e => {
+  // A patch may be a function of the row as it stands, for a caller that can
+  // outlive the render it was made in.
+  const update = (id, change) => setEquations(eqs => eqs.map(e => {
     if (e.id !== id) return e;
+    const patch = typeof change === 'function' ? change(e) : change;
     if (e.preplaced && 'expr' in patch) return e;  // can't edit pre-placed
     const merged = { ...e, ...patch };
     if ('expr' in patch || 'shift' in patch) {
@@ -1723,10 +1794,10 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
           {equations.map((e,i) => (
             <EqRow key={e.id} idx={i} eq={e} disabled={disabled}
               onChange={p=>update(e.id,p)} onRemove={()=>remove(e.id)}
-              onActivate={field=>activate(e.id,field)}
+              active={activeId === e.id} onActivate={field=>activate(e.id,field)} onSettings={dismiss}
               missing={undeclaredParams(e.expr)} onAddSliders={nms=>addSliders(e.id,nms)}
               materialsOn={materialsOn}
-              domKb={domKb} onDomInput={onDomInput}/>
+              domKb={domKb} onDomInput={onDomInput} onDomClose={()=>closeRowPad(e.id)}/>
           ))}
           {equations.length === 0 && (
             <div style={{ padding:'14px 16px', fontSize:12, color:'var(--fp-ink-3)' }}>
@@ -1737,8 +1808,8 @@ function EquationsPanel({ equations, setEquations, expanded, onToggle, disabled,
       )}
 
       {/* Custom keyboard — math for equations, numpad for domain values */}
-      {kbOpen && !domKb && <MathKeyboard field={activeFieldRef} onDone={dismiss}/>}
-      {domKb && <NumPad val={domKb.val} label={domKb.label} onChange={handleNumPadChange} onDone={handleNumPadDone}/>}
+      {kbOpen && <MathKeyboard field={activeFieldRef} onDone={dismiss}/>}
+      {padOpen && <NumPad val={domKb.val} label={domKb.label} onChange={handleNumPadChange} onDone={handleNumPadDone}/>}
     </div>
   );
 }
@@ -1827,8 +1898,13 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
     if (done) { try { localStorage.setItem(`fp-tip-${done.key}`, '1'); } catch {} }
   };
 
+  // Loaded rows take the ids of the rows they replace, so to the panel they
+  // are the same rows: a fresh panel is what keeps one curve's open settings
+  // and keypad from carrying over onto another.
+  const [panelRev, setPanelRev] = useSL(0);
   const loadFromHistory = (exprs, mats, shifts, domains) => {
     setHistoryOpen(false);
+    setPanelRev(r => r + 1);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
       return [...pre, ...rowsFromRun(exprs, mats, shifts, domains, pre.length)];
@@ -2087,7 +2163,7 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       </div>
 
       {/* Equations panel */}
-      <EquationsPanel
+      <EquationsPanel key={panelRev}
         equations={equations} setEquations={setEquations}
         expanded={panelOpen} onToggle={()=>setPanelOpen(o=>!o)}
         disabled={running}

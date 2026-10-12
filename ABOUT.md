@@ -540,7 +540,7 @@ The rest of a level's fields are complete or deliberately empty:
 
 | field | state |
 |---|---|
-| `explain` | 4 levels, one per explainer deck (`how-to-play`, `domain`, `rubber`, `steel`). Every deck that exists is introduced by a level, and objects teach themselves through `FP_OBJECT_TUTORIALS` by kind, so nothing here is waiting to be filled. |
+| `explain` | 4 levels, one each for `how-to-play`, `domain`, `rubber` and `steel`. A fifth deck, `move`, was written on 12 October for `r-I-1` *First slope* and **no row names it yet** — see *Hints and tutorials*. Objects teach themselves through `FP_OBJECT_TUTORIALS` by kind. |
 | `outline` | 9 of Geometry's 10 — level 1 is a single star and has no shape to draw. Nowhere else wants one. |
 | `preplaced` | Unused by every shipped level. The feature works and the studio can set it; no level has needed a locked starting curve. Since 8 October each entry is `{ expr, domain, material, shift }` — the studio saves every setting a row carries — and a bare string still reads as an expression with none. |
 | `materials` | On for 37 levels (pack III from *Elastic* onward, all of IV, V and Linear), off where bounce is not part of the puzzle. |
@@ -697,9 +697,18 @@ is the same every tick, and `npm test` runs the same field twice to prove it.
 and they open in the row *in place of the field* from its ⋯ button, with the
 equation kept in view above them, so the numbers, the equation and the curve
 stay on screen together. The button is lit while any of them is set. There is
-no banner announcing them: the rubber and steel explainer decks each open
-with the ⋯ button, and How to Play has a card. Three sections, none of which
-changes what a curve costs:
+no banner announcing them: the move, domain, rubber and steel explainer decks
+each open with the ⋯ button, and How to Play has a card.
+
+**Open, the ⋯ is the word Done.** It used to stay three dots that had to be
+pressed a second time, which nothing on screen said, and the row's buttons
+drifted to the middle of a block four lines tall, away from the finger that
+opened it. Now the number, Done and the × stay on the equation's own line
+(`headAlign` in `EqRow`), and the equation above the settings is itself a way
+back: tapping it returns to the field with the keyboard up. Done returns to
+whatever was there before — the keyboard comes back only if it was this row's
+when the settings opened. Three sections, none of which changes what a curve
+costs:
 
 - **Bounce** — only on a level with `materials` on (and in the sandbox,
   unless an imported level says otherwise): normal, **dead** (steel to the
@@ -711,7 +720,11 @@ changes what a curve costs:
   applied by `parseEquation(expr, shift)` on the *compiled* function, so the
   plane, the colliders and a run all move with it and nothing about the text,
   its class or its price changes. Reparse whenever the expression *or* the
-  shift changes. Nudge buttons step by 0.5; the value opens the `NumPad`.
+  shift changes. Nudge buttons step by 0.5; the value opens the `NumPad`,
+  and a nudge while it is open re-seeds it, so the keypad goes on showing the
+  number it is editing. `setShift` patches from the row as it stands (`update`
+  takes a function for this), because the keypad holds its commit until it
+  closes and the other axis may have moved since.
   The domain is in plane coordinates, so a moved curve is still cut where the
   segment says. Preplaced curves are plain strings and cannot carry one.
 - **Domain** — the segments of x where the curve exists, as before.
@@ -882,6 +895,24 @@ inside — exactly as it looks. `)` closes it and steps out; so does →.
   that opens when the user taps a domain value button — needed because
   `<input type="number">` can't reliably suppress the native keyboard on
   Android, and two custom keyboards can't be open/covering each other.
+- **One keyboard, and it always has a row.** Until Build 6 nothing closed the
+  keypad except its own Done, and the math keyboard is not drawn while a
+  keypad is set — so closing a row's ⋯ settings with the keypad up left a
+  keypad for numbers that were no longer on screen, and tapping the equation
+  brought up nothing at all. The rules, all in `EquationsPanel`: a field
+  taking focus closes the keypad (`activate`); a keypad opening takes focus
+  from the field (`onDomInput`); opening a row's settings dismisses the math
+  keyboard, which was otherwise typing into a field that had been taken off
+  screen; closing them closes a keypad opened from them (`closeRowPad` —
+  every keypad id starts with its row's); adding or removing a domain segment
+  closes it too, because the keypad writes to a segment by its place in the
+  list. A row that goes while a keyboard is up — removed, reset, replaced by
+  an imported file — takes the keyboard with it (`activeGone`, `padGone`).
+  Neither keyboard is drawn during a run: the keypad writes straight to the
+  curve, and the run's colliders were built before it started.
+- *Load these equations* remounts the panel (`panelRev` in `LevelScreen`).
+  Loaded rows take the ids of the rows they replace, so without that a row's
+  open settings and keypad carried over onto a different curve.
 - Given `objects`/`setObjects` (the studio), the panel grows an **Objects**
   tab — a row per placed object with every registry field opening the
   `NumPad` — and, given `extraTab`, one more tab of arbitrary content (the
@@ -1011,10 +1042,19 @@ Two rules keep the diagrams honest:
   having to remember to tick a box. That is why `fans` and `hazards` are no
   longer entries in `FP_EXPLAINERS` and no longer appear in the studio's
   **Introduces** dropdown.
-- `FP_EXPLAINERS` keeps the mechanics that are not objects — `how-to-play` and
-  `domain` — and is still chosen per level by `level_overrides.explain`. A row
-  naming an explainer that no longer exists reads as null, so the old `fans` and
-  `hazards` rows heal themselves.
+- `FP_EXPLAINERS` keeps the mechanics that are not objects — `how-to-play`,
+  `move`, `domain`, `rubber`, `steel` — and is still chosen per level by
+  `level_overrides.explain`. A row naming an explainer that no longer exists
+  reads as null, so the old `fans` and `hazards` rows heal themselves — and a
+  build older than a deck simply shows nothing for it.
+- **`move` is written and not yet switched on.** It is the ⋯ button's own
+  deck — where the settings are, the − and + that step a curve half a unit,
+  and that Done puts the equation back — meant for `r-I-1` *First slope*, so a
+  player meets the button on their second level instead of their sixth. A deck
+  shows only on a level whose row names it: in the studio open Pack I level 2,
+  Level tab, **Introduces → Move the curve**, Save; then `npm run
+  snapshot:data`, bump `sw.js`, and set `"explain": "move"` on that level in
+  `levels/r-I.json`. `npm test` checks every row names a deck that exists.
 - `pendingTutorials(levelData)` returns the queue, objects first; closing one
   advances to the next. Seen-ness is `fp-tip-<key>` in localStorage, per
   device and deliberately **not** part of progress: it is a reading state, not

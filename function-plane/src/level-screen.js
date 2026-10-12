@@ -1499,14 +1499,25 @@ function DomainEditor({
   disabled,
   onChange,
   domKb,
-  onDomInput
+  onDomInput,
+  onDomClose
 }) {
   const segs = domain || [];
-  const add = () => !disabled && onChange([...segs, {
-    xMin: -5,
-    xMax: 5
-  }]);
-  const remove = i => !disabled && onChange(segs.filter((_, j) => j !== i));
+  // An open keypad writes to a segment by its place in the list as it was
+  // when it opened, so anything that changes the list closes it first.
+  const add = () => {
+    if (disabled) return;
+    onDomClose();
+    onChange([...segs, {
+      xMin: -5,
+      xMax: 5
+    }]);
+  };
+  const remove = i => {
+    if (disabled) return;
+    onDomClose();
+    onChange(segs.filter((_, j) => j !== i));
+  };
   const update = (i, k, v) => onChange(segs.map((s, j) => j === i ? {
     ...s,
     [k]: v
@@ -1795,24 +1806,33 @@ const SHIFT_STEP = 0.5;
 function EqSettings({
   eq,
   onChange,
+  onEdit,
   disabled,
   materialsOn,
   domKb,
-  onDomInput
+  onDomInput,
+  onDomClose
 }) {
   const shift = eq.shift || {
     x: 0,
     y: 0
   };
-  const setShift = (k, v) => {
+  // From the row as it is now, not as it was drawn: an open keypad holds on to
+  // this until it closes, and the other axis may have been nudged since.
+  const setShift = (k, v) => onChange(e => {
     const next = {
-      ...shift,
+      ...(e.shift || {
+        x: 0,
+        y: 0
+      }),
       [k]: Math.round(v * 100) / 100
     };
-    onChange({
+    return {
       shift: next.x || next.y ? next : null
-    });
-  };
+    };
+  });
+  const padId = k => `${eq.id}-shift-${k}`;
+  const openPad = (k, v) => onDomInput(padId(k), v, n => setShift(k, n), `move along ${k}`);
   const label = {
     fontSize: 10,
     letterSpacing: '0.08em',
@@ -1824,7 +1844,11 @@ function EqSettings({
   const nudge = (k, d) => /*#__PURE__*/React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
-      if (!disabled) setShift(k, shift[k] + d);
+      if (disabled) return;
+      const v = Math.round((shift[k] + d) * 100) / 100;
+      setShift(k, v);
+      // A keypad open on this number goes on showing what it is editing.
+      if (domKb?.id === padId(k)) openPad(k, v);
     },
     "aria-label": `${k} ${d > 0 ? 'plus' : 'minus'}`,
     style: {
@@ -1847,7 +1871,9 @@ function EqSettings({
       gap: 8,
       padding: '8px 8px 8px 0'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onEdit,
+    "aria-label": "Edit the equation",
     style: {
       fontFamily: "'Geist Mono','ui-monospace',monospace",
       fontSize: 13,
@@ -1937,11 +1963,11 @@ function EqSettings({
       width: 12
     }
   }, k), nudge(k, -SHIFT_STEP), /*#__PURE__*/React.createElement(DomValBtn, {
-    segId: `${eq.id}-shift-${k}`,
+    segId: padId(k),
     val: shift[k],
     domKb: domKb,
     label: `move along ${k}`,
-    onTap: () => !disabled && onDomInput(`${eq.id}-shift-${k}`, shift[k], v => setShift(k, v), `move along ${k}`)
+    onTap: () => !disabled && openPad(k, shift[k])
   }), nudge(k, SHIFT_STEP))))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1961,7 +1987,8 @@ function EqSettings({
       domain: domain.length ? domain : null
     }),
     domKb: domKb,
-    onDomInput: onDomInput
+    onDomInput: onDomInput,
+    onDomClose: onDomClose
   })));
 }
 function EqRow({
@@ -1970,9 +1997,12 @@ function EqRow({
   onChange,
   onRemove,
   disabled,
+  active,
   onActivate,
+  onSettings,
   domKb,
   onDomInput,
+  onDomClose,
   missing,
   onAddSliders,
   materialsOn
@@ -1983,6 +2013,13 @@ function EqRow({
   const valid = !eq.expr.trim() || eq.fn != null || !!eq.param;
   const locked = !!eq.preplaced;
   const slots = missing || [];
+  const showSettings = settingsOpen && !locked && !eq.param;
+  // Open, the row's buttons stay on the equation's line instead of drifting to
+  // the middle of a block four lines tall.
+  const headAlign = showSettings ? {
+    alignSelf: 'flex-start',
+    height: 38
+  } : null;
 
   // The field is the source of truth while it is being edited; eq.expr is
   // what it last wrote. A change that arrives from anywhere else — the
@@ -2007,6 +2044,30 @@ function EqRow({
     emitted.current = eq.expr;
     field.setText(eq.expr);
   }
+
+  // Settings take the field's place, so they take its keyboard with it — and
+  // hand it back on the way out if it was this row's on the way in.
+  const resume = useRL(false);
+  const openSettings = () => {
+    resume.current = active;
+    field.blur();
+    onSettings();
+    setSettingsOpen(true);
+  };
+  const closeSettings = edit => {
+    if (edit) resume.current = true;
+    onDomClose();
+    setSettingsOpen(false);
+  };
+  // In an effect because the field has no input until it is drawn again.
+  useEL(() => {
+    if (settingsOpen || !resume.current) return;
+    resume.current = false;
+    if (disabled) return;
+    field.focus();
+    setFocused(true);
+    onActivate(field);
+  }, [settingsOpen]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: '1px solid var(--lv-line)',
@@ -2029,7 +2090,8 @@ function EqRow({
       flex: '0 0 36px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      ...headAlign
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -2046,13 +2108,15 @@ function EqRow({
       fontFamily: 'ui-monospace,monospace',
       color: eq.param ? 'var(--fp-ink-3)' : eq.visible ? '#fff' : eq.color
     }
-  }, eq.param ? eq.param.name : idx + 1)), settingsOpen && !locked && !eq.param ? /*#__PURE__*/React.createElement(EqSettings, {
+  }, eq.param ? eq.param.name : idx + 1)), showSettings ? /*#__PURE__*/React.createElement(EqSettings, {
     eq: eq,
     onChange: onChange,
+    onEdit: () => closeSettings(true),
     disabled: disabled,
     materialsOn: materialsOn,
     domKb: domKb,
-    onDomInput: onDomInput
+    onDomInput: onDomInput,
+    onDomClose: onDomClose
   }) : locked ? /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -2092,25 +2156,31 @@ function EqRow({
     onDone: () => field.blur()
   }), !locked && !eq.param &&
   /*#__PURE__*/
-  // Lit while open, and while anything in it is set, so a moved or cut
-  // curve says so from the row.
+  // Lit while anything in it is set, so a moved or cut curve says so
+  // from the row. Open, it is the way out and says that instead: three
+  // dots that had to be pressed a second time read as nothing at all.
   React.createElement("button", {
     onPointerDown: e => {
       e.preventDefault();
-      field.blur();
-      setSettingsOpen(o => !o);
+      showSettings ? closeSettings() : openSettings();
     },
-    title: settingsOpen ? 'Back to the equation' : 'Curve settings: bounce, move, domain',
-    "aria-label": "Curve settings",
+    title: showSettings ? 'Back to the equation' : 'Curve settings: bounce, move, domain',
+    "aria-label": showSettings ? 'Close curve settings' : 'Curve settings',
     style: {
-      width: 32,
-      flex: '0 0 32px',
+      minWidth: 32,
+      flex: '0 0 auto',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: settingsOpen || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
+      ...headAlign,
+      color: showSettings || eq.material || eq.shift || eq.domain ? 'var(--fp-accent)' : 'var(--fp-ink-4)'
     }
-  }, /*#__PURE__*/React.createElement("svg", {
+  }, showSettings ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 500
+    }
+  }, "Done") : /*#__PURE__*/React.createElement("svg", {
     width: 16,
     height: 16,
     viewBox: "0 0 24 24",
@@ -2139,6 +2209,7 @@ function EqRow({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      ...headAlign,
       color: locked ? 'var(--fp-ink-4)' : 'var(--fp-ink-3)',
       cursor: locked ? 'default' : 'pointer'
     },
@@ -2377,17 +2448,47 @@ function EquationsPanel({
   // the plane is the screen, and only the tab that brings it back is left.
   const [hidden, setHidden] = useSL(false);
   const objectsEditable = !!setObjects;
-  // suppressKeyboard is the studio saying it has a keypad of its own open;
-  // two custom keyboards covering each other is the one thing this panel must
-  // never do.
-  const kbOpen = tab === 'eq' && activeId !== null && !disabled && kbVisible && !hidden && !suppressKeyboard;
 
   // Domain value keyboard (NumPad) — active when user taps a domain-segment field.
   // null = closed; { id, val } = open with current string value.
   const [domKb, setDomKb] = useSL(null);
   const domKbCommitRef = useRL(null); // current commit fn (number → void)
 
+  // The two keyboards answer to a row each, and a row can go — removed, reset,
+  // replaced by a file — while one is up. A keyboard left behind has nothing
+  // to write to, and the keypad left behind kept the math keyboard from ever
+  // opening again. Every keypad id starts with its row's.
+  const activeGone = activeId !== null && !equations.some(e => e.id === activeId);
+  const padGone = !!domKb && (domKb.id.startsWith('obj-') ? !objects?.[parseInt(domKb.id.slice(4), 10)] : !equations.some(e => domKb.id.startsWith(`${e.id}-`)));
+
+  // suppressKeyboard is the studio saying it has a keypad of its own open;
+  // two custom keyboards covering each other is the one thing this panel must
+  // never do. Nor two of its own: a field taking focus closes the keypad, and
+  // the keypad opening takes focus from the field.
+  const kbOpen = tab === 'eq' && activeId !== null && !activeGone && !disabled && kbVisible && !hidden && !suppressKeyboard;
+  // Not while a run is going: the keypad writes straight to the curve, and the
+  // colliders for the run were built before it started.
+  const padOpen = !!domKb && !padGone && !disabled && !suppressKeyboard;
+  const anyKbOpen = kbOpen || padOpen;
+  const closeNumPad = () => {
+    setDomKb(null);
+    domKbCommitRef.current = null;
+  };
+  const closeRowPad = id => {
+    if (domKb?.id.startsWith(`${id}-`)) closeNumPad();
+  };
+  const dismiss = () => {
+    setActiveId(null);
+    activeFieldRef.current?.blur();
+  };
+  const activate = (id, field) => {
+    closeNumPad();
+    activeFieldRef.current = field;
+    setActiveId(id);
+    setKbVisible(true);
+  };
   const onDomInput = (id, currentVal, commit, label) => {
+    dismiss();
     domKbCommitRef.current = commit;
     setDomKb({
       id,
@@ -2396,37 +2497,30 @@ function EquationsPanel({
     });
   };
   const handleNumPadChange = v => {
-    setDomKb(d => ({
+    setDomKb(d => d && {
       ...d,
       val: v
-    }));
+    });
     const n = parseFloat(v);
     if (!isNaN(n) && domKbCommitRef.current) domKbCommitRef.current(n);
   };
   const handleNumPadDone = () => {
     const n = parseFloat(domKb?.val);
     if (!isNaN(n) && domKbCommitRef.current) domKbCommitRef.current(n);
-    setDomKb(null);
-    domKbCommitRef.current = null;
+    closeNumPad();
   };
-  const anyKbOpen = (kbOpen && !domKb || domKb !== null) && !suppressKeyboard;
-  const activate = (id, field) => {
-    activeFieldRef.current = field;
-    setActiveId(id);
-    setKbVisible(true);
-  };
-  const dismiss = () => {
-    setActiveId(null);
-    activeFieldRef.current?.blur();
-  };
+  useEL(() => {
+    if (activeGone) dismiss();
+    if (padGone) closeNumPad();
+  }, [activeGone, padGone]);
   const switchTab = id => {
     if (id !== 'eq') dismiss();
-    setDomKb(null);
+    closeNumPad();
     setTab(id);
   };
   const hide = () => {
     dismiss();
-    setDomKb(null);
+    closeNumPad();
     setHidden(true);
   };
   const eqCount = equations.filter(e => e.expr.trim() && !e.param && e.visible !== false).length;
@@ -2437,6 +2531,8 @@ function EquationsPanel({
   };
   const setObjField = (i, k, v) => setObjects(objs => objs.map((o, j) => j === i ? FP_OBJECTS.setField(o, k, v) : o));
   const removeObject = i => {
+    // Every object after this one moves up a place, keypad ids included.
+    closeNumPad();
     setObjects(objs => objs.filter((_, j) => j !== i));
     onSelectObj?.(null);
   };
@@ -2452,8 +2548,12 @@ function EquationsPanel({
       domain: null
     }];
   });
-  const update = (id, patch) => setEquations(eqs => eqs.map(e => {
+
+  // A patch may be a function of the row as it stands, for a caller that can
+  // outlive the render it was made in.
+  const update = (id, change) => setEquations(eqs => eqs.map(e => {
     if (e.id !== id) return e;
+    const patch = typeof change === 'function' ? change(e) : change;
     if (e.preplaced && 'expr' in patch) return e; // can't edit pre-placed
     const merged = {
       ...e,
@@ -2868,12 +2968,15 @@ function EquationsPanel({
     disabled: disabled,
     onChange: p => update(e.id, p),
     onRemove: () => remove(e.id),
+    active: activeId === e.id,
     onActivate: field => activate(e.id, field),
+    onSettings: dismiss,
     missing: undeclaredParams(e.expr),
     onAddSliders: nms => addSliders(e.id, nms),
     materialsOn: materialsOn,
     domKb: domKb,
-    onDomInput: onDomInput
+    onDomInput: onDomInput,
+    onDomClose: () => closeRowPad(e.id)
   })), equations.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 16px',
@@ -2882,10 +2985,10 @@ function EquationsPanel({
     }
   }, "Tap ", /*#__PURE__*/React.createElement("strong", null, "+"), " to enter an equation, e.g. ", /*#__PURE__*/React.createElement(MathExpr, {
     src: "y=sin(x)"
-  }))), kbOpen && !domKb && /*#__PURE__*/React.createElement(MathKeyboard, {
+  }))), kbOpen && /*#__PURE__*/React.createElement(MathKeyboard, {
     field: activeFieldRef,
     onDone: dismiss
-  }), domKb && /*#__PURE__*/React.createElement(NumPad, {
+  }), padOpen && /*#__PURE__*/React.createElement(NumPad, {
     val: domKb.val,
     label: domKb.label,
     onChange: handleNumPadChange,
@@ -3005,8 +3108,14 @@ function LevelScreen({
       } catch {}
     }
   };
+
+  // Loaded rows take the ids of the rows they replace, so to the panel they
+  // are the same rows: a fresh panel is what keeps one curve's open settings
+  // and keypad from carrying over onto another.
+  const [panelRev, setPanelRev] = useSL(0);
   const loadFromHistory = (exprs, mats, shifts, domains) => {
     setHistoryOpen(false);
+    setPanelRev(r => r + 1);
     setEquations(eqs => {
       const pre = eqs.filter(e => e.preplaced);
       return [...pre, ...rowsFromRun(exprs, mats, shifts, domains, pre.length)];
@@ -3405,6 +3514,7 @@ function LevelScreen({
       textShadow: '0 1px 2px rgba(0,0,0,0.35)'
     }
   }, classWarning ? 'Wrong equation type for this pack' : missMsg === 'hazard' ? 'The ball hit a hazard' : 'Collect all stars!')), /*#__PURE__*/React.createElement(EquationsPanel, {
+    key: panelRev,
     equations: equations,
     setEquations: setEquations,
     expanded: panelOpen,

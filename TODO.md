@@ -33,6 +33,14 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   truncating. `versionCode` is 5, `sw.js` is at `fp-v105`. The Rate and
   Google Play buttons and the studio's Export were tapped on the installed
   build and work.
+- **Build 6 is in the repo and not yet built or uploaded** (12 October). It is
+  the ⋯ curve settings: the button reads **Done** while they are open and the
+  equation above them is a way back; closing them closes the number keypad,
+  which used to stay up and keep the math keyboard from opening at all; the
+  two keyboards can no longer be up for a row that is gone or during a run;
+  and a new *Move the curve* deck explains the button. `sw.js` is at
+  `fp-v106`. The version strings still say Build 5 — raise them with
+  `versionCode` when the build is made.
 - **The refund is proven server-side** (10 October). The test order was refunded
   without the revoke option, then revoked through `orders.refund?revoke=true` in
   the API explorer; Google's voided-purchases feed never listed it, so the sweep
@@ -60,6 +68,15 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 |---|---|---|
 | 1 | Play Console | **Production access was applied for on 11 October**; Google answers in days. Meanwhile Build 6 (a bugfix) is being prepared in a new session. When access arrives: turn on managed publishing, then release whichever build is current at **100%** — Build 5 is already reviewed and goes fastest, a new build is reviewed from scratch. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
 | 2 | Website repo | **On launch day:** the change is ready on the local `launch-day` branch of `Function-Plane-Website/` (commit `90df701`: hero notice, Google Play card and download note point at the listing). From that folder: `git checkout main && git merge launch-day && git push`. Pages deploys it within a minute |
+
+## Before Build 6 is built
+
+- **Switch on the *Move the curve* deck for Pack I level 2.** The deck ships
+  in the code and no level names it yet, so nobody sees it. Account ▸ Admin ▸
+  Pack I ▸ level 2 ▸ Level tab ▸ **Introduces → Move the curve** ▸ Save level
+  (the option appears once the app is running this commit). Then `npm run
+  snapshot:data`, bump `sw.js`, and set `"explain": "move"` on that level in
+  `levels/r-I.json`. A build older than the deck reads the row as nothing.
 
 ## Any time, in the admin panel
 

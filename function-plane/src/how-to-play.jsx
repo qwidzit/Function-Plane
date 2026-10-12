@@ -181,7 +181,8 @@ function HowToPlayScreen({ onBack, density = 'comfortable' }) {
           </svg>}
           title="Curve settings"
         >
-          The ⋯ button on an equation row opens its settings where the equation was.
+          The ⋯ button on an equation row opens its settings where the equation was, and
+          <strong> Done</strong> puts the equation back.
           <strong> Move</strong> shifts the whole curve along x and y, for when the shape is
           right and the place is not. <strong>Domain</strong> limits where it exists: a segment
           like x ∈ [−3, 3], or several. <strong>Bounce</strong>, on levels that offer it, makes
@@ -533,6 +534,10 @@ const zgAt = u => {
 // holds where it lands rather than easing straight back.
 const holdTimes = `0;${RUN};1`;
 
+// The move card's curve, and the length of the loop that steps it.
+const MOVE_BOWL = 'M50 10 C 62 58, 86 58, 98 10';
+const MOVE_DUR = '4.4s';
+
 const FAN_C = '#1f9aa8', HAZ_C = '#d13b3b', ZG_C = '#7a4fd6', WELL_C = '#2f3e8f';
 const CURVE_C = '#2d70b3';
 
@@ -646,6 +651,118 @@ const FP_EXPLAINERS = {
         body: <>
           A line costs less than a parabola, and one curve costs less than two. The chips above
           the plane are this level's two goals.
+        </>,
+      },
+    ],
+  },
+  move: {
+    title: 'Move the curve',
+    color: '#fa7e19',
+    icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"
+        stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>,
+    pages: [
+      {
+        heading: 'The ⋯ button',
+        art: (
+          <Art>
+            {/* An equation row, with the one button on it that matters here. */}
+            <rect x={22} y={30} width={164} height={36} rx={9}
+              fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
+            <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
+            <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#fff">1</text>
+            <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=0.5x</text>
+            <g transform="translate(165,48)" fill="#fa7e19">
+              <circle cx={-6} r={1.9}/><circle r={1.9}/><circle cx={6} r={1.9}/>
+            </g>
+            <g transform="translate(165,48)" fill="none">
+              {/* One ring, expanding and gone — the beat the domain card uses. */}
+              <circle r={10} stroke="#fa7e19" strokeWidth={1.4}>
+                <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
+                  values="9;19;19" keyTimes={holdTimes}/>
+                <animate attributeName="stroke-opacity" dur="2.6s" repeatCount="indefinite"
+                  values="0.75;0;0" keyTimes={holdTimes}/>
+              </circle>
+            </g>
+          </Art>
+        ),
+        body: <>
+          The ⋯ button on an equation row opens its settings. <strong>Move</strong> shifts the
+          whole curve and leaves the equation as you wrote it.
+        </>,
+      },
+      {
+        heading: 'Half a unit a tap',
+        art: (
+          <Art>
+            {/* The control as the row draws it, and the curve answering it: two
+                taps of +, a step each. Where it started stays ghosted, so the
+                distance moved is on the page and not only in the number. */}
+            <path d={MOVE_BOWL} fill="none" stroke="#fa7e19" strokeWidth={2.2}
+              strokeLinecap="round" strokeDasharray="3 5" opacity={0.3}/>
+            <path d={MOVE_BOWL} fill="none" stroke="#fa7e19" strokeWidth={2.4} strokeLinecap="round">
+              <animateTransform attributeName="transform" type="translate" dur={MOVE_DUR} repeatCount="indefinite"
+                values="0 0;0 0;30 0;30 0;60 0;60 0;0 0;0 0" keyTimes="0;0.2;0.25;0.46;0.51;0.9;0.91;1"/>
+              <animate attributeName="opacity" dur={MOVE_DUR} repeatCount="indefinite"
+                values="1;1;0;0;1" keyTimes="0;0.82;0.88;0.94;1"/>
+            </path>
+            <text x={50} y={83} textAnchor="middle" fontSize={11}
+              fontFamily="ui-monospace,monospace" fill="var(--fp-ink-3)">x</text>
+            {[[60, '−'], [136, '+']].map(([x, sign]) => (
+              <g key={sign}>
+                <rect x={x} y={68} width={22} height={21} rx={5}
+                  fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.16}/>
+                {sign === '+' && (
+                  <rect x={x} y={68} width={22} height={21} rx={5} fill="#fa7e19" opacity={0}>
+                    <animate attributeName="opacity" dur={MOVE_DUR} repeatCount="indefinite"
+                      values="0;0;0.4;0;0;0.4;0;0" keyTimes="0;0.17;0.2;0.3;0.43;0.46;0.56;1"/>
+                  </rect>
+                )}
+                <text x={x + 11} y={83} textAnchor="middle" fontSize={13}
+                  fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">{sign}</text>
+              </g>
+            ))}
+            <rect x={86} y={68} width={46} height={21} rx={5}
+              fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.16}/>
+            {/* The number steps with the curve. Text cannot be animated, so
+                each value is its own label and only one shows at a time. */}
+            {[['0', '1;0;1;1', '0;0.2;0.91;1'], ['0.5', '0;1;0;0', '0;0.2;0.46;1'], ['1', '0;1;0;0', '0;0.46;0.91;1']].map(([v, values, keyTimes]) => (
+              <text key={v} x={109} y={83} textAnchor="middle" fontSize={11}
+                fontFamily="ui-monospace,monospace" fill="var(--fp-ink)" opacity={v === '0' ? 1 : 0}>
+                {v}
+                <animate attributeName="opacity" dur={MOVE_DUR} repeatCount="indefinite"
+                  calcMode="discrete" values={values} keyTimes={keyTimes}/>
+              </text>
+            ))}
+          </Art>
+        ),
+        body: <>
+          <strong>−</strong> and <strong>+</strong> step the curve half a unit along x or y. Tap
+          the number between them to type an exact distance.
+        </>,
+      },
+      {
+        heading: 'It is free',
+        art: (
+          <Art>
+            {/* The same curve in two places, priced the same. */}
+            <path d="M20 16 C 34 62, 62 62, 76 16" fill="none"
+              stroke="#fa7e19" strokeWidth={2.2} strokeLinecap="round" strokeDasharray="3 5" opacity={0.4}/>
+            <path d="M92 38H114M108 32l6 6-6 6" fill="none" stroke="var(--fp-ink)" strokeOpacity={0.3}
+              strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M132 16 C 146 62, 174 62, 188 16" fill="none"
+              stroke="#fa7e19" strokeWidth={2.6} strokeLinecap="round"/>
+            <text x={48} y={84} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">40</text>
+            <text x={160} y={84} textAnchor="middle" fontSize={11} fontWeight={600}
+              fontFamily="ui-monospace,monospace" fill="#388c46">40</text>
+          </Art>
+        ),
+        body: <>
+          A moved curve scores what it scored where it was. <strong>Done</strong> puts the
+          equation back in the row.
         </>,
       },
     ],

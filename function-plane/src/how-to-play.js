@@ -269,7 +269,7 @@ function HowToPlayScreen({
       r: 2.2
     })),
     title: "Curve settings"
-  }, "The \u22EF button on an equation row opens its settings where the equation was.", /*#__PURE__*/React.createElement("strong", null, " Move"), " shifts the whole curve along x and y, for when the shape is right and the place is not. ", /*#__PURE__*/React.createElement("strong", null, "Domain"), " limits where it exists: a segment like x \u2208 [\u22123, 3], or several. ", /*#__PURE__*/React.createElement("strong", null, "Bounce"), ", on levels that offer it, makes the curve steel or rubber. None of them change what the curve costs."), /*#__PURE__*/React.createElement(HTPCard, {
+  }, "The \u22EF button on an equation row opens its settings where the equation was, and", /*#__PURE__*/React.createElement("strong", null, " Done"), " puts the equation back.", /*#__PURE__*/React.createElement("strong", null, " Move"), " shifts the whole curve along x and y, for when the shape is right and the place is not. ", /*#__PURE__*/React.createElement("strong", null, "Domain"), " limits where it exists: a segment like x \u2208 [\u22123, 3], or several. ", /*#__PURE__*/React.createElement("strong", null, "Bounce"), ", on levels that offer it, makes the curve steel or rubber. None of them change what the curve costs."), /*#__PURE__*/React.createElement(HTPCard, {
     color: "#2d70b3",
     icon: /*#__PURE__*/React.createElement("svg", {
       width: 20,
@@ -856,6 +856,10 @@ const zgAt = u => {
 // The same cadence for anything else that plays once and waits: a value that
 // holds where it lands rather than easing straight back.
 const holdTimes = `0;${RUN};1`;
+
+// The move card's curve, and the length of the loop that steps it.
+const MOVE_BOWL = 'M50 10 C 62 58, 86 58, 98 10';
+const MOVE_DUR = '4.4s';
 const FAN_C = '#1f9aa8',
   HAZ_C = '#d13b3b',
   ZG_C = '#7a4fd6',
@@ -1033,6 +1037,222 @@ const FP_EXPLAINERS = {
         fill: "#c74440"
       }, "85")),
       body: /*#__PURE__*/React.createElement(React.Fragment, null, "A line costs less than a parabola, and one curve costs less than two. The chips above the plane are this level's two goals.")
+    }]
+  },
+  move: {
+    title: 'Move the curve',
+    color: '#fa7e19',
+    icon: /*#__PURE__*/React.createElement("svg", {
+      width: 20,
+      height: 20,
+      viewBox: "0 0 24 24",
+      fill: "none"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3",
+      stroke: "currentColor",
+      strokeWidth: 1.8,
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    })),
+    pages: [{
+      heading: 'The ⋯ button',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
+        x: 22,
+        y: 30,
+        width: 164,
+        height: 36,
+        rx: 9,
+        fill: "var(--fp-surface)",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.14
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 40,
+        cy: 48,
+        r: 8,
+        fill: CURVE_C
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 40,
+        y: 52,
+        textAnchor: "middle",
+        fontSize: 9,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#fff"
+      }, "1"), /*#__PURE__*/React.createElement("text", {
+        x: 57,
+        y: 53,
+        fontSize: 12.5,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-2)"
+      }, "y=0.5x"), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(165,48)",
+        fill: "#fa7e19"
+      }, /*#__PURE__*/React.createElement("circle", {
+        cx: -6,
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        r: 1.9
+      }), /*#__PURE__*/React.createElement("circle", {
+        cx: 6,
+        r: 1.9
+      })), /*#__PURE__*/React.createElement("g", {
+        transform: "translate(165,48)",
+        fill: "none"
+      }, /*#__PURE__*/React.createElement("circle", {
+        r: 10,
+        stroke: "#fa7e19",
+        strokeWidth: 1.4
+      }, /*#__PURE__*/React.createElement("animate", {
+        attributeName: "r",
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "9;19;19",
+        keyTimes: holdTimes
+      }), /*#__PURE__*/React.createElement("animate", {
+        attributeName: "stroke-opacity",
+        dur: "2.6s",
+        repeatCount: "indefinite",
+        values: "0.75;0;0",
+        keyTimes: holdTimes
+      })))),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The \u22EF button on an equation row opens its settings. ", /*#__PURE__*/React.createElement("strong", null, "Move"), " shifts the whole curve and leaves the equation as you wrote it.")
+    }, {
+      heading: 'Half a unit a tap',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
+        d: MOVE_BOWL,
+        fill: "none",
+        stroke: "#fa7e19",
+        strokeWidth: 2.2,
+        strokeLinecap: "round",
+        strokeDasharray: "3 5",
+        opacity: 0.3
+      }), /*#__PURE__*/React.createElement("path", {
+        d: MOVE_BOWL,
+        fill: "none",
+        stroke: "#fa7e19",
+        strokeWidth: 2.4,
+        strokeLinecap: "round"
+      }, /*#__PURE__*/React.createElement("animateTransform", {
+        attributeName: "transform",
+        type: "translate",
+        dur: MOVE_DUR,
+        repeatCount: "indefinite",
+        values: "0 0;0 0;30 0;30 0;60 0;60 0;0 0;0 0",
+        keyTimes: "0;0.2;0.25;0.46;0.51;0.9;0.91;1"
+      }), /*#__PURE__*/React.createElement("animate", {
+        attributeName: "opacity",
+        dur: MOVE_DUR,
+        repeatCount: "indefinite",
+        values: "1;1;0;0;1",
+        keyTimes: "0;0.82;0.88;0.94;1"
+      })), /*#__PURE__*/React.createElement("text", {
+        x: 50,
+        y: 83,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-3)"
+      }, "x"), [[60, '−'], [136, '+']].map(([x, sign]) => /*#__PURE__*/React.createElement("g", {
+        key: sign
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: x,
+        y: 68,
+        width: 22,
+        height: 21,
+        rx: 5,
+        fill: "var(--fp-surface)",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.16
+      }), sign === '+' && /*#__PURE__*/React.createElement("rect", {
+        x: x,
+        y: 68,
+        width: 22,
+        height: 21,
+        rx: 5,
+        fill: "#fa7e19",
+        opacity: 0
+      }, /*#__PURE__*/React.createElement("animate", {
+        attributeName: "opacity",
+        dur: MOVE_DUR,
+        repeatCount: "indefinite",
+        values: "0;0;0.4;0;0;0.4;0;0",
+        keyTimes: "0;0.17;0.2;0.3;0.43;0.46;0.56;1"
+      })), /*#__PURE__*/React.createElement("text", {
+        x: x + 11,
+        y: 83,
+        textAnchor: "middle",
+        fontSize: 13,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-2)"
+      }, sign))), /*#__PURE__*/React.createElement("rect", {
+        x: 86,
+        y: 68,
+        width: 46,
+        height: 21,
+        rx: 5,
+        fill: "var(--fp-surface)",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.16
+      }), [['0', '1;0;1;1', '0;0.2;0.91;1'], ['0.5', '0;1;0;0', '0;0.2;0.46;1'], ['1', '0;1;0;0', '0;0.46;0.91;1']].map(([v, values, keyTimes]) => /*#__PURE__*/React.createElement("text", {
+        key: v,
+        x: 109,
+        y: 83,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink)",
+        opacity: v === '0' ? 1 : 0
+      }, v, /*#__PURE__*/React.createElement("animate", {
+        attributeName: "opacity",
+        dur: MOVE_DUR,
+        repeatCount: "indefinite",
+        calcMode: "discrete",
+        values: values,
+        keyTimes: keyTimes
+      })))),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "\u2212"), " and ", /*#__PURE__*/React.createElement("strong", null, "+"), " step the curve half a unit along x or y. Tap the number between them to type an exact distance.")
+    }, {
+      heading: 'It is free',
+      art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
+        d: "M20 16 C 34 62, 62 62, 76 16",
+        fill: "none",
+        stroke: "#fa7e19",
+        strokeWidth: 2.2,
+        strokeLinecap: "round",
+        strokeDasharray: "3 5",
+        opacity: 0.4
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M92 38H114M108 32l6 6-6 6",
+        fill: "none",
+        stroke: "var(--fp-ink)",
+        strokeOpacity: 0.3,
+        strokeWidth: 1.6,
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      }), /*#__PURE__*/React.createElement("path", {
+        d: "M132 16 C 146 62, 174 62, 188 16",
+        fill: "none",
+        stroke: "#fa7e19",
+        strokeWidth: 2.6,
+        strokeLinecap: "round"
+      }), /*#__PURE__*/React.createElement("text", {
+        x: 48,
+        y: 84,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "40"), /*#__PURE__*/React.createElement("text", {
+        x: 160,
+        y: 84,
+        textAnchor: "middle",
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: "ui-monospace,monospace",
+        fill: "#388c46"
+      }, "40")),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A moved curve scores what it scored where it was. ", /*#__PURE__*/React.createElement("strong", null, "Done"), " puts the equation back in the row.")
     }]
   },
   domain: {

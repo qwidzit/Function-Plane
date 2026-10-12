@@ -131,6 +131,16 @@ believing it.
 - A second custom keyboard appears over the first → `EquationsPanel` takes
   `suppressKeyboard` for exactly this. Whoever opens a keypad outside the panel
   passes it.
+- The math keyboard will not open, or a keypad sits there for a number that is
+  no longer on screen → a keypad outlived what it edits. The panel holds one
+  keyboard at a time and each belongs to a row: anything that takes a row's
+  settings or the row itself off screen has to close its keypad (`closeRowPad`,
+  `padGone`), and anything that opens one keyboard has to close the other
+  (`activate`, `onDomInput`). See *Custom math keyboard* in `ABOUT.md`.
+- A number typed on the keypad undoes a change made beside it → the keypad
+  keeps the commit it was opened with until it closes. Make that commit a
+  patch from the row as it stands (`update` takes a function), or close the
+  keypad when the thing beside it changes.
 - Something in the panel header runs off the edge of a narrow phone → the
   header is the tab strip against the controls, and by default neither gives.
   The strip is the part that may shrink (`minWidth: 0`, `overflowX: 'auto'` —

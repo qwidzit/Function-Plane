@@ -1890,6 +1890,25 @@ it('ships a parseable override snapshot', () => {
   ok(Array.isArray(snapshot.data.packs), 'snapshot.data.packs must be an array');
 });
 
+it('only introduces decks that exist, and every deck is three pages', () => {
+  const w = { React: new Proxy({}, { get: () => () => {} }) };
+  global.window = w; global.React = w.React;
+  delete require.cache[require.resolve(path.join(SRC, 'how-to-play.js'))];
+  require(path.join(SRC, 'how-to-play.js'));
+  const decks = w.FP_EXPLAINERS;
+  // A row naming a deck that is gone reads as null, so a typo here is a card
+  // that silently never shows.
+  for (const l of snapshot.data.levels) {
+    if (l.explain) ok(decks[l.explain], `${l.pack_id}-${l.level_index} introduces "${l.explain}", which is not a deck`);
+  }
+  for (const [k, d] of Object.entries({ ...decks, ...w.FP_OBJECT_TUTORIALS })) {
+    ok(d.title && d.color && d.icon !== null, `${k} needs a title, a colour and an icon`);
+    eq(d.pages.length, 3, `${k} is a three-page deck`);
+    for (const p of d.pages) ok(p.heading && 'art' in p && 'body' in p, `${k} has a page missing its heading, art or body`);
+  }
+  ok(decks.move, 'the ⋯ settings have a deck of their own');
+});
+
 it('authors every level it ships with sane goals', () => {
   for (const l of snapshot.data.levels) {
     ok(Array.isArray(l.stars) && l.stars.length > 0, `${l.pack_id}-${l.level_index} has no stars`);
