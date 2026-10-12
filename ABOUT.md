@@ -2054,7 +2054,7 @@ app changes, the declarations change with it.
 | Full description | `store-assets/full-description.txt` (plain text; the Console takes no markdown) |
 | App icon | `store-assets/icon-512.png`, resized from `assets/icon.png` — regenerate it when the art changes; `@capacitor/assets` only writes mipmaps up to 192px |
 | Feature graphic | `store-assets/feature-graphic-1024x500.png` |
-| Phone screenshots | `store-assets/screenshots/` — upload `01` to `08` in file order; `09` and `10` are spares. Captured from the running app at 1080×1920 against the authored levels (25 September); re-capture when a pictured board or screen changes |
+| Phone screenshots | `store-assets/screenshots/` — upload `01` to `08` in file order; `09` and `10` are spares. Captured at 1080×1920 against the authored levels (25 September; `06` and `08` re-taken 8 October on Build 5). Play rejects anything over a 2:1 aspect, so a modern phone's own screenshot will not do. To re-capture: serve a copy of `function-plane/` with a seed script that writes the save state and theme to localStorage before `app.js`, start Chrome with `--headless=new --remote-debugging-port=9333`, and drive it over the DevTools protocol with `Emulation.setDeviceMetricsOverride {width:360,height:640,deviceScaleFactor:3,mobile:true}` then `Page.captureScreenshot`. Plain `--window-size=360,640` does not work: headless Chrome on Windows will not open a window narrower than about 500 px |
 | Category | Game ▸ **Puzzle**. Tags: Physics, Brain games, Logic puzzle, Education |
 | Contact | functionplane.support@gmail.com, website https://functionplane.pages.dev, no phone |
 | Privacy policy | https://functionplane.pages.dev/privacy.html |
