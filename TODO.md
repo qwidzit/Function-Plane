@@ -41,8 +41,9 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   the − and + repeat while held; and a new *Move the curve* deck introduces
   the button on Pack I level 2 (its row was set and the snapshot regenerated
   on 12 October), which lets the domain deck on level 6 stop re-introducing
-  it. `npm run verify:ui` plays all of it in a real browser. `sw.js` is at
-  `fp-v107`. The version strings still say Build 5 — raise them with
+  it. Five layouts that broke on 320px phones are fixed, in one media query
+  that no wider phone can match. `npm run verify:ui` plays all of it in a real
+  browser. `sw.js` is at `fp-v108`. The version strings still say Build 5 — raise them with
   `versionCode` when the build is made.
 - **The refund is proven server-side** (10 October). The test order was refunded
   without the revoke option, then revoked through `orders.refund?revoke=true` in
@@ -120,6 +121,16 @@ a draft there.
   local progress travel in device backups. Convenient; known.
 
 ## Later — not required for launch
+
+- **The level header on a 360px phone.** Score, Stars, Time and Play are one
+  row that cannot shrink. At 360px it is exact for short numbers: a run of ten
+  seconds or more puts Stop flush against the screen edge, a three-digit score
+  on top of that pushes it about 7px past, and Geometry's `10/10` stars about
+  20px. At 375px only that last case overflows, by 5px. Measured on
+  12 October while fixing 320px; left alone because that change was not to
+  touch ordinary phones. The narrow block's values would fix it at any width —
+  the decision is whether 360px should look as dense as 320px, or whether the
+  row should give up something else first.
 
 - **The hidden packs.** Trigonometry, Exponential, Inversion and Roman VI–X are
   empty; unhide each once it is authored.

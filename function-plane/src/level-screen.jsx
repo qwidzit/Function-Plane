@@ -1027,12 +1027,12 @@ function GoalChip({ bits, label }) {
 }
 function HudChip({ label, value }) {
   return (
-    <div style={{
+    <div className="fp-chip" style={{
       display:'inline-flex', alignItems:'center', gap:6,
       height:28, padding:'0 10px', borderRadius:8,
       background:'var(--lv-surface)', border:'1px solid var(--lv-line)',
     }}>
-      <span style={{ fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fp-ink-3)' }}>{label}</span>
+      <span className="fp-chip-label" style={{ fontSize:9.5, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fp-ink-3)' }}>{label}</span>
       <span className="fp-mono" style={{ fontSize:12, color:'var(--fp-ink)' }}>{value}</span>
     </div>
   );
@@ -1044,7 +1044,7 @@ function DomValBtn({ segId, val, domKb, onTap, label }) {
   const isActive = domKb?.id === segId;
   const display  = isActive ? domKb.val : String(val);
   return (
-    <button aria-label={label}
+    <button aria-label={label} className="fp-num"
       onPointerDown={e => { e.preventDefault(); onTap(); }}
       style={{
         width:52, minHeight:28, fontSize:12, textAlign:'center', padding:'3px 4px',
@@ -1080,8 +1080,8 @@ function DomainEditor({ eqId, domain, disabled, onChange, domKb, onDomInput, onD
         </div>
       )}
       {segs.map((seg,i) => (
-        <div key={i} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
-          <span className="fp-mono" style={{ fontSize:11, color:'var(--fp-ink-3)' }}>x ∈</span>
+        <div key={i} className="fp-seg" style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+          <span className="fp-mono fp-seg-x" style={{ fontSize:11, color:'var(--fp-ink-3)' }}>x ∈</span>
           <DomValBtn segId={`${eqId}-${i}-min`} val={seg.xMin} domKb={domKb}
             onTap={() => !disabled && onDomInput(`${eqId}-${i}-min`, seg.xMin, v => update(i,'xMin',v))}/>
           <span style={{ fontSize:11, color:'var(--fp-ink-3)' }}>to</span>
@@ -1199,7 +1199,7 @@ const MAT_OPTS = [
 function MaterialIcon({ m }) {
   const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
   return (
-    <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+    <svg className="fp-mat-icon" width={16} height={16} viewBox="0 0 16 16" fill="none">
       <path d="M1.5 13.5H14.5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round"/>
       {arc && <path d={arc} stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeDasharray="2 1.5"/>}
       <circle cx={4} cy={m === 'dead' ? 11 : 10.5} r={2.4} fill="currentColor"/>
@@ -2085,13 +2085,13 @@ function LevelScreen({ pack, levelIndex, progress, onBack, onComplete, onNext, d
       </div>
 
       {/* HUD */}
-      <div style={{ padding:'0 14px 6px', flex:'0 0 auto', background:'var(--lv-bg)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+      <div className="fp-hud" style={{ padding:'0 14px 6px', flex:'0 0 auto', background:'var(--lv-bg)' }}>
+        <div className="fp-hud-row" style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
           <HudChip label="Score" value={eqsUsed>0?liveScore:'—'}/>
           <HudChip label="Stars" value={`${collectedCount}/${totalStars}`}/>
           <HudChip label="Time"  value={running ? elapsed.toFixed(1)+'s' : (bestTime==null?'—':bestTime.toFixed(1)+'s')}/>
           {gravityFlip && <HudChip label="g" value={gravityDir < 0 ? '↑' : '↓'}/>}
-          <button onClick={handlePlay} style={{
+          <button onClick={handlePlay} className="fp-hud-play" style={{
             marginLeft:'auto',
             display:'flex', alignItems:'center', gap:7,
             padding:'8px 14px 8px 16px', borderRadius:999,

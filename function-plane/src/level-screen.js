@@ -1431,6 +1431,7 @@ function HudChip({
   value
 }) {
   return /*#__PURE__*/React.createElement("div", {
+    className: "fp-chip",
     style: {
       display: 'inline-flex',
       alignItems: 'center',
@@ -1442,6 +1443,7 @@ function HudChip({
       border: '1px solid var(--lv-line)'
     }
   }, /*#__PURE__*/React.createElement("span", {
+    className: "fp-chip-label",
     style: {
       fontSize: 9.5,
       letterSpacing: '0.08em',
@@ -1470,6 +1472,7 @@ function DomValBtn({
   const display = isActive ? domKb.val : String(val);
   return /*#__PURE__*/React.createElement("button", {
     "aria-label": label,
+    className: "fp-num",
     onPointerDown: e => {
       e.preventDefault();
       onTap();
@@ -1535,6 +1538,7 @@ function DomainEditor({
     }
   }, "No restriction \u2014 the curve exists everywhere."), segs.map((seg, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
+    className: "fp-seg",
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -1542,7 +1546,7 @@ function DomainEditor({
       marginBottom: 5
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "fp-mono",
+    className: "fp-mono fp-seg-x",
     style: {
       fontSize: 11,
       color: 'var(--fp-ink-3)'
@@ -1775,6 +1779,7 @@ function MaterialIcon({
 }) {
   const arc = m === 'dead' ? null : m === 'rubber' ? 'M4 13 Q8 -1 12 13' : 'M4 13 Q8 6 12 13';
   return /*#__PURE__*/React.createElement("svg", {
+    className: "fp-mat-icon",
     width: 16,
     height: 16,
     viewBox: "0 0 16 16",
@@ -3369,12 +3374,14 @@ function LevelScreen({
     total: 3,
     size: 11
   }))), /*#__PURE__*/React.createElement("div", {
+    className: "fp-hud",
     style: {
       padding: '0 14px 6px',
       flex: '0 0 auto',
       background: 'var(--lv-bg)'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fp-hud-row",
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -3395,6 +3402,7 @@ function LevelScreen({
     value: gravityDir < 0 ? '↑' : '↓'
   }), /*#__PURE__*/React.createElement("button", {
     onClick: handlePlay,
+    className: "fp-hud-play",
     style: {
       marginLeft: 'auto',
       display: 'flex',

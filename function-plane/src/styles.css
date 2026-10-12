@@ -107,6 +107,46 @@ input { font: inherit; }
 .fp-scroll::-webkit-scrollbar { width: 0; height: 0; }
 .fp-scroll { scrollbar-width: none; }
 
+/* ── Narrow phones: under 340px, which in practice is the 320px ones ──────
+   Everything such a screen needs drawn differently is in this block and
+   nowhere else. The components keep their ordinary values inline and carry
+   only a class name, so nothing here can change what a wider phone draws —
+   and a class that is missing costs a narrow phone its fix, never a wide one
+   its layout. `npm run verify:ui` checks both halves of that. */
+@media (max-width: 339px) {
+  /* Level header: three chips and Play were wider than the row, and Play is
+     the one that went off the edge. Tighter, not fewer — up to a three-digit
+     score, ten stars and a 28-second run still fit. */
+  .fp-hud        { padding-left: 8px !important; padding-right: 8px !important; }
+  .fp-hud-row    { gap: 4px !important; }
+  .fp-chip       { padding: 0 6px !important; gap: 3px !important; }
+  .fp-chip-label { font-size: 9px !important; letter-spacing: 0.02em !important; }
+  .fp-hud-play   { padding: 8px 10px 8px 12px !important; }
+
+  /* Sandbox header: the title was two pixels short of "Free play". */
+  .fp-studio-bar { gap: 6px !important; }
+
+  /* Bounce: three buttons share about 150px, which is the words or the
+     pictures. The words are what the hints call them. */
+  .fp-mat-icon { display: none !important; }
+
+  /* A domain segment: "x ∈" broke over two lines to make room. */
+  .fp-seg         { gap: 4px !important; }
+  .fp-seg-x       { white-space: nowrap; }
+  .fp-seg .fp-num { width: 44px !important; }
+
+  /* Level complete: on a 568px screen a repeat run's two "previous best"
+     lines pushed the time under the buttons, behind a scroll nothing hints
+     at. The header gives up the room. */
+  .fp-lc-pill   { margin-bottom: 10px !important; }
+  .fp-lc-title  { margin-bottom: 8px !important; }
+  .fp-lc-stars  { margin-bottom: 10px !important; }
+  .fp-lc-stars svg { width: 36px; height: 36px; }
+  .fp-lc-stars > div:nth-child(2) svg { width: 44px; height: 44px; }
+  .fp-lc-tabs   { margin-bottom: 10px !important; }
+  .fp-lc-block  { padding: 10px 16px !important; margin-bottom: 10px !important; }
+}
+
 /* The equation field draws its own caret; the hidden input under it only
    holds focus. */
 .fp-caret { animation: fp-caret-blink 1.1s step-end infinite; }

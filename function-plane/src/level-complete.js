@@ -118,6 +118,7 @@ function LevelCompletePopup({
       flex: '0 0 auto'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-pill",
     style: {
       width: 36,
       height: 4,
@@ -135,6 +136,7 @@ function LevelCompletePopup({
       marginBottom: 4
     }
   }, packLabel, " \xB7 Level ", levelIndex + 1), /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-title",
     style: {
       textAlign: 'center',
       fontFamily: "'Instrument Serif', Georgia, serif",
@@ -146,6 +148,7 @@ function LevelCompletePopup({
       marginBottom: 16
     }
   }, earnedCount === 3 ? 'Perfect!' : earnedCount === 2 ? 'Nice work' : 'Level clear'), /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-stars",
     style: {
       display: 'flex',
       alignItems: 'flex-end',
@@ -179,6 +182,7 @@ function LevelCompletePopup({
       strokeLinejoin: "round"
     })));
   })), /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-tabs",
     style: {
       display: 'flex',
       gap: 4,
@@ -205,6 +209,7 @@ function LevelCompletePopup({
       padding: '0 24px'
     }
   }, tab === 'score' && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-block",
     style: {
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',
@@ -283,6 +288,7 @@ function LevelCompletePopup({
       color: 'var(--fp-ink-2)'
     }
   }, prevBest))), time != null && /*#__PURE__*/React.createElement("div", {
+    className: "fp-lc-block",
     style: {
       background: 'var(--fp-surface)',
       border: '1px solid var(--fp-line)',

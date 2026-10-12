@@ -487,7 +487,7 @@ function LevelStudio({ mode = 'sandbox', pack, levelIndex, onBack, onSaved, dens
       <div style={{ height: 'env(safe-area-inset-top, 0px)', flex: '0 0 auto', background: 'var(--lv-bg)' }}/>
 
       {/* Top bar */}
-      <div style={{
+      <div className="fp-studio-bar" style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: `8px ${padX}px 8px`, flex: '0 0 auto', background: 'var(--lv-bg)',
       }}>

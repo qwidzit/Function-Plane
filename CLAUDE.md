@@ -153,6 +153,12 @@ believing it.
   controls take `flex: '0 0 auto'`, because a label you scroll to beats a
   button you cannot reach. The studio's three tabs pushed Add equation clean
   off screen below about 400px, which is most phones.
+- Something is cramped or off the edge on a 320px phone → it goes in the one
+  `@media (max-width: 339px)` block in `styles.css`, as a rule on a class the
+  component carries. Leave the inline value alone and do not branch on
+  `window.innerWidth`: the inline value is what every other phone draws, and
+  `npm run verify:ui` checks at 375, 360 and 340px that it still is. See
+  *Narrow phones* in `ABOUT.md`.
 - A list inside `EquationsPanel` collapses to a sliver when a keyboard opens →
   `flex: 1` has a zero basis, so it contributes nothing to the panel's own
   height. Use `flex: '1 1 auto'` with `minHeight: 0`.

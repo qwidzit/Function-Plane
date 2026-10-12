@@ -138,7 +138,7 @@ android` / `npx cap add ios` (iOS needs a Mac).
 | `npm run build:jsx` | Compile all `.jsx` → `.js`. Run after every `.jsx` edit. |
 | `npm run snapshot:data` | Pull Supabase override tables → `overrides-snapshot.js`. Run before every release. |
 | `npm run verify:levels` | Replay every authored level's intended solution through the real run loop. `--svg <dir>` draws each one, `--json <file>` dumps the results, `--trail` prints where the ball went. |
-| `npm run verify:ui` | Play the equations panel in a headless Chrome or Edge: the ⋯ settings, both keyboards, the decks. About 40 s. Needs one of the two installed (`CHROME_PATH` if it is somewhere unusual) and Node 22+. |
+| `npm run verify:ui` | Play the equations panel in a headless Chrome or Edge: the ⋯ settings, both keyboards, the decks, and the layout at 320px. About a minute. Needs one of the two installed (`CHROME_PATH` if it is somewhere unusual) and Node 22+. |
 | `npm run cap:sync` | build:jsx + copy web files into `android/` and `ios/` |
 | `npm run android:build` | build:jsx + sync android + open Android Studio |
 | `npm run ios:build` | build:jsx + sync ios + open Xcode (needs Mac + `ios/` folder) |
@@ -213,7 +213,10 @@ and plays Pack I with real touch events. It covers the three states a row's ⋯
 settings move between, which keyboard is up after each step, the keypad
 following a nudge, a held nudge repeating, a row or a run taking a keyboard
 away, a loaded run arriving in a clean panel, and the decks: three pages each,
-the move deck on level 2, once for a player and every visit for an admin.
+the move deck on level 2, once for a player and every visit for an admin. It
+ends at 320px, on the five things that screen draws differently (see *Narrow
+phones*), and checks the other half too: at 375, 360 and 340px every one of
+those elements computes exactly the value written inline.
 
 Two things make it repeatable. Supabase and the font hosts are blocked, so the
 app boots from the baked snapshot exactly as an offline phone does and nothing
@@ -222,8 +225,8 @@ has to be in the snapshot**, not only in the database. And the page is given
 focus emulation: a headless page has none of its own, so no blur ever fires
 and a caret that should have gone stays drawn.
 
-It is not part of `npm test` because it needs a browser and takes forty
-seconds. Without one it says so and exits 2 rather than passing. Mutation-tested
+It is not part of `npm test` because it needs a browser and takes about a
+minute. Without one it says so and exits 2 rather than passing. Mutation-tested
 the same way: with `closeRowPad` made a no-op it fails on exactly the bug it
 was written after.
 
@@ -959,6 +962,39 @@ inside — exactly as it looks. `)` closes it and steps out; so does →.
   mid-keystroke. They are not text fields at all now — they open this same
   keypad (see *Level studio*), which is the only way to be sure of what a
   keystroke means.
+
+### Narrow phones — one block, and nothing outside it
+
+A 320px screen is 40px narrower than the smallest phone the layouts were drawn
+for, and five things did not survive it. All five are fixed in **one media
+query in `styles.css`, `@media (max-width: 339px)`**, and the components carry
+only a class name — their ordinary values stay inline, untouched. So nothing in
+that block can change what a wider phone draws, and a class that goes missing
+costs a narrow phone its fix, never a wide one its layout. Each rule needs
+`!important`, because it is overriding an inline style; that is the price of
+keeping the wide value where it has always been.
+
+| what broke at 320px | class | what the block does |
+|---|---|---|
+| Play ran off the right edge of the level header, further with every digit of score and time | `fp-hud`, `fp-hud-row`, `fp-chip`, `fp-chip-label`, `fp-hud-play` | tighter padding and gaps, labels at 9px. Nothing is dropped: `SCORE 185 · STARS 10/10 · TIME 27.9s` still fits beside Play |
+| the sandbox title read *Free pl…* | `fp-studio-bar` | a 6px gap in the bar; the chip's own tightening does the rest |
+| the three Bounce buttons clipped their icons | `fp-mat-icon` | hidden; the words are what the hints call the materials |
+| `x ∈` broke over two lines in a domain segment | `fp-seg`, `fp-seg-x`, `fp-num` | no wrap, a 4px gap, number boxes 44px instead of 52 — inside a segment only, the Move boxes keep theirs |
+| a repeat clear's two *previous best* lines pushed the time under the buttons on a 568px-tall screen, behind a scroll nothing hinted at | `fp-lc-pill`, `fp-lc-title`, `fp-lc-stars`, `fp-lc-tabs`, `fp-lc-block` | smaller stars and margins in the popup's header, so both blocks show whole |
+
+The last one is a height problem keyed on width, on purpose: every phone
+narrower than 340px is also short, and a height query would have reached
+ordinary phones whose webview loses rows to the system bars.
+
+Adding a sixth: give the element a class, add the rule to that block, leave
+the inline value alone, and put the element in `verify:ui`'s `WIDE` table so
+the next person cannot move it by accident. Do not branch on
+`window.innerWidth` in a component — that is a second source of truth for the
+same threshold, and it needs a resize listener to stay right.
+
+The proof it left wider phones alone was pixel-for-pixel: eight settled states
+captured at 360px and 375px before and after, identical in every one but a
+sandbox shot whose fan animates.
 
 ### Panel height, and the three states it has
 

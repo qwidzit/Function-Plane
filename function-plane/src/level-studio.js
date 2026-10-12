@@ -758,6 +758,7 @@ function LevelStudio({
       background: 'var(--lv-bg)'
     }
   }), /*#__PURE__*/React.createElement("div", {
+    className: "fp-studio-bar",
     style: {
       display: 'flex',
       alignItems: 'center',

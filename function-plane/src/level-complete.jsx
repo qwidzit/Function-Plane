@@ -85,7 +85,7 @@ function LevelCompletePopup({
       }}>
         {/* Drag pill + header */}
         <div style={{ padding: '12px 24px 0', flex: '0 0 auto' }}>
-          <div style={{
+          <div className="fp-lc-pill" style={{
             width: 36, height: 4, borderRadius: 2,
             background: 'var(--fp-ink-4)',
             margin: '0 auto 16px',
@@ -99,7 +99,7 @@ function LevelCompletePopup({
             {packLabel} · Level {levelIndex + 1}
           </div>
 
-          <div style={{
+          <div className="fp-lc-title" style={{
             textAlign: 'center',
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
@@ -110,7 +110,7 @@ function LevelCompletePopup({
           </div>
 
           {/* Stars row */}
-          <div style={{
+          <div className="fp-lc-stars" style={{
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             gap: 6, marginBottom: 18,
           }}>
@@ -139,7 +139,7 @@ function LevelCompletePopup({
           </div>
 
           {/* Tab bar */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
+          <div className="fp-lc-tabs" style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
             {[['score','Score'],['scoreboard','Best scores'],['timeboard','Best times']].map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} style={{
                 height: 30, padding: '0 12px', borderRadius: 999,
@@ -157,7 +157,7 @@ function LevelCompletePopup({
           {tab === 'score' && (
             <div>
               {/* Score block */}
-              <div style={{
+              <div className="fp-lc-block" style={{
                 background: 'var(--fp-surface)',
                 border: '1px solid var(--fp-line)',
                 borderRadius: 16,
@@ -208,7 +208,7 @@ function LevelCompletePopup({
 
               {/* Time block */}
               {time != null && (
-                <div style={{
+                <div className="fp-lc-block" style={{
                   background: 'var(--fp-surface)', border: '1px solid var(--fp-line)',
                   borderRadius: 16, padding: '14px 18px', marginBottom: 16,
                 }}>

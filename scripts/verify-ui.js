@@ -280,6 +280,20 @@ const HELPERS = `
     await tap(`B('Close curve settings')`);
     await tap(`BB(/^Play/)`);
     await until(`BB(/Next level/)`, 'level 1 to be cleared by y=-x', 25000);
+    // A second clear is the tall one: it adds a "previous best" line to each block.
+    await tap(`BB(/Replay/)`); await sleep(300);
+    await tap(`BB(/^Play/)`);
+    await until(`BB(/Next level/)`, 'level 1 to be cleared again', 25000);
+    await sleep(700);
+    const popupFits = () => ev(`
+      const list = [...document.querySelectorAll('.fp-scroll')].find(e => e.textContent.includes('Rating'));
+      return { lines: (list.textContent.match(/Previous best/g) || []).length,
+        fits: list.scrollHeight <= list.clientHeight,
+        onScreen: BB(/Next level/).getBoundingClientRect().bottom <= document.documentElement.clientHeight };`);
+    check('a repeat clear shows both previous bests without scrolling', await popupFits(), { lines: 2, fits: true, onScreen: true });
+    await size(320, 568);
+    check('and on a 320 by 568 screen too', await popupFits(), { lines: 2, fits: true, onScreen: true });
+    await size(375, 812);
     await tap(`BB(/Replay/)`); await sleep(300);
     await tap(`B('Curve settings')`);
     await tap(`B('move along y')`);
@@ -310,6 +324,63 @@ const HELPERS = `
     await tap(`B('Close')`);
     await enterLevel2();
     check('including the one after closing it', { ...(await S()), title: await deckTitle() }, { deck: 3, title: true });
+    await tap(`B('Close')`);
+
+    // styles.css keeps everything a 320px phone needs in one media query, and
+    // the components carry only class names. Both halves are checked: that the
+    // narrow rules do their job, and that a wider phone computes exactly the
+    // values written inline.
+    describe('Narrow phones');
+    const styleOf = `(sel, prop) => { const e = document.querySelector(sel); return e ? getComputedStyle(e)[prop] : 'missing'; }`;
+    const inline = () => ev(`const css = ${styleOf}; return {
+      hud: css('.fp-hud', 'paddingLeft'), row: css('.fp-hud-row', 'columnGap'),
+      chip: css('.fp-chip', 'paddingLeft'), label: css('.fp-chip-label', 'fontSize'),
+      play: css('.fp-hud-play', 'paddingLeft'), seg: css('.fp-seg', 'columnGap'),
+      num: css('.fp-seg .fp-num', 'width'), x: css('.fp-seg-x', 'whiteSpace') };`);
+    const WIDE = { hud: '14px', row: '8px', chip: '10px', label: '9.5px', play: '16px', seg: '6px', num: '52px', x: 'normal' };
+    await tap(`B('Curve settings')`);
+    await tap(`B('+ Add segment')`);
+    check('at 375px every value is the one written inline', await inline(), WIDE);
+    await size(360, 640);
+    check('and at 360px', await inline(), WIDE);
+    await size(340, 640);
+    // Not the boxes: a computed width is the laid-out one, and at 340px the
+    // row is already a few pixels tight and flex takes them from the boxes.
+    const { num, ...rules } = WIDE;
+    check('and at 340px, the first width that is not narrow', await inline(), rules);
+
+    await size(320, 568);
+    const hud = () => ev(`
+      const W = document.documentElement.clientWidth;
+      return { playOnScreen: BB(/^(Play|Stop)/).getBoundingClientRect().right <= W, wide: document.documentElement.scrollWidth <= W };`);
+    check('at 320px Play is on screen', await hud(), { playOnScreen: true, wide: true });
+    check('a domain segment keeps "x ∈" on one line, clear of Done', await ev(`
+      const x = document.querySelector('.fp-seg-x').getBoundingClientRect();
+      return { oneLine: x.height < 20, clear: BB(/^×$/).getBoundingClientRect().right <= B('Close curve settings').getBoundingClientRect().left };`),
+      { oneLine: true, clear: true });
+    // The widest the three chips get: a three-digit score, Geometry's ten
+    // stars, a run near the time limit. Written straight into the chips,
+    // because no level reaches all three at once.
+    await ev(`const vals = { SCORE: '185', STARS: '10/10', TIME: '27.9s' };
+      for (const l of document.querySelectorAll('.fp-chip-label')) l.nextElementSibling.textContent = vals[l.textContent.trim().toUpperCase()];`);
+    check('and still is with the widest numbers the chips can hold', await hud(), { playOnScreen: true, wide: true });
+    await size(375, 812);
+
+    await tap(`B('Back')`); await until(`BB(/First slope/)`, 'the level list');
+    await tap(`B('Back')`); await until(`BB(/Foundations/)`, 'the pack list');
+    await tap(`B('Back')`); await until(`BB(/Sandbox/)`, 'the main screen');
+    await tap(`BB(/Sandbox/)`);
+    await until(`B('Add equation')`, 'the sandbox');
+    await tap(`B('Add equation')`);
+    await tap('F()'); await type('y=sin(x)');
+    await tap(`B('Curve settings')`);
+    const sandbox = () => ev(`
+      const t = [...document.querySelectorAll('.fp-studio-bar div')].find(d => d.textContent.trim() === 'Free play' && !d.children.length);
+      return { icons: getComputedStyle(document.querySelector('.fp-mat-icon')).display !== 'none',
+        title: t.scrollWidth <= t.clientWidth, bar: getComputedStyle(document.querySelector('.fp-studio-bar')).columnGap };`);
+    check('the sandbox at 375px draws the bounce icons and its usual header', await sandbox(), { icons: true, title: true, bar: '10px' });
+    await size(320, 568);
+    check('at 320px the bounce buttons are words, and the title is whole', await sandbox(), { icons: false, title: true, bar: '6px' });
   } catch (e) {
     results.push({ group, name: e.message, ok: false, got: 'the scenario stopped here', want: 'to finish' });
   }
