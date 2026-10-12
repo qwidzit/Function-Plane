@@ -3,7 +3,7 @@
 Everything still to do, in one place. How the game works, and how it is built,
 sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
-## Where the release stands — 8 October 2026
+## Where the release stands — 12 October 2026
 
 - **Closed testing is finished** (25 September). All 70 levels of the seven
   visible packs are authored and have been played by hand.
@@ -58,7 +58,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Play Console | **Apply for production access**, turn on managed publishing, then promote Build 5 to production at **100%**. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
+| 1 | Play Console | **Production access was applied for on 11 October**; Google answers in days. Meanwhile Build 6 (a bugfix) is being prepared in a new session. When access arrives: turn on managed publishing, then release whichever build is current at **100%** — Build 5 is already reviewed and goes fastest, a new build is reviewed from scratch. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
 | 2 | Website repo | **On launch day:** the change is ready on the local `launch-day` branch of `Function-Plane-Website/` (commit `90df701`: hero notice, Google Play card and download note point at the listing). From that folder: `git checkout main && git merge launch-day && git push`. Pages deploys it within a minute |
 
 ## Any time, in the admin panel

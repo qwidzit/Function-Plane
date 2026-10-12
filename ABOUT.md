@@ -1534,10 +1534,12 @@ The game is distributed on **both** Google Play and the open web, but it
 **sells on Play only**. The web build signs in, restores and plays; it has no
 checkout.
 
-**Proven end to end on 8 October 2026:** a licence-tester purchase on Build 3
-produced a row in `purchases` and Premium on the account. Restore on a second
-device and the refund sweep have not been exercised against a real purchase
-yet — see `TODO.md`.
+**Proven end to end, 8–10 October 2026:** a licence-tester purchase on Build 3
+produced a row in `purchases` and Premium on the account; the refund, the
+sweep and Restore reporting the refund were proven on 10 October. Restore
+on a second device, with Premium arriving, has not been exercised — it needs
+a fresh licence-tester purchase, since a refunded token is never granted
+again.
 
 **Google Play billing does not work in Russia.** Play suspended purchases for
 users there in March 2022, so a Russian Play account cannot buy premium at all.
@@ -1676,15 +1678,21 @@ See *Play Console* below.
 2. `select * from purchases` has one row, and that account's
    `profiles.is_premium` is true. **Done 8 October.**
 3. Sign in on a second device and press **Restore purchases** — premium
-   without paying again.
+   without paying again. **Not yet done** with a live purchase.
 4. Refund the test order in Play Console, then run the sweep by hand rather
    than waiting for 03:40 UTC: `select public.sweep_play_refunds();`. Within a
    few seconds the `purchases` row has a `voided_at` and `is_premium` is false.
    The cron job reports "succeeded" whatever the function answered — `pg_net`
    does not wait — so read the answer itself:
    `select status_code, content from net._http_response order by created desc limit 1;`
-   (200 and `{"seen":…,"revoked":…}` is a real answer). Then press Restore on
-   that account: it must say *That purchase was refunded*, never Premium.
+   (200 and `{"seen":…,"checked":…,"cancelled":…,"revoked":…}` is a real
+   answer). Then press Restore on that account: it must say *That purchase
+   was refunded*, never Premium. **Done 10 October** — and it took a detour:
+   the Console's refund has no revoke option for a one-time product, Google's
+   voided-purchases feed omits an unrevoked refund, and a licence-tester order
+   revoked afterwards (`orders.refund?revoke=true` in the API explorer) still
+   never appeared in it. `products.get` answered `purchaseState: 1` all along,
+   which is why the sweep now re-checks every live ledger row directly.
 5. On the web build, sign in as the buyer: the premium screen says premium is
    active. As anyone else it says premium is sold in the Android app, with no
    button that cannot complete.
