@@ -138,6 +138,7 @@ android` / `npx cap add ios` (iOS needs a Mac).
 | `npm run build:jsx` | Compile all `.jsx` → `.js`. Run after every `.jsx` edit. |
 | `npm run snapshot:data` | Pull Supabase override tables → `overrides-snapshot.js`. Run before every release. |
 | `npm run verify:levels` | Replay every authored level's intended solution through the real run loop. `--svg <dir>` draws each one, `--json <file>` dumps the results, `--trail` prints where the ball went. |
+| `npm run verify:ui` | Play the equations panel in a headless Chrome or Edge: the ⋯ settings, both keyboards, the decks. About 40 s. Needs one of the two installed (`CHROME_PATH` if it is somewhere unusual) and Node 22+. |
 | `npm run cap:sync` | build:jsx + copy web files into `android/` and `ios/` |
 | `npm run android:build` | build:jsx + sync android + open Android Studio |
 | `npm run ios:build` | build:jsx + sync ios + open Xcode (needs Mac + `ios/` folder) |
@@ -201,6 +202,30 @@ breakage.
 Every check has been mutation-tested: breaking the energy gate, reverting the
 sim clock, forgetting a `SHELL` entry, or regressing the classifier each turn
 the suite red.
+
+### What a finger does (`npm run verify:ui`)
+
+`npm test` calls every screen once and never touches one, and every bug in the
+equations panel has needed two taps in the wrong order. `scripts/verify-ui.js`
+is those taps: it serves `function-plane/` itself, starts a headless Chrome or
+Edge over the DevTools protocol — no dependencies, the same rule as the rest —
+and plays Pack I with real touch events. It covers the three states a row's ⋯
+settings move between, which keyboard is up after each step, the keypad
+following a nudge, a held nudge repeating, a row or a run taking a keyboard
+away, a loaded run arriving in a clean panel, and the decks: three pages each,
+the move deck on level 2, once for a player and every visit for an admin.
+
+Two things make it repeatable. Supabase and the font hosts are blocked, so the
+app boots from the baked snapshot exactly as an offline phone does and nothing
+it does reaches live data — which also means **a deck it expects on a level
+has to be in the snapshot**, not only in the database. And the page is given
+focus emulation: a headless page has none of its own, so no blur ever fires
+and a caret that should have gone stays drawn.
+
+It is not part of `npm test` because it needs a browser and takes forty
+seconds. Without one it says so and exits 2 rather than passing. Mutation-tested
+the same way: with `closeRowPad` made a no-op it fails on exactly the bug it
+was written after.
 
 ## Sim timing — fixed tick, never the wall clock
 
@@ -540,7 +565,7 @@ The rest of a level's fields are complete or deliberately empty:
 
 | field | state |
 |---|---|
-| `explain` | 4 levels, one each for `how-to-play`, `domain`, `rubber` and `steel`. A fifth deck, `move`, was written on 12 October for `r-I-1` *First slope* and **no row names it yet** — see *Hints and tutorials*. Objects teach themselves through `FP_OBJECT_TUTORIALS` by kind. |
+| `explain` | 5 levels, one per explainer deck: `how-to-play` on `r-I-0`, `move` on `r-I-1`, `domain` on `r-I-5`, `rubber` and `steel` in pack III. Every deck that exists is introduced by a level — `npm test` fails on one that is not — and objects teach themselves through `FP_OBJECT_TUTORIALS` by kind, so nothing here is waiting to be filled. |
 | `outline` | 9 of Geometry's 10 — level 1 is a single star and has no shape to draw. Nowhere else wants one. |
 | `preplaced` | Unused by every shipped level. The feature works and the studio can set it; no level has needed a locked starting curve. Since 8 October each entry is `{ expr, domain, material, shift }` — the studio saves every setting a row carries — and a bare string still reads as an expression with none. |
 | `materials` | On for 37 levels (pack III from *Elastic* onward, all of IV, V and Linear), off where bounce is not part of the puzzle. |
@@ -705,7 +730,9 @@ pressed a second time, which nothing on screen said, and the row's buttons
 drifted to the middle of a block four lines tall, away from the finger that
 opened it. Now the number, Done and the × stay on the equation's own line
 (`headAlign` in `EqRow`), and the equation above the settings is itself a way
-back: tapping it returns to the field with the keyboard up. Done returns to
+back: tapping it returns to the field with the keyboard up. A row with nothing
+written yet says *No equation yet* there, faintly, rather than leaving a blank
+line that is secretly a button. Done returns to
 whatever was there before — the keyboard comes back only if it was this row's
 when the settings opened. Three sections, none of which changes what a curve
 costs:
@@ -720,9 +747,11 @@ costs:
   applied by `parseEquation(expr, shift)` on the *compiled* function, so the
   plane, the colliders and a run all move with it and nothing about the text,
   its class or its price changes. Reparse whenever the expression *or* the
-  shift changes. Nudge buttons step by 0.5; the value opens the `NumPad`,
-  and a nudge while it is open re-seeds it, so the keypad goes on showing the
-  number it is editing. `setShift` patches from the row as it stands (`update`
+  shift changes. Nudge buttons step by 0.5 and repeat while held
+  (`useKeyRepeat`, the keyboard's own); each step reads the row through a ref,
+  because a closure over the render it started in would add the same half unit
+  to the same number. The value opens the `NumPad`, and a nudge while it is
+  open re-seeds it, so the keypad goes on showing the number it is editing. `setShift` patches from the row as it stands (`update`
   takes a function for this), because the keypad holds its commit until it
   closes and the other axis may have moved since.
   The domain is in plane coordinates, so a moved curve is still cut where the
@@ -1047,14 +1076,15 @@ Two rules keep the diagrams honest:
   `level_overrides.explain`. A row naming an explainer that no longer exists
   reads as null, so the old `fans` and `hazards` rows heal themselves — and a
   build older than a deck simply shows nothing for it.
-- **`move` is written and not yet switched on.** It is the ⋯ button's own
-  deck — where the settings are, the − and + that step a curve half a unit,
-  and that Done puts the equation back — meant for `r-I-1` *First slope*, so a
-  player meets the button on their second level instead of their sixth. A deck
-  shows only on a level whose row names it: in the studio open Pack I level 2,
-  Level tab, **Introduces → Move the curve**, Save; then `npm run
-  snapshot:data`, bump `sw.js`, and set `"explain": "move"` on that level in
-  `levels/r-I.json`. `npm test` checks every row names a deck that exists.
+- **`move` is the ⋯ button's own deck**, on `r-I-1` *First slope* since
+  12 October: where the settings are, the − and + that shift a curve, and that
+  Done returns to the equation. A player meets the button on their second
+  level instead of their sixth. So the `domain` deck, still on level six, no
+  longer opens with the button — its first page is the Domain line as the
+  settings draw it. Rubber and steel still open with it; either may be the
+  first settings a returning player looks for.
+- **Deck copy is one or two short sentences a page.** What the thing is, what
+  to tap. No sentence that restates its own heading.
 - `pendingTutorials(levelData)` returns the queue, objects first; closing one
   advances to the next. Seen-ness is `fp-tip-<key>` in localStorage, per
   device and deliberately **not** part of progress: it is a reading state, not

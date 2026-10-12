@@ -1224,15 +1224,22 @@ function EqSettings({ eq, onChange, onEdit, disabled, materialsOn, domKb, onDomI
   const openPad = (k, v) => onDomInput(padId(k), v, n => setShift(k, n), `move along ${k}`);
   const label = { fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--fp-ink-3)',
     width:52, flex:'0 0 52px' };
+  // A held nudge repeats, so each step reads the row as it is by then — a
+  // closure over this render would add the same half unit to the same number.
+  const { start: holdStart, stop: holdStop } = useKeyRepeat();
+  const live = useRL(null);
+  live.current = { shift, domKb, disabled };
+  const step = (k, d) => {
+    const now = live.current;
+    if (now.disabled) return;
+    const v = Math.round((now.shift[k] + d) * 100) / 100;
+    setShift(k, v);
+    // A keypad open on this number goes on showing what it is editing.
+    if (now.domKb?.id === padId(k)) openPad(k, v);
+  };
   const nudge = (k, d) => (
-    <button onPointerDown={e=>{
-        e.preventDefault();
-        if (disabled) return;
-        const v = Math.round((shift[k] + d) * 100) / 100;
-        setShift(k, v);
-        // A keypad open on this number goes on showing what it is editing.
-        if (domKb?.id === padId(k)) openPad(k, v);
-      }}
+    <button onPointerDown={e=>{ e.preventDefault(); holdStart(() => step(k, d)); }}
+      onPointerUp={holdStop} onPointerCancel={holdStop} onPointerLeave={holdStop}
       aria-label={`${k} ${d > 0 ? 'plus' : 'minus'}`} style={{
       width:26, height:28, borderRadius:6, border:'1px solid var(--lv-line)',
       background:'var(--fp-surface)', color:'var(--fp-ink-2)', fontSize:15, lineHeight:1,
@@ -1245,7 +1252,7 @@ function EqSettings({ eq, onChange, onEdit, disabled, materialsOn, domKb, onDomI
       <button onClick={onEdit} aria-label="Edit the equation" style={{
         fontFamily:"'Geist Mono','ui-monospace',monospace", fontSize:13, color:'var(--fp-ink-2)',
         whiteSpace:'nowrap', overflow:'hidden', display:'flex', alignItems:'center', minHeight:22 }}>
-        <MathExpr src={eq.expr}/>
+        {eq.expr.trim() ? <MathExpr src={eq.expr}/> : <span style={{ color:'var(--fp-ink-4)' }}>No equation yet</span>}
       </button>
       {materialsOn && (
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>

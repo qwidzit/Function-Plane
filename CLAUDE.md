@@ -29,6 +29,11 @@ and tells the player) are all sections of `ABOUT.md`.
    `npm run verify:levels` too. It replays every authored level's intended
    solution through the real run loop; a level authored close to a hazard can
    stop clearing over a change of a single pixel.
+5. **Touched the equations panel, a keyboard, a row's ⋯ settings or a
+   tutorial deck?** Run `npm run verify:ui`. It taps through them in a
+   headless Chrome or Edge, which is the only thing that catches a keyboard
+   left up for a row that is gone. It needs one of the two installed and exits
+   2, not 0, where there is none — a sandbox cannot run it, so say so.
 
 ## Getting Babel, and never hand-editing a compiled `.js`
 

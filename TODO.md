@@ -38,8 +38,11 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   equation above them is a way back; closing them closes the number keypad,
   which used to stay up and keep the math keyboard from opening at all; the
   two keyboards can no longer be up for a row that is gone or during a run;
-  and a new *Move the curve* deck explains the button. `sw.js` is at
-  `fp-v106`. The version strings still say Build 5 — raise them with
+  the − and + repeat while held; and a new *Move the curve* deck introduces
+  the button on Pack I level 2 (its row was set and the snapshot regenerated
+  on 12 October), which lets the domain deck on level 6 stop re-introducing
+  it. `npm run verify:ui` plays all of it in a real browser. `sw.js` is at
+  `fp-v107`. The version strings still say Build 5 — raise them with
   `versionCode` when the build is made.
 - **The refund is proven server-side** (10 October). The test order was refunded
   without the revoke option, then revoked through `orders.refund?revoke=true` in
@@ -69,15 +72,6 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 | 1 | Play Console | **Production access was applied for on 11 October**; Google answers in days. Meanwhile Build 6 (a bugfix) is being prepared in a new session. When access arrives: turn on managed publishing, then release whichever build is current at **100%** — Build 5 is already reviewed and goes fastest, a new build is reviewed from scratch. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
 | 2 | Website repo | **On launch day:** the change is ready on the local `launch-day` branch of `Function-Plane-Website/` (commit `90df701`: hero notice, Google Play card and download note point at the listing). From that folder: `git checkout main && git merge launch-day && git push`. Pages deploys it within a minute |
 
-## Before Build 6 is built
-
-- **Switch on the *Move the curve* deck for Pack I level 2.** The deck ships
-  in the code and no level names it yet, so nobody sees it. Account ▸ Admin ▸
-  Pack I ▸ level 2 ▸ Level tab ▸ **Introduces → Move the curve** ▸ Save level
-  (the option appears once the app is running this commit). Then `npm run
-  snapshot:data`, bump `sw.js`, and set `"explain": "move"` on that level in
-  `levels/r-I.json`. A build older than the deck reads the row as nothing.
-
 ## Any time, in the admin panel
 
 Levels, packs and achievements are not in the build: the app syncs them from
@@ -98,6 +92,7 @@ a draft there.
 - `versionCode` up by one, with `FP_BUILD` and the two `v 1.0 · build N`
   strings (`npm test` checks the three in the repo agree).
 - `sw.js` cache version up if anything bundled changed.
+- `npm run verify:ui` on a machine with Chrome or Edge.
 - `npm run snapshot:data` if a level was edited since the last build.
 
 ## Known and accepted

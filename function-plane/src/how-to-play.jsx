@@ -688,13 +688,10 @@ const FP_EXPLAINERS = {
             </g>
           </Art>
         ),
-        body: <>
-          The ⋯ button on an equation row opens its settings. <strong>Move</strong> shifts the
-          whole curve and leaves the equation as you wrote it.
-        </>,
+        body: <>Tap ⋯ on an equation row to open its settings.</>,
       },
       {
-        heading: 'Half a unit a tap',
+        heading: 'Move',
         art: (
           <Art>
             {/* The control as the row draws it, and the curve answering it: two
@@ -739,8 +736,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          <strong>−</strong> and <strong>+</strong> step the curve half a unit along x or y. Tap
-          the number between them to type an exact distance.
+          <strong>−</strong> and <strong>+</strong> shift the curve by 0.5 along x or y. Hold to
+          repeat, or tap the number to type it.
         </>,
       },
       {
@@ -761,8 +758,8 @@ const FP_EXPLAINERS = {
           </Art>
         ),
         body: <>
-          A moved curve scores what it scored where it was. <strong>Done</strong> puts the
-          equation back in the row.
+          Moving a curve does not change its score. <strong>Done</strong> returns to the
+          equation.
         </>,
       },
     ],
@@ -776,31 +773,30 @@ const FP_EXPLAINERS = {
     </svg>,
     pages: [
       {
-        heading: 'The ⋯ button',
+        heading: 'Domain, in the settings',
         art: (
           <Art>
-            {/* An equation row, with the one button on it that matters here. */}
-            <rect x={22} y={30} width={164} height={36} rx={9}
+            {/* The line as the settings draw it. The ⋯ button itself belongs to
+                the move deck, four levels earlier. */}
+            <rect x={14} y={30} width={180} height={36} rx={9}
               fill="var(--fp-surface)" stroke="var(--fp-ink)" strokeOpacity={0.14}/>
-            <circle cx={40} cy={48} r={8} fill={CURVE_C}/>
-            <text x={40} y={52} textAnchor="middle" fontSize={9} fontWeight={600}
-              fontFamily="ui-monospace,monospace" fill="#fff">1</text>
-            <text x={57} y={53} fontSize={12.5} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-2)">y=x²−2</text>
-            <g transform="translate(165,48)" stroke="#6042a6" strokeWidth={1.8} strokeLinecap="round" fill="none">
-              <g fill="#6042a6" stroke="none"><circle cx={-6} r={1.9}/><circle r={1.9}/><circle cx={6} r={1.9}/></g>
-              {/* One ring, expanding and gone — then a beat before the next. */}
-              <circle r={10} strokeWidth={1.4}>
-                <animate attributeName="r" dur="2.6s" repeatCount="indefinite"
-                  values="9;19;19" keyTimes={holdTimes}/>
-                <animate attributeName="stroke-opacity" dur="2.6s" repeatCount="indefinite"
-                  values="0.75;0;0" keyTimes={holdTimes}/>
-              </circle>
-            </g>
+            <text x={24} y={51.5} fontSize={8.5} letterSpacing={0.8}
+              fontFamily="ui-monospace,monospace" fill="var(--fp-ink-3)">DOMAIN</text>
+            <text x={73} y={52} fontSize={11} fontFamily="ui-monospace,monospace" fill="var(--fp-ink-3)">x ∈</text>
+            {[[98, '−3'], [152, '3']].map(([x, v]) => (
+              <g key={v}>
+                <rect x={x} y={37} width={36} height={22} rx={5}
+                  fill="var(--fp-surface)" stroke="#6042a6" strokeWidth={1.3}/>
+                <text x={x + 18} y={52} textAnchor="middle" fontSize={11}
+                  fontFamily="ui-monospace,monospace" fill="var(--fp-ink)">{v}</text>
+              </g>
+            ))}
+            <text x={143} y={52} textAnchor="middle" fontSize={10}
+              fontFamily="ui-monospace,monospace" fill="var(--fp-ink-3)">to</text>
           </Art>
         ),
         body: <>
-          The ⋯ button on an equation row opens its settings. <strong>Domain</strong> is the
-          range of x where the curve exists.
+          <strong>Domain</strong>, in a row's ⋯ settings, limits the curve to a range of x.
         </>,
       },
       {

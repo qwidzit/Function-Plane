@@ -1115,9 +1115,9 @@ const FP_EXPLAINERS = {
         values: "0.75;0;0",
         keyTimes: holdTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The \u22EF button on an equation row opens its settings. ", /*#__PURE__*/React.createElement("strong", null, "Move"), " shifts the whole curve and leaves the equation as you wrote it.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Tap \u22EF on an equation row to open its settings.")
     }, {
-      heading: 'Half a unit a tap',
+      heading: 'Move',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
         d: MOVE_BOWL,
         fill: "none",
@@ -1210,7 +1210,7 @@ const FP_EXPLAINERS = {
         values: values,
         keyTimes: keyTimes
       })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "\u2212"), " and ", /*#__PURE__*/React.createElement("strong", null, "+"), " step the curve half a unit along x or y. Tap the number between them to type an exact distance.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "\u2212"), " and ", /*#__PURE__*/React.createElement("strong", null, "+"), " shift the curve by 0.5 along x or y. Hold to repeat, or tap the number to type it.")
     }, {
       heading: 'It is free',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {
@@ -1252,7 +1252,7 @@ const FP_EXPLAINERS = {
         fontFamily: "ui-monospace,monospace",
         fill: "#388c46"
       }, "40")),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "A moved curve scores what it scored where it was. ", /*#__PURE__*/React.createElement("strong", null, "Done"), " puts the equation back in the row.")
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, "Moving a curve does not change its score. ", /*#__PURE__*/React.createElement("strong", null, "Done"), " returns to the equation.")
     }]
   },
   domain: {
@@ -1275,69 +1275,56 @@ const FP_EXPLAINERS = {
       strokeLinecap: "round"
     })),
     pages: [{
-      heading: 'The ⋯ button',
+      heading: 'Domain, in the settings',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("rect", {
-        x: 22,
+        x: 14,
         y: 30,
-        width: 164,
+        width: 180,
         height: 36,
         rx: 9,
         fill: "var(--fp-surface)",
         stroke: "var(--fp-ink)",
         strokeOpacity: 0.14
-      }), /*#__PURE__*/React.createElement("circle", {
-        cx: 40,
-        cy: 48,
-        r: 8,
-        fill: CURVE_C
       }), /*#__PURE__*/React.createElement("text", {
-        x: 40,
+        x: 24,
+        y: 51.5,
+        fontSize: 8.5,
+        letterSpacing: 0.8,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-3)"
+      }, "DOMAIN"), /*#__PURE__*/React.createElement("text", {
+        x: 73,
+        y: 52,
+        fontSize: 11,
+        fontFamily: "ui-monospace,monospace",
+        fill: "var(--fp-ink-3)"
+      }, "x \u2208"), [[98, '−3'], [152, '3']].map(([x, v]) => /*#__PURE__*/React.createElement("g", {
+        key: v
+      }, /*#__PURE__*/React.createElement("rect", {
+        x: x,
+        y: 37,
+        width: 36,
+        height: 22,
+        rx: 5,
+        fill: "var(--fp-surface)",
+        stroke: "#6042a6",
+        strokeWidth: 1.3
+      }), /*#__PURE__*/React.createElement("text", {
+        x: x + 18,
         y: 52,
         textAnchor: "middle",
-        fontSize: 9,
-        fontWeight: 600,
+        fontSize: 11,
         fontFamily: "ui-monospace,monospace",
-        fill: "#fff"
-      }, "1"), /*#__PURE__*/React.createElement("text", {
-        x: 57,
-        y: 53,
-        fontSize: 12.5,
+        fill: "var(--fp-ink)"
+      }, v))), /*#__PURE__*/React.createElement("text", {
+        x: 143,
+        y: 52,
+        textAnchor: "middle",
+        fontSize: 10,
         fontFamily: "ui-monospace,monospace",
-        fill: "var(--fp-ink-2)"
-      }, "y=x\xB2\u22122"), /*#__PURE__*/React.createElement("g", {
-        transform: "translate(165,48)",
-        stroke: "#6042a6",
-        strokeWidth: 1.8,
-        strokeLinecap: "round",
-        fill: "none"
-      }, /*#__PURE__*/React.createElement("g", {
-        fill: "#6042a6",
-        stroke: "none"
-      }, /*#__PURE__*/React.createElement("circle", {
-        cx: -6,
-        r: 1.9
-      }), /*#__PURE__*/React.createElement("circle", {
-        r: 1.9
-      }), /*#__PURE__*/React.createElement("circle", {
-        cx: 6,
-        r: 1.9
-      })), /*#__PURE__*/React.createElement("circle", {
-        r: 10,
-        strokeWidth: 1.4
-      }, /*#__PURE__*/React.createElement("animate", {
-        attributeName: "r",
-        dur: "2.6s",
-        repeatCount: "indefinite",
-        values: "9;19;19",
-        keyTimes: holdTimes
-      }), /*#__PURE__*/React.createElement("animate", {
-        attributeName: "stroke-opacity",
-        dur: "2.6s",
-        repeatCount: "indefinite",
-        values: "0.75;0;0",
-        keyTimes: holdTimes
-      })))),
-      body: /*#__PURE__*/React.createElement(React.Fragment, null, "The \u22EF button on an equation row opens its settings. ", /*#__PURE__*/React.createElement("strong", null, "Domain"), " is the range of x where the curve exists.")
+        fill: "var(--fp-ink-3)"
+      }, "to")),
+      body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("strong", null, "Domain"), ", in a row's \u22EF settings, limits the curve to a range of x.")
     }, {
       heading: 'A track with an end',
       art: /*#__PURE__*/React.createElement(Art, null, /*#__PURE__*/React.createElement("path", {

@@ -8,6 +8,7 @@
     "build:jsx": "node scripts/build-jsx.js",
     "snapshot:data": "node scripts/snapshot-overrides.js",
     "verify:levels": "node scripts/verify-levels.js",
+    "verify:ui": "node scripts/verify-ui.js",
     "cap:init": "cap init 'Function Plane' app.functionplane --web-dir=function-plane",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",

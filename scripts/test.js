@@ -1890,7 +1890,7 @@ it('ships a parseable override snapshot', () => {
   ok(Array.isArray(snapshot.data.packs), 'snapshot.data.packs must be an array');
 });
 
-it('only introduces decks that exist, and every deck is three pages', () => {
+it('introduces every deck on a level, and every deck is three pages', () => {
   const w = { React: new Proxy({}, { get: () => () => {} }) };
   global.window = w; global.React = w.React;
   delete require.cache[require.resolve(path.join(SRC, 'how-to-play.js'))];
@@ -1906,7 +1906,14 @@ it('only introduces decks that exist, and every deck is three pages', () => {
     eq(d.pages.length, 3, `${k} is a three-page deck`);
     for (const p of d.pages) ok(p.heading && 'art' in p && 'body' in p, `${k} has a page missing its heading, art or body`);
   }
-  ok(decks.move, 'the ⋯ settings have a deck of their own');
+  // A deck no level names is a deck nobody sees: move shipped that way for a
+  // commit, written and waiting on its row.
+  for (const k of Object.keys(decks)) {
+    ok(snapshot.data.levels.some(l => l.explain === k), `no level introduces the ${k} deck`);
+  }
+  const at = k => { const l = snapshot.data.levels.find(l => l.explain === k); return `${l.pack_id}-${l.level_index}`; };
+  eq(at('move'), 'r-I-1', 'the ⋯ button is introduced on the second level');
+  eq(at('domain'), 'r-I-5', 'domain is introduced on the sixth');
 });
 
 it('authors every level it ships with sane goals', () => {
