@@ -3,7 +3,7 @@
 Everything still to do, in one place. How the game works, and how it is built,
 sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
-## Where the release stands — 12 October 2026
+## Where the release stands — 13 October 2026
 
 - **Closed testing is finished** (25 September). All 70 levels of the seven
   visible packs are authored and have been played by hand.
@@ -33,7 +33,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   truncating. `versionCode` is 5, `sw.js` is at `fp-v105`. The Rate and
   Google Play buttons and the studio's Export were tapped on the installed
   build and work.
-- **Build 6 is in the repo and not yet built or uploaded** (12 October). It is
+- **Build 6 is built and not yet uploaded** (13 October). It is
   the ⋯ curve settings: the button reads **Done** while they are open and the
   equation above them is a way back; closing them closes the number keypad,
   which used to stay up and keep the math keyboard from opening at all; the
@@ -43,8 +43,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   on 12 October), which lets the domain deck on level 6 stop re-introducing
   it. Five layouts that broke on 320px phones are fixed, in one media query
   that no wider phone can match. `npm run verify:ui` plays all of it in a real
-  browser. `sw.js` is at `fp-v108`. The version strings still say Build 5 — raise them with
-  `versionCode` when the build is made.
+  browser. `versionCode` is 6 and `sw.js` is at `fp-v109`.
 - **The refund is proven server-side** (10 October). The test order was refunded
   without the revoke option, then revoked through `orders.refund?revoke=true` in
   the API explorer; Google's voided-purchases feed never listed it, so the sweep
@@ -98,6 +97,13 @@ a draft there.
 
 ## Known and accepted
 
+- **The level header is exact at 360px** (accepted 13 October). Score, Stars,
+  Time and Play are one row that cannot shrink: a run of ten seconds or more
+  puts Stop flush against the screen edge, a three-digit score on top of that
+  pushes it about 7px past, and Geometry's `10/10` stars about 20px. At 375px
+  only that last case overflows, by 5px. Rare enough to leave; the narrow
+  block's values in `styles.css` would fix it at any width if that changes.
+
 - **46 of the 70 levels have no recorded answer**, so `npm run verify:levels`
   replays 24. Nothing is unclearable today, but a future physics change has no
   automated check over those 46. Recording answers into `levels/*.json` fixes
@@ -122,15 +128,6 @@ a draft there.
 
 ## Later — not required for launch
 
-- **The level header on a 360px phone.** Score, Stars, Time and Play are one
-  row that cannot shrink. At 360px it is exact for short numbers: a run of ten
-  seconds or more puts Stop flush against the screen edge, a three-digit score
-  on top of that pushes it about 7px past, and Geometry's `10/10` stars about
-  20px. At 375px only that last case overflows, by 5px. Measured on
-  12 October while fixing 320px; left alone because that change was not to
-  touch ordinary phones. The narrow block's values would fix it at any width —
-  the decision is whether 360px should look as dense as 320px, or whether the
-  row should give up something else first.
 
 - **The hidden packs.** Trigonometry, Exponential, Inversion and Roman VI–X are
   empty; unhide each once it is authored.

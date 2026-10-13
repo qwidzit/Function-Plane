@@ -128,7 +128,7 @@ function MainScreen({ onPlay, onSandbox, onInfo, onAchievements, onAccount, onSe
         letterSpacing: '0.06em', textTransform: 'uppercase',
         paddingTop: 10, flex: '0 0 auto',
       }}>
-        v 1.0 · build 5
+        v 1.0 · build 6
       </div>
 
     </div>
