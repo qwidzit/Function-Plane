@@ -33,7 +33,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
   truncating. `versionCode` is 5, `sw.js` is at `fp-v105`. The Rate and
   Google Play buttons and the studio's Export were tapped on the installed
   build and work.
-- **Build 6 is built and not yet uploaded** (13 October). It is
+- **Build 6 was uploaded on 13 October** to the closed track. It is
   the ⋯ curve settings: the button reads **Done** while they are open and the
   equation above them is a way back; closing them closes the number keypad,
   which used to stay up and keep the math keyboard from opening at all; the
@@ -69,7 +69,7 @@ sold and released, is in [`ABOUT.md`](./ABOUT.md).
 
 | # | Where | What |
 |---|---|---|
-| 1 | Play Console | **Production access was applied for on 11 October**; Google answers in days. Meanwhile Build 6 (a bugfix) is being prepared in a new session. When access arrives: turn on managed publishing, then release whichever build is current at **100%** — Build 5 is already reviewed and goes fastest, a new build is reviewed from scratch. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates from Build 6 on, where it means the others stay on the build they have |
+| 1 | Play Console | **Production access was granted on 13 October**, and Build 6 went to the closed track the same day. Turn on managed publishing, then promote Build 6 to production at **100%** once its review has passed — Build 5 is already reviewed and would go sooner, without the curve-settings fixes. A staged first release only turns installers away, since there is no older version for the rest to keep; stage the updates after it, where it means the others stay on the build they have |
 | 2 | Website repo | **On launch day:** the change is ready on the local `launch-day` branch of `Function-Plane-Website/` (commit `90df701`: hero notice, Google Play card and download note point at the listing). From that folder: `git checkout main && git merge launch-day && git push`. Pages deploys it within a minute |
 
 ## Any time, in the admin panel
@@ -97,6 +97,16 @@ a draft there.
 
 ## Known and accepted
 
+- **A refund keeps the stars Premium let a player earn** (accepted
+  14 October). Premium opens every pack; revoking it locks them again but
+  removes nothing, so stars from levels played behind a lock stay in the
+  total, the stars leaderboard and the leaderboard rows. Qwidzit shows it:
+  62 stars, of which 9 are from `r-III-6`, `r-IV-9` and `r-V-7`, played before
+  the test purchase was revoked on 10 October, in packs that are locked for
+  that account now. Counting only reachable packs would make totals jump with
+  every grant and revoke, and the server's `total_stars` and the leaderboard
+  guard would need the same rule — a migration and a build, for a case that
+  needs a refund to happen. A refund takes the access, not the record.
 - **The level header is exact at 360px** (accepted 13 October). Score, Stars,
   Time and Play are one row that cannot shrink: a run of ten seconds or more
   puts Stop flush against the screen edge, a three-digit score on top of that
